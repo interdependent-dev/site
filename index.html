@@ -5,39 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INTERDEPENDENT</title>
     <style>
+        /* Modern Reset & Centering */
         body, html {
             height: 100%;
             margin: 0;
+            padding: 0;
             background-color: #000;
-            color: #FF0000; /* Dramatic Red */
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             text-align: center;
-            overflow: hidden;
+            overflow: hidden; /* Prevents accidental scrollbars */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        .container {
-            padding: 20px;
+
+        .content-wrapper {
+            width: 90%; /* Leaves a small breathing room on the sides */
+            max-width: 1200px;
         }
+
         h1 {
-            font-size: clamp(2rem, 8vw, 5rem); /* Responsive size */
+            color: #FF0000;
             font-weight: 900;
-            letter-spacing: 0.4em; /* The "spaced out" look */
-            margin-bottom: 0.5rem;
             text-transform: uppercase;
+            margin: 0;
+            padding: 0;
+            
+            /* Logic for one-line text: */
+            white-space: nowrap; 
+            /* 7.5vw means 7.5% of the total screen width */
+            font-size: 7.5vw; 
+            letter-spacing: 0.3em;
+            /* Extra spacing fix: letter-spacing adds space to the RIGHT of every letter. 
+               We add a slight left margin to keep the word perfectly centered. */
+            margin-right: -0.3em; 
         }
+
         p {
-            color: #ffffff; /* White tagline */
-            font-size: clamp(1rem, 3vw, 1.5rem);
-            letter-spacing: 0.1em;
+            color: #ffffff;
             font-weight: 300;
-            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-top: 1.5rem;
+            /* Tagline scales slightly slower than the main title */
+            font-size: clamp(0.8rem, 2vw, 1.2rem); 
+            opacity: 0.9;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="content-wrapper">
         <h1>I N T E R D E P E N D E N T</h1>
         <p>Coming March 20</p>
     </div>
