@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INTERDEPENDENT</title>
     <style>
-        /* 1. LOAD CUSTOM FONT WEIGHTS FROM YOUR FONTS FOLDER */
+        /* 1. LOAD YOUR CUSTOM FONTS */
         @font-face {
             font-family: 'EurostileCustom';
             src: url('fonts/EurostileNextProBold.woff2') format('woff2');
             font-weight: 900;
         }
-
         @font-face {
             font-family: 'EurostileCustom';
             src: url('fonts/EurostileNextProRegular.woff2') format('woff2');
@@ -33,10 +32,9 @@
         }
 
         .container {
-            width: 95%;
-            max-width: 1400px;
-            /* Animation triggers when page loads */
-            animation: fadeIn 2.5s ease-in-out forwards;
+            width: 92%; /* Breathing room for the edges */
+            max-width: 1600px;
+            animation: fadeIn 2s ease-in-out forwards;
         }
 
         h1 {
@@ -44,10 +42,15 @@
             font-weight: 900;
             text-transform: uppercase;
             margin: 0;
+            
+            /* FORCES TEXT TO ONE LINE */
             white-space: nowrap; 
-            font-size: 6.1vw; 
+            
+            /* VIEWPORT UNITS: 5.8% of screen width keeps it perfectly fitted */
+            font-size: 5.8vw; 
+            
             letter-spacing: 0.35em;
-            margin-right: -0.35em; 
+            margin-right: -0.35em; /* Perfectly centers the spaced-out text */
         }
 
         p {
@@ -56,13 +59,12 @@
             text-transform: uppercase;
             letter-spacing: 0.25em;
             margin-top: 25px;
-            font-size: clamp(0.7rem, 1.2vw, 1rem); 
+            font-size: clamp(0.6rem, 1.2vw, 0.9rem); 
             opacity: 0.7;
         }
 
-        /* Dramatic Fade-In Effect */
         @keyframes fadeIn {
-            0% { opacity: 0; filter: blur(10px); }
+            0% { opacity: 0; filter: blur(5px); }
             100% { opacity: 1; filter: blur(0); }
         }
     </style>
