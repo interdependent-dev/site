@@ -2,25 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INTERDEPENDENT</title>
     <style>
-        /* 1. LOAD FONTS */
-        @font-face {
-            font-family: 'EurostileCustom';
-            src: url('fonts/EurostileNextProBold.woff2') format('woff2');
-            font-weight: 900;
-            font-display: block; /* Prevents text jumpiness */
-        }
-        @font-face {
-            font-family: 'EurostileCustom';
-            src: url('fonts/EurostileNextProRegular.woff2') format('woff2');
-            font-weight: 400;
-            font-display: block;
-        }
-
-        /* 2. BASE RESET */
-        * { box-sizing: border-box; }
         body, html {
             height: 100%;
             margin: 0;
@@ -28,71 +12,33 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: hidden; /* Zero horizontal or vertical scrolling */
-            font-family: 'EurostileCustom', sans-serif;
-            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
         }
 
-        /* 3. THE RESPONSIVE CONTAINER */
-        .wrapper {
-            width: 90%; /* Forces 5% margin on both sides regardless of device */
+        .container {
+            /* Fills 90% of the screen width to maximize brand impact */
+            width: 90vw; 
             max-width: 1400px;
-            text-align: center;
-            animation: fadeIn 1.5s ease-in forwards;
+            display: flex;
+            justify-content: center;
         }
 
-        h1 {
-            color: #FF0000;
-            font-weight: 900;
-            text-transform: uppercase;
-            margin: 0;
-            padding: 0;
-            
-            /* THE FIX: Aggressive font scaling */
-            /* This math ensures the font is NEVER larger than 5.5% of the screen width 
-               and NEVER smaller than 12px. */
-            font-size: clamp(12px, 5.5vw, 120px); 
-            
-            /* Reduces spacing specifically for the long word to fit */
-            letter-spacing: 0.25em; 
-            white-space: nowrap;
-            display: block;
+        .logo {
             width: 100%;
-            
-            /* Centers the text-block by offsetting the trailing letter-spacing */
-            text-indent: 0.25em; 
-        }
-
-        p {
-            color: #ffffff;
-            font-family: 'EurostileCustom', sans-serif;
-            font-weight: 400;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            margin-top: 15px;
-            font-size: clamp(10px, 1.2vw, 16px);
-            opacity: 0.5;
+            height: auto;
+            /* Ensures a smooth load */
+            animation: fadeIn 1s ease-in forwards;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* 4. ULTIMATE SAFETY VALVE FOR VERTICAL PHONES */
-        @media screen and (max-width: 480px) {
-            h1 {
-                font-size: 5.8vw; /* Slightly larger on mobile but with tighter spacing */
-                letter-spacing: 0.1em;
-                text-indent: 0.1em;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <h1>INTERDEPENDENT</h1>
-        <p>Coming March 20</p>
+    <div class="container">
+        <img src="logo.svg" alt="INTERDEPENDENT" class="logo">
     </div>
 </body>
 </html>
