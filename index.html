@@ -5,7 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INTERDEPENDENT</title>
     <style>
-        /* Modern Reset & Centering */
+        /* 1. LOAD CUSTOM FONT WEIGHTS FROM YOUR FONTS FOLDER */
+        @font-face {
+            font-family: 'EurostileCustom';
+            src: url('fonts/EurostileNextProBold.woff2') format('woff2');
+            font-weight: 900;
+        }
+
+        @font-face {
+            font-family: 'EurostileCustom';
+            src: url('fonts/EurostileNextProRegular.woff2') format('woff2');
+            font-weight: 400;
+        }
+
         body, html {
             height: 100%;
             margin: 0;
@@ -15,13 +27,16 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            overflow: hidden; /* Prevents accidental scrollbars */
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden; 
+            font-family: 'EurostileCustom', sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .content-wrapper {
-            width: 90%; /* Leaves a small breathing room on the sides */
-            max-width: 1200px;
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            /* Animation triggers when page loads */
+            animation: fadeIn 2.5s ease-in-out forwards;
         }
 
         h1 {
@@ -29,32 +44,31 @@
             font-weight: 900;
             text-transform: uppercase;
             margin: 0;
-            padding: 0;
-            
-            /* Logic for one-line text: */
             white-space: nowrap; 
-            /* 7.5vw means 7.5% of the total screen width */
-            font-size: 7.5vw; 
-            letter-spacing: 0.3em;
-            /* Extra spacing fix: letter-spacing adds space to the RIGHT of every letter. 
-               We add a slight left margin to keep the word perfectly centered. */
-            margin-right: -0.3em; 
+            font-size: 6.1vw; 
+            letter-spacing: 0.35em;
+            margin-right: -0.35em; 
         }
 
         p {
             color: #ffffff;
-            font-weight: 300;
+            font-weight: 400;
             text-transform: uppercase;
-            letter-spacing: 0.2em;
-            margin-top: 1.5rem;
-            /* Tagline scales slightly slower than the main title */
-            font-size: clamp(0.8rem, 2vw, 1.2rem); 
-            opacity: 0.9;
+            letter-spacing: 0.25em;
+            margin-top: 25px;
+            font-size: clamp(0.7rem, 1.2vw, 1rem); 
+            opacity: 0.7;
+        }
+
+        /* Dramatic Fade-In Effect */
+        @keyframes fadeIn {
+            0% { opacity: 0; filter: blur(10px); }
+            100% { opacity: 1; filter: blur(0); }
         }
     </style>
 </head>
 <body>
-    <div class="content-wrapper">
+    <div class="container">
         <h1>I N T E R D E P E N D E N T</h1>
         <p>Coming March 20</p>
     </div>
