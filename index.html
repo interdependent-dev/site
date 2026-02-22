@@ -5,36 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INTERDEPENDENT</title>
     <style>
-        /* 1. LOAD YOUR CUSTOM FONTS */
+        /* 1. OPTIMIZED FONT LOADING */
         @font-face {
             font-family: 'EurostileCustom';
             src: url('fonts/EurostileNextProBold.woff2') format('woff2');
             font-weight: 900;
+            font-display: swap; /* Speeds up initial text appearance */
         }
         @font-face {
             font-family: 'EurostileCustom';
             src: url('fonts/EurostileNextProRegular.woff2') format('woff2');
             font-weight: 400;
+            font-display: swap;
         }
 
         body, html {
             height: 100%;
             margin: 0;
-            padding: 0;
             background-color: #000;
             display: flex;
             justify-content: center;
             align-items: center;
-            text-align: center;
             overflow: hidden; 
             font-family: 'EurostileCustom', sans-serif;
             -webkit-font-smoothing: antialiased;
         }
 
         .container {
-            width: 92%; /* Breathing room for the edges */
-            max-width: 1600px;
-            animation: fadeIn 2s ease-in-out forwards;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 5%; /* Side safety margins */
+            box-sizing: border-box;
+            animation: fadeIn 1.2s ease-out forwards; /* Faster animation for speed */
         }
 
         h1 {
@@ -42,15 +46,16 @@
             font-weight: 900;
             text-transform: uppercase;
             margin: 0;
+            padding: 0;
             
-            /* FORCES TEXT TO ONE LINE */
+            /* THE FIX FOR CUTTING OFF: */
+            width: 100%;
+            text-align: center;
             white-space: nowrap; 
-            
-            /* VIEWPORT UNITS: 5.8% of screen width keeps it perfectly fitted */
-            font-size: 5.8vw; 
-            
+            /* Smaller scaling factor (5.2vw) ensures it fits even on the thinnest phones */
+            font-size: 5.2vw; 
             letter-spacing: 0.35em;
-            margin-right: -0.35em; /* Perfectly centers the spaced-out text */
+            margin-right: -0.35em; /* Counter-centers the letter spacing */
         }
 
         p {
@@ -58,14 +63,24 @@
             font-weight: 400;
             text-transform: uppercase;
             letter-spacing: 0.25em;
-            margin-top: 25px;
-            font-size: clamp(0.6rem, 1.2vw, 0.9rem); 
-            opacity: 0.7;
+            margin-top: 2vh; /* Relative to screen height */
+            font-size: clamp(0.6rem, 1vw, 0.8rem); 
+            opacity: 0.6;
         }
 
+        /* Lightning-fast fade-in with no blur to improve perceived speed */
         @keyframes fadeIn {
-            0% { opacity: 0; filter: blur(5px); }
-            100% { opacity: 1; filter: blur(0); }
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        /* MOBILE OVERRIDE: If the screen is vertical, shrink the font even more */
+        @media (max-aspect-ratio: 1/1) {
+            h1 {
+                font-size: 7.5vw; /* Slightly larger for readability, but still one-line */
+                letter-spacing: 0.2em; /* Tighter spacing for vertical screens */
+                margin-right: -0.2em;
+            }
         }
     </style>
 </head>
