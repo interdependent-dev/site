@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#000">
+<title>INTERDEPENDENT — SUBMISSIONS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA3NC42IDg5LjQnIGZpbGwtcnVsZT0nZXZlbm9kZCc+PHBhdGggZmlsbD0ncmVkJyBkPSdNOS4zIDI4YTI4IDI4IDAgMSAwIDU2IDAgMjggMjggMCAxIDAtNTYgME0yMCA2NC45YTcuNSA3LjMgMCAxIDAgMTUgMCA3LjUgNy4zIDAgMSAwLTE1IDBNMjMuMiA2NC43YTQuMSA0LjEgMCAxIDAgOC4yIDAgNC4xIDQuMSAwIDEgMC04LjIgME00My45IDYwYTQgNCAwIDEgMCA4IDAgNCA0IDAgMSAwLTggME00NS41IDYwYTIuNCAyLjQgMCAxIDAgNC44IDAgMi40IDIuNCAwIDEgMC00LjggME0zNy4zIDcyLjdhMy4zIDMuMyAwIDEgMCA2LjYgMCAzLjMgMy4zIDAgMSAwLTYuNiAwTTI5LjMgODUuNGE0IDQgMCAxIDAgOCAwIDQgNCAwIDEgMC04IDBNMCA1MC43YTYuNyA2LjcgMCAxIDAgMTMuNCAwIDYuNyA2LjcgMCAxIDAtMTMuNCAwTTYxLjMgNDkuM2E2LjcgNi43IDAgMSAwIDEzLjMgMCA2LjcgNi43IDAgMSAwLTEzLjMgMCcvPjwvc3ZnPg==">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+*{margin:0;box-sizing:border-box}
+html{background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6}
+body{min-height:100vh;display:flex;flex-direction:column;animation:f .5s ease-out both}
+@keyframes f{from{opacity:0}to{opacity:1}}
+
+/* ── header ── */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 32px;border-bottom:1px solid #181818;
+  position:sticky;top:0;background:#000;z-index:10
+}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo svg{width:28px;height:auto}
+.logo-name{font-size:10px;letter-spacing:.22em;color:#666;text-transform:uppercase}
+.btn-ghost{
+  background:none;border:1px solid #222;padding:7px 16px;
+  color:#555;font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+  cursor:pointer;transition:border-color .15s,color .15s;font-family:inherit
+}
+.btn-ghost:hover{border-color:#555;color:#fff}
+
+/* ── layout ── */
+main{flex:1;padding:48px 32px;max-width:900px;margin:0 auto;width:100%}
+
+.section-label{
+  font-size:10px;letter-spacing:.25em;color:#444;text-transform:uppercase;
+  padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:28px
+}
+
+/* ── form ── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-full{margin-bottom:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:10px;letter-spacing:.15em;color:#444;text-transform:uppercase}
+.field input[type=text],
+.field input[type=email]{
+  background:#080808;border:1px solid #1e1e1e;padding:11px 14px;
+  color:#fff;font-size:13px;outline:none;font-family:inherit;border-radius:0;
+  -webkit-appearance:none;transition:border-color .15s
+}
+.field input::placeholder{color:#2a2a2a}
+.field input:focus{border-color:#333}
+.field input[type=file]{display:none}
+.file-label{
+  background:#080808;border:1px solid #1e1e1e;padding:11px 14px;
+  color:#2a2a2a;display:flex;align-items:center;gap:10px;cursor:pointer;
+  font-size:13px;transition:border-color .15s
+}
+.file-label:hover{border-color:#333}
+.file-label.has-file{color:#fff}
+.file-icon{font-size:15px;flex-shrink:0}
+.file-label.has-file .file-icon{color:red}
+.file-size{font-size:10px;letter-spacing:.1em;color:#333;text-transform:uppercase;margin-left:auto;flex-shrink:0}
+
+.error-msg{font-size:10px;letter-spacing:.1em;color:red;text-transform:uppercase;min-height:1em;margin-top:4px}
+
+.btn-submit{
+  width:100%;height:50px;margin-top:12px;
+  background:red;border:none;
+  color:#fff;font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  cursor:pointer;transition:opacity .15s;font-family:inherit
+}
+.btn-submit:hover:not(:disabled){opacity:.8}
+.btn-submit:disabled{opacity:.35;cursor:default}
+
+/* ── loading ── */
+.loading-state{
+  display:none;flex-direction:column;align-items:center;gap:20px;
+  padding:40px 0;margin-top:12px
+}
+.spinner{
+  width:20px;height:20px;border:1.5px solid #222;border-top-color:red;
+  border-radius:50%;animation:spin .7s linear infinite
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-size:10px;letter-spacing:.18em;color:#333;text-transform:uppercase}
+
+/* ── result ── */
+.result{display:none;margin-top:36px;padding-top:32px;border-top:1px solid #181818}
+
+.result-header{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+  margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #181818
+}
+.result-title{font-size:22px;font-weight:300;letter-spacing:.04em}
+.badge{
+  padding:5px 12px;font-size:9px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;flex-shrink:0;align-self:flex-start;margin-top:4px
+}
+
+.meta-grid{display:flex;flex-wrap:wrap;gap:24px;margin-bottom:24px}
+.meta-item{display:flex;flex-direction:column;gap:3px}
+.meta-key{font-size:9px;letter-spacing:.2em;color:#3a3a3a;text-transform:uppercase}
+.meta-val{font-size:13px;color:#aaa}
+
+.comps-row{margin-bottom:24px}
+.comps-key{font-size:9px;letter-spacing:.2em;color:#3a3a3a;text-transform:uppercase;margin-bottom:6px}
+.comps-val{font-size:12px;color:#666;font-style:italic}
+
+.scores-block{margin-bottom:20px}
+.scores-key{font-size:9px;letter-spacing:.2em;color:#3a3a3a;text-transform:uppercase;margin-bottom:14px}
+.score-row{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.score-name{font-size:10px;letter-spacing:.08em;color:#444;text-transform:uppercase;width:116px;flex-shrink:0}
+.score-track{flex:1;height:1px;background:#181818;position:relative}
+.score-fill{position:absolute;inset:0;background:red;transform-origin:left}
+.score-num{font-size:11px;font-family:'Courier New',monospace;color:#555;width:20px;text-align:right;flex-shrink:0}
+
+.weighted-row{display:flex;align-items:baseline;gap:10px;margin-bottom:24px}
+.weighted-key{font-size:10px;letter-spacing:.15em;color:#3a3a3a;text-transform:uppercase}
+.weighted-num{font-size:32px;font-weight:300;letter-spacing:.02em}
+.weighted-denom{font-size:13px;color:#333}
+
+.summary-key{font-size:9px;letter-spacing:.2em;color:#3a3a3a;text-transform:uppercase;margin-bottom:8px}
+.summary-body{font-size:13px;color:#888;line-height:1.75;max-width:660px}
+
+/* ── divider ── */
+hr{border:none;border-top:1px solid #181818;margin:52px 0}
+
+/* ── table ── */
+.sub-table{width:100%;border-collapse:collapse}
+.sub-table th{
+  font-size:9px;letter-spacing:.2em;color:#333;text-transform:uppercase;
+  text-align:left;padding:0 20px 12px 0;font-weight:400;
+  border-bottom:1px solid #181818
+}
+.sub-table th:last-child{padding-right:0}
+.sub-table td{
+  padding:13px 20px 13px 0;border-bottom:1px solid #0d0d0d;
+  font-size:12px;color:#555;vertical-align:middle
+}
+.sub-table td:last-child{padding-right:0}
+.sub-table tr[data-id]{cursor:pointer}
+.sub-table tr[data-id]:hover td{color:#ccc}
+.td-title{color:#bbb;font-size:13px}
+.td-score{font-family:'Courier New',monospace}
+.td-badge span{padding:3px 8px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.td-empty{font-size:10px;letter-spacing:.12em;color:#2a2a2a;text-transform:uppercase;padding:28px 0}
+.td-loading{font-size:10px;letter-spacing:.1em;color:#222;text-transform:uppercase;padding:20px 0}
+
+/* ── modal ── */
+.modal-back{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
+  z-index:100;overflow-y:auto;-webkit-overflow-scrolling:touch
+}
+.modal-back.open{display:block}
+.modal-wrap{min-height:100%;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px}
+.modal{
+  width:100%;max-width:640px;background:#060606;
+  border:1px solid #1a1a1a;padding:32px;position:relative
+}
+.modal-close{
+  position:absolute;top:20px;right:20px;
+  background:none;border:none;color:#333;font-size:22px;line-height:1;
+  cursor:pointer;padding:0;transition:color .15s
+}
+.modal-close:hover{color:#fff}
+.modal-spinner{display:flex;justify-content:center;padding:32px 0}
+
+@media(max-width:580px){
+  header{padding:14px 20px}
+  main{padding:32px 20px}
+  .form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo">
+    <svg viewBox="0 0 74.6 89.4" fill-rule="evenodd" aria-hidden="true">
+      <path fill="red" d="M9.3 28a28 28 0 1 0 56 0 28 28 0 1 0-56 0M20 64.9a7.5 7.3 0 1 0 15 0 7.5 7.3 0 1 0-15 0M23.2 64.7a4.1 4.1 0 1 0 8.2 0 4.1 4.1 0 1 0-8.2 0M43.9 60a4 4 0 1 0 8 0 4 4 0 1 0-8 0M45.5 60a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0M37.3 72.7a3.3 3.3 0 1 0 6.6 0 3.3 3.3 0 1 0-6.6 0M29.3 85.4a4 4 0 1 0 8 0 4 4 0 1 0-8 0M0 50.7a6.7 6.7 0 1 0 13.4 0 6.7 6.7 0 1 0-13.4 0M61.3 49.3a6.7 6.7 0 1 0 13.3 0 6.7 6.7 0 1 0-13.3 0"/>
+    </svg>
+    <span class="logo-name">Interdependent</span>
+  </a>
+  <button class="btn-ghost" id="signOutBtn">Sign Out</button>
+</header>
+
+<main>
+  <div class="section-label">Submit a Script</div>
+
+  <div class="form-row">
+    <div class="field">
+      <label for="iName">Name</label>
+      <input type="text" id="iName" placeholder="Full name" autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="iEmail">Email</label>
+      <input type="email" id="iEmail" placeholder="email@example.com" autocomplete="email">
+    </div>
+  </div>
+
+  <div class="form-full">
+    <div class="field">
+      <label for="iTitle">Script Title</label>
+      <input type="text" id="iTitle" placeholder="Title of your script">
+    </div>
+  </div>
+
+  <div class="form-full">
+    <div class="field">
+      <label>PDF File</label>
+      <label class="file-label" id="fileLabel" for="iFile">
+        <span class="file-icon">↑</span>
+        <span class="file-text">Choose PDF</span>
+        <span class="file-size">Max 20 MB</span>
+      </label>
+      <input type="file" id="iFile" accept=".pdf,application/pdf">
+    </div>
+  </div>
+
+  <div class="error-msg" id="formError" aria-live="polite"></div>
+  <button class="btn-submit" id="submitBtn" disabled>Evaluate Script</button>
+
+  <div class="loading-state" id="loadingState">
+    <div class="spinner"></div>
+    <span class="loading-msg">Evaluating — this may take up to 90 seconds</span>
+  </div>
+
+  <div class="result" id="resultPanel">
+    <div class="result-header">
+      <div class="result-title" id="rTitle"></div>
+      <div class="badge" id="rBadge"></div>
+    </div>
+    <div class="meta-grid" id="rMeta"></div>
+    <div class="comps-row" id="rComps" style="display:none">
+      <div class="comps-key">Comparable Films</div>
+      <div class="comps-val" id="rCompsList"></div>
+    </div>
+    <div class="scores-block">
+      <div class="scores-key">Score Breakdown</div>
+      <div id="rBars"></div>
+    </div>
+    <div class="weighted-row">
+      <span class="weighted-key">Weighted Score</span>
+      <span class="weighted-num" id="rWeighted"></span>
+      <span class="weighted-denom">/ 10</span>
+    </div>
+    <div class="summary-key">Summary</div>
+    <div class="summary-body" id="rSummary"></div>
+  </div>
+
+  <hr>
+
+  <div class="section-label">Past Submissions</div>
+  <table class="sub-table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Submitted By</th>
+        <th>Pages</th>
+        <th>Score</th>
+        <th>Decision</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody id="subBody">
+      <tr><td colspan="6" class="td-loading">Loading—</td></tr>
+    </tbody>
+  </table>
+</main>
+
+<div class="modal-back" id="modalBack" role="dialog" aria-modal="true" aria-label="Script detail">
+  <div class="modal-wrap">
+    <div class="modal">
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://api.interdependent.studio';
+
+const DECISIONS = {
+  RECOMMEND: '#16a34a',
+  CONSIDER:  '#d97706',
+  PASS:      '#dc2626',
+};
+
+const SCORE_NAMES = {
+  theme:          'Theme',
+  character:      'Character',
+  dialogue:       'Dialogue',
+  plot_structure: 'Plot Structure',
+  marketability:  'Marketability',
+  originality:    'Originality',
+};
+
+// ── auth ────────────────────────────────────────────────────────────────────
+
+function getValidToken() {
+  const token   = localStorage.getItem('session_token');
+  const expires = parseInt(localStorage.getItem('session_expires') || '0', 10);
+  if (!token || Date.now() > expires) {
+    localStorage.removeItem('session_token');
+    localStorage.removeItem('session_expires');
+    window.location.href = '/passcode.html';
+    return null;
+  }
+  return token;
+}
+
+const token = getValidToken();
+if (!token) throw new Error('unauthenticated');
+
+document.getElementById('signOutBtn').addEventListener('click', () => {
+  localStorage.removeItem('session_token');
+  localStorage.removeItem('session_expires');
+  window.location.href = '/passcode.html';
+});
+
+// ── form ─────────────────────────────────────────────────────────────────────
+
+const iName   = document.getElementById('iName');
+const iEmail  = document.getElementById('iEmail');
+const iTitle  = document.getElementById('iTitle');
+const iFile   = document.getElementById('iFile');
+const fileLabel = document.getElementById('fileLabel');
+const fileText  = fileLabel.querySelector('.file-text');
+const submitBtn = document.getElementById('submitBtn');
+const formError = document.getElementById('formError');
+
+function checkReady() {
+  submitBtn.disabled = !(
+    iName.value.trim() &&
+    iEmail.value.trim() &&
+    iTitle.value.trim() &&
+    iFile.files.length
+  );
+}
+
+[iName, iEmail, iTitle].forEach(el => el.addEventListener('input', checkReady));
+
+iFile.addEventListener('change', () => {
+  if (iFile.files.length) {
+    fileText.textContent = iFile.files[0].name;
+    fileLabel.classList.add('has-file');
+  } else {
+    fileText.textContent = 'Choose PDF';
+    fileLabel.classList.remove('has-file');
+  }
+  checkReady();
+});
+
+// ── submit ───────────────────────────────────────────────────────────────────
+
+const STATUS_ERRORS = {
+  400: null, // read from body
+  413: 'PDF exceeds the 20 MB size limit.',
+  422: 'PDF has no extractable text — image-based files are not supported.',
+  504: 'Evaluation timed out. Please try again.',
+};
+
+submitBtn.addEventListener('click', async () => {
+  formError.textContent = '';
+  submitBtn.style.display = 'none';
+  document.getElementById('loadingState').style.display = 'flex';
+  document.getElementById('resultPanel').style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('name',   iName.value.trim());
+  fd.append('email',  iEmail.value.trim());
+  fd.append('title',  iTitle.value.trim());
+  fd.append('script', iFile.files[0]);
+
+  try {
+    const res = await fetch(`${API}/evaluate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+      // no Content-Type — browser sets multipart boundary
+    });
+
+    document.getElementById('loadingState').style.display = 'none';
+    submitBtn.style.display = '';
+
+    if (res.status === 401) {
+      localStorage.removeItem('session_token');
+      window.location.href = '/passcode.html';
+      return;
+    }
+
+    if (!res.ok) {
+      let msg = STATUS_ERRORS[res.status];
+      if (!msg) {
+        const body = await res.json().catch(() => ({}));
+        msg = body.message || body.error || `Error ${res.status}`;
+      }
+      formError.textContent = msg;
+      return;
+    }
+
+    const data = await res.json();
+    renderResult(data);
+    loadSubmissions();
+
+    iName.value = '';
+    iEmail.value = '';
+    iTitle.value = '';
+    iFile.value = '';
+    fileText.textContent = 'Choose PDF';
+    fileLabel.classList.remove('has-file');
+    checkReady();
+
+  } catch {
+    document.getElementById('loadingState').style.display = 'none';
+    submitBtn.style.display = '';
+    formError.textContent = 'Connection error — please try again.';
+  }
+});
+
+// ── render result ────────────────────────────────────────────────────────────
+
+function renderResult(data) {
+  const ev = data.evaluation || {};
+  const bg = DECISIONS[ev.decision] || '#444';
+
+  document.getElementById('rTitle').textContent = data.title || '';
+
+  const badge = document.getElementById('rBadge');
+  badge.textContent = ev.decision || '—';
+  badge.style.background = bg;
+  badge.style.color = '#fff';
+
+  document.getElementById('rMeta').innerHTML = buildMeta([
+    ['Genre',       ev.genre],
+    ['Country',     ev.country],
+    ['Max Budget',  ev.max_budget],
+    ['Pages',       data.pageCount],
+    ['Word Count',  data.wordCount ? data.wordCount.toLocaleString() : null],
+  ]);
+
+  const comps = ev.comparable_films;
+  const compsEl = document.getElementById('rComps');
+  if (comps && comps.length) {
+    document.getElementById('rCompsList').textContent = comps.join(', ');
+    compsEl.style.display = '';
+  } else {
+    compsEl.style.display = 'none';
+  }
+
+  document.getElementById('rBars').innerHTML = buildBars(ev.scores);
+  document.getElementById('rWeighted').textContent = ev.weighted_score != null
+    ? ev.weighted_score.toFixed(1) : '—';
+  document.getElementById('rSummary').textContent = ev.summary || '';
+
+  const panel = document.getElementById('resultPanel');
+  panel.style.display = '';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── load submissions ─────────────────────────────────────────────────────────
+
+async function loadSubmissions() {
+  const tbody = document.getElementById('subBody');
+  const t = getValidToken();
+  if (!t) return;
+
+  try {
+    const res = await fetch(`${API}/scripts?limit=50&offset=0`, {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    if (res.status === 401) { window.location.href = '/passcode.html'; return; }
+
+    const { data } = await res.json();
+
+    if (!data || !data.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="td-empty">No submissions yet</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map(row => {
+      const ev  = parseEval(row);
+      const dec = ev.decision || '';
+      const bg  = DECISIONS[dec];
+      const badgeHtml = bg
+        ? `<span style="background:${bg};color:#fff;padding:3px 8px;font-size:9px;font-weight:700;letter-spacing:.14em">${dec}</span>`
+        : `<span style="color:#333">${dec || '—'}</span>`;
+
+      const score = ev.weighted_score != null ? ev.weighted_score.toFixed(1) : '—';
+      const name  = row.users ? esc(row.users.name || '—') : '—';
+      const pages = row.page_count ?? row.pageCount ?? '—';
+      const date  = row.created_at
+        ? new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : '—';
+
+      return `<tr data-id="${esc(row.id)}">
+        <td class="td-title">${esc(row.title || '—')}</td>
+        <td>${name}</td>
+        <td>${pages}</td>
+        <td class="td-score">${score}</td>
+        <td class="td-badge">${badgeHtml}</td>
+        <td>${date}</td>
+      </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+      tr.addEventListener('click', () => openModal(tr.dataset.id));
+    });
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="6" class="td-empty">Failed to load submissions</td></tr>';
+  }
+}
+
+// ── modal ────────────────────────────────────────────────────────────────────
+
+async function openModal(id) {
+  const back    = document.getElementById('modalBack');
+  const content = document.getElementById('modalContent');
+
+  back.classList.add('open');
+  content.innerHTML = '<div class="modal-spinner"><div class="spinner"></div></div>';
+
+  const t = getValidToken();
+  if (!t) return;
+
+  try {
+    const res = await fetch(`${API}/scripts/${id}`, {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    if (res.status === 401) { window.location.href = '/passcode.html'; return; }
+
+    const row = await res.json();
+    const ev  = parseEval(row);
+    const bg  = DECISIONS[ev.decision] || '#444';
+    const date = row.created_at
+      ? new Date(row.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : '';
+
+    const compsHtml = ev.comparable_films && ev.comparable_films.length
+      ? `<div class="comps-row">
+           <div class="comps-key">Comparable Films</div>
+           <div class="comps-val">${esc(ev.comparable_films.join(', '))}</div>
+         </div>`
+      : '';
+
+    const barsHtml = buildBars(ev.scores);
+
+    content.innerHTML = `
+      <div class="result-header" style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #181818">
+        <div>
+          <div class="result-title">${esc(row.title || '—')}</div>
+          ${date ? `<div style="font-size:11px;color:#333;margin-top:4px">${date}</div>` : ''}
+        </div>
+        <div class="badge" style="background:${bg};color:#fff">${ev.decision || '—'}</div>
+      </div>
+      <div class="meta-grid" style="margin-bottom:20px">${buildMeta([
+        ['Submitted By', row.users?.name],
+        ['Email',        row.users?.email],
+        ['Genre',        ev.genre],
+        ['Country',      ev.country],
+        ['Max Budget',   ev.max_budget],
+        ['Pages',        row.page_count ?? row.pageCount],
+      ])}</div>
+      ${compsHtml}
+      ${barsHtml ? `<div class="scores-block"><div class="scores-key">Score Breakdown</div>${barsHtml}</div>` : ''}
+      <div class="weighted-row">
+        <span class="weighted-key">Weighted Score</span>
+        <span class="weighted-num">${ev.weighted_score != null ? ev.weighted_score.toFixed(1) : '—'}</span>
+        <span class="weighted-denom">/ 10</span>
+      </div>
+      ${ev.summary ? `<div class="summary-key">Summary</div><div class="summary-body">${esc(ev.summary)}</div>` : ''}
+    `;
+  } catch {
+    content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
+  }
+}
+
+function closeModal() {
+  document.getElementById('modalBack').classList.remove('open');
+}
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalBack').addEventListener('click', e => {
+  if (e.target === e.currentTarget || e.target.classList.contains('modal-wrap')) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function parseEval(row) {
+  const raw = row.evaluation_json ?? row.evaluation;
+  if (!raw) return {};
+  if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return {}; } }
+  return raw;
+}
+
+function buildMeta(pairs) {
+  return pairs.filter(([, v]) => v != null && v !== '').map(([k, v]) =>
+    `<div class="meta-item">
+       <span class="meta-key">${k}</span>
+       <span class="meta-val">${esc(String(v))}</span>
+     </div>`
+  ).join('');
+}
+
+function buildBars(scores) {
+  if (!scores) return '';
+  return Object.entries(scores).map(([key, val]) => {
+    const pct = Math.min(100, Math.max(0, (val / 10) * 100)).toFixed(1);
+    return `<div class="score-row">
+      <span class="score-name">${SCORE_NAMES[key] || key}</span>
+      <div class="score-track"><div class="score-fill" style="width:${pct}%"></div></div>
+      <span class="score-num">${val}</span>
+    </div>`;
+  }).join('');
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ── init ──────────────────────────────────────────────────────────────────────
+
+loadSubmissions();
+</script>
+</body>
+</html>

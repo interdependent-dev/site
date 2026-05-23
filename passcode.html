@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#000">
+<title>INTERDEPENDENT</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA3NC42IDg5LjQnIGZpbGwtcnVsZT0nZXZlbm9kZCc+PHBhdGggZmlsbD0ncmVkJyBkPSdNOS4zIDI4YTI4IDI4IDAgMSAwIDU2IDAgMjggMjggMCAxIDAtNTYgME0yMCA2NC45YTcuNSA3LjMgMCAxIDAgMTUgMCA3LjUgNy4zIDAgMSAwLTE1IDBNMjMuMiA2NC43YTQuMSA0LjEgMCAxIDAgOC4yIDAgNC4xIDQuMSAwIDEgMC04LjIgME00My45IDYwYTQgNCAwIDEgMCA4IDAgNCA0IDAgMSAwLTggME00NS41IDYwYTIuNCAyLjQgMCAxIDAgNC44IDAgMi40IDIuNCAwIDEgMC00LjggME0zNy4zIDcyLjdhMy4zIDMuMyAwIDEgMCA2LjYgMCAzLjMgMy4zIDAgMSAwLTYuNiAwTTI5LjMgODUuNGE0IDQgMCAxIDAgOCAwIDQgNCAwIDEgMC04IDBNMCA1MC43YTYuNyA2LjcgMCAxIDAgMTMuNCAwIDYuNyA2LjcgMCAxIDAtMTMuNCAwTTYxLjMgNDkuM2E2LjcgNi43IDAgMSAwIDEzLjMgMCA2LjcgNi43IDAgMSAwLTEzLjMgMCcvPjwvc3ZnPg==">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+*{margin:0;box-sizing:border-box}
+html,body{height:100%;background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;animation:f .6s ease-out both}
+@keyframes f{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.logo{display:flex;flex-direction:column;align-items:center;gap:16px;text-decoration:none;margin-bottom:56px}
+.logo svg{width:48px;height:auto}
+.logo-name{font-size:11px;letter-spacing:.25em;color:#555;text-transform:uppercase}
+
+.gate{display:flex;flex-direction:column;align-items:center;gap:28px;width:100%;max-width:300px}
+
+.label{font-size:10px;letter-spacing:.2em;color:#444;text-transform:uppercase}
+
+.pin-row{display:flex;gap:10px}
+.pin-row input{
+  width:60px;height:72px;
+  background:#0a0a0a;border:1px solid #222;
+  color:#fff;font-size:28px;font-weight:300;text-align:center;
+  outline:none;caret-color:red;
+  -moz-appearance:textfield;appearance:textfield;
+  transition:border-color .15s;border-radius:0;
+  font-family:inherit
+}
+.pin-row input:focus{border-color:#555}
+.pin-row input::-webkit-inner-spin-button,
+.pin-row input::-webkit-outer-spin-button{-webkit-appearance:none}
+
+.btn{
+  width:100%;height:50px;
+  background:red;border:none;
+  color:#fff;font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  cursor:pointer;transition:opacity .15s;font-family:inherit
+}
+.btn:hover:not(:disabled){opacity:.8}
+.btn:disabled{opacity:.35;cursor:default}
+
+.error{font-size:10px;letter-spacing:.12em;color:red;text-transform:uppercase;min-height:1em;text-align:center}
+</style>
+</head>
+<body>
+
+<a href="/" class="logo">
+  <svg viewBox="0 0 74.6 89.4" fill-rule="evenodd" aria-label="INTERDEPENDENT">
+    <path fill="red" d="M9.3 28a28 28 0 1 0 56 0 28 28 0 1 0-56 0M20 64.9a7.5 7.3 0 1 0 15 0 7.5 7.3 0 1 0-15 0M23.2 64.7a4.1 4.1 0 1 0 8.2 0 4.1 4.1 0 1 0-8.2 0M43.9 60a4 4 0 1 0 8 0 4 4 0 1 0-8 0M45.5 60a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0M37.3 72.7a3.3 3.3 0 1 0 6.6 0 3.3 3.3 0 1 0-6.6 0M29.3 85.4a4 4 0 1 0 8 0 4 4 0 1 0-8 0M0 50.7a6.7 6.7 0 1 0 13.4 0 6.7 6.7 0 1 0-13.4 0M61.3 49.3a6.7 6.7 0 1 0 13.3 0 6.7 6.7 0 1 0-13.3 0"/>
+  </svg>
+  <span class="logo-name">Interdependent</span>
+</a>
+
+<div class="gate">
+  <span class="label">Enter Passcode</span>
+  <div class="pin-row" id="pinRow">
+    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1">
+    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Digit 2">
+    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Digit 3">
+    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Digit 4">
+  </div>
+  <button class="btn" id="submitBtn" disabled>Submit</button>
+  <span class="error" id="errorMsg" aria-live="polite"></span>
+</div>
+
+<script>
+const API = 'https://api.interdependent.studio';
+
+// redirect if already authenticated
+(function () {
+  const token = localStorage.getItem('session_token');
+  const expires = parseInt(localStorage.getItem('session_expires') || '0', 10);
+  if (token && Date.now() < expires) window.location.href = '/submissions.html';
+}());
+
+const inputs = [...document.querySelectorAll('#pinRow input')];
+const btn = document.getElementById('submitBtn');
+const errorMsg = document.getElementById('errorMsg');
+
+function checkReady() {
+  btn.disabled = inputs.some(inp => !inp.value);
+}
+
+inputs.forEach((input, i) => {
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/\D/g, '').slice(-1);
+    if (input.value && i < inputs.length - 1) inputs[i + 1].focus();
+    checkReady();
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !input.value && i > 0) {
+      inputs[i - 1].value = '';
+      inputs[i - 1].focus();
+      checkReady();
+    }
+    if (e.key === 'Enter' && !btn.disabled) submit();
+  });
+
+  input.addEventListener('paste', e => {
+    e.preventDefault();
+    const digits = (e.clipboardData || window.clipboardData)
+      .getData('text').replace(/\D/g, '').slice(0, 4);
+    digits.split('').forEach((ch, j) => { if (inputs[i + j]) inputs[i + j].value = ch; });
+    const focus = Math.min(i + digits.length, inputs.length - 1);
+    inputs[focus].focus();
+    checkReady();
+  });
+});
+
+async function submit() {
+  const passcode = inputs.map(i => i.value).join('');
+  btn.disabled = true;
+  btn.textContent = '—';
+  errorMsg.textContent = '';
+
+  try {
+    const res = await fetch(`${API}/auth/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode }),
+    });
+
+    if (res.ok) {
+      const { token, expiresIn } = await res.json();
+      localStorage.setItem('session_token', token);
+      localStorage.setItem('session_expires', Date.now() + expiresIn * 1000);
+      window.location.href = '/submissions.html';
+      return;
+    }
+
+    errorMsg.textContent = 'Invalid passcode';
+    inputs.forEach(inp => { inp.value = ''; });
+    inputs[0].focus();
+  } catch {
+    errorMsg.textContent = 'Connection error — try again';
+  }
+
+  btn.textContent = 'Submit';
+  checkReady();
+}
+
+btn.addEventListener('click', submit);
+inputs[0].focus();
+</script>
+</body>
+</html>
