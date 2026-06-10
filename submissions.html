@@ -2,17 +2,41 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#000">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
 <title>INTERDEPENDENT — SUBMISSIONS</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA3NC42IDg5LjQnIGZpbGwtcnVsZT0nZXZlbm9kZCc+PHBhdGggZmlsbD0ncmVkJyBkPSdNOS4zIDI4YTI4IDI4IDAgMSAwIDU2IDAgMjggMjggMCAxIDAtNTYgME0yMCA2NC45YTcuNSA3LjMgMCAxIDAgMTUgMCA3LjUgNy4zIDAgMSAwLTE1IDBNMjMuMiA2NC43YTQuMSA0LjEgMCAxIDAgOC4yIDAgNC4xIDQuMSAwIDEgMC04LjIgME00My45IDYwYTQgNCAwIDEgMCA4IDAgNCA0IDAgMSAwLTggME00NS41IDYwYTIuNCAyLjQgMCAxIDAgNC44IDAgMi40IDIuNCAwIDEgMC00LjggME0zNy4zIDcyLjdhMy4zIDMuMyAwIDEgMCA2LjYgMCAzLjMgMy4zIDAgMSAwLTYuNiAwTTI5LjMgODUuNGE0IDQgMCAxIDAgOCAwIDQgNCAwIDEgMC04IDBNMCA1MC43YTYuNyA2LjcgMCAxIDAgMTMuNCAwIDYuNyA2LjcgMCAxIDAtMTMuNCAwTTYxLjMgNDkuM2E2LjcgNi43IDAgMSAwIDEzLjMgMCA2LjcgNi43IDAgMSAwLTEzLjMgMCcvPjwvc3ZnPg==">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
+@font-face{
+  font-family:"Eurostile";
+  src:url("fonts/EurostileNextPro-Regular.ttf") format("truetype");
+  font-weight:400;font-style:normal;font-display:swap
+}
+@font-face{
+  font-family:"Eurostile";
+  src:url("fonts/EurostileNextPro-Bold.ttf") format("truetype");
+  font-weight:700;font-style:normal;font-display:swap
+}
+@font-face{
+  font-family:"Eurostile Wide";
+  src:url("fonts/EurostileNextPro-WideBold.ttf") format("truetype");
+  font-weight:700;font-style:normal;font-display:swap
+}
+
 *{margin:0;box-sizing:border-box}
-html{background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6}
+html{background:#000;color:#fff;color-scheme:dark;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 body{min-height:100vh;display:flex;flex-direction:column;animation:f .5s ease-out both}
 @keyframes f{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){body{animation:none}}
+
+/* ── type helpers ── */
+.eur{font-family:"Eurostile",'Helvetica Neue',sans-serif}
 
 /* ── header ── */
 header{
@@ -20,58 +44,72 @@ header{
   padding:18px 32px;border-bottom:1px solid #181818;
   position:sticky;top:0;background:#000;z-index:10
 }
-.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
-.logo svg{width:28px;height:auto}
-.logo-name{font-size:10px;letter-spacing:.22em;color:#666;text-transform:uppercase}
+.logo{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo svg{width:32px;height:auto}
+.logo-name{font-family:"Eurostile Wide","Eurostile",'Helvetica Neue',sans-serif;font-weight:700;font-size:11px;letter-spacing:.28em;color:#999;text-transform:uppercase}
 .btn-ghost{
-  background:none;border:1px solid #222;padding:7px 16px;
-  color:#555;font-size:10px;letter-spacing:.15em;text-transform:uppercase;
-  cursor:pointer;transition:border-color .15s,color .15s;font-family:inherit
+  background:none;border:1px solid #333;padding:8px 16px;
+  color:#999;font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+  cursor:pointer;transition:border-color .15s,color .15s;
+  font-family:"Eurostile",'Helvetica Neue',sans-serif
 }
-.btn-ghost:hover{border-color:#555;color:#fff}
+.btn-ghost:hover{border-color:#777;color:#fff}
 
 /* ── layout ── */
 main{flex:1;padding:48px 32px;max-width:900px;margin:0 auto;width:100%}
 
 .section-label{
-  font-size:10px;letter-spacing:.25em;color:#444;text-transform:uppercase;
-  padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:28px
+  font-family:"Eurostile",'Helvetica Neue',sans-serif;
+  font-size:11px;letter-spacing:.25em;color:#888;text-transform:uppercase;
+  padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:12px
 }
+.section-sub{font-size:12px;color:#777;margin-bottom:28px;max-width:560px}
 
 /* ── form ── */
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .form-full{margin-bottom:12px}
 .field{display:flex;flex-direction:column;gap:6px}
-.field label{font-size:10px;letter-spacing:.15em;color:#444;text-transform:uppercase}
+.field label{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.18em;color:#888;text-transform:uppercase}
 .field input[type=text],
 .field input[type=email]{
-  background:#080808;border:1px solid #1e1e1e;padding:11px 14px;
-  color:#fff;font-size:13px;outline:none;font-family:inherit;border-radius:0;
+  background:#0a0a0a;border:1px solid #2a2a2a;padding:12px 14px;
+  color:#fff;font-size:14px;outline:none;font-family:inherit;border-radius:0;
   -webkit-appearance:none;transition:border-color .15s
 }
-.field input::placeholder{color:#2a2a2a}
-.field input:focus{border-color:#333}
+.field input::placeholder{color:#555}
+.field input:focus{border-color:red}
+/* keep browser autofill from painting a light box with dark text */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus{
+  -webkit-text-fill-color:#fff;
+  -webkit-box-shadow:0 0 0 1000px #0a0a0a inset;
+  caret-color:#fff;
+  transition:background-color 99999s ease-in-out 0s
+}
 .field input[type=file]{display:none}
 .file-label{
-  background:#080808;border:1px solid #1e1e1e;padding:11px 14px;
-  color:#2a2a2a;display:flex;align-items:center;gap:10px;cursor:pointer;
-  font-size:13px;transition:border-color .15s
+  background:#0a0a0a;border:1px dashed #2a2a2a;padding:12px 14px;
+  color:#777;display:flex;align-items:center;gap:10px;cursor:pointer;
+  font-size:13px;transition:border-color .15s,color .15s
 }
-.file-label:hover{border-color:#333}
-.file-label.has-file{color:#fff}
+.file-label:hover{border-color:#555;color:#aaa}
+.file-label.drag{border-color:red;color:#fff}
+.file-label.has-file{color:#fff;border-style:solid}
 .file-icon{font-size:15px;flex-shrink:0}
 .file-label.has-file .file-icon{color:red}
-.file-size{font-size:10px;letter-spacing:.1em;color:#333;text-transform:uppercase;margin-left:auto;flex-shrink:0}
+.file-size{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.1em;color:#666;text-transform:uppercase;margin-left:auto;flex-shrink:0}
 
-.error-msg{font-size:10px;letter-spacing:.1em;color:red;text-transform:uppercase;min-height:1em;margin-top:4px}
+.error-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.1em;color:red;text-transform:uppercase;min-height:1em;margin-top:4px}
 
 .btn-submit{
   width:100%;height:50px;margin-top:12px;
   background:red;border:none;
-  color:#fff;font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
-  cursor:pointer;transition:opacity .15s;font-family:inherit
+  color:#fff;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  cursor:pointer;transition:opacity .15s;
+  font-family:"Eurostile",'Helvetica Neue',sans-serif
 }
-.btn-submit:hover:not(:disabled){opacity:.8}
+.btn-submit:hover:not(:disabled){opacity:.85}
 .btn-submit:disabled{opacity:.35;cursor:default}
 
 /* ── loading ── */
@@ -84,7 +122,8 @@ main{flex:1;padding:48px 32px;max-width:900px;margin:0 auto;width:100%}
   border-radius:50%;animation:spin .7s linear infinite
 }
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-msg{font-size:10px;letter-spacing:.18em;color:#333;text-transform:uppercase}
+.loading-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.18em;color:#999;text-transform:uppercase}
+.loading-sub{font-size:11px;color:#666;margin-top:-10px}
 
 /* ── result ── */
 .result{display:none;margin-top:36px;padding-top:32px;border-top:1px solid #181818}
@@ -93,60 +132,69 @@ main{flex:1;padding:48px 32px;max-width:900px;margin:0 auto;width:100%}
   display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
   margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #181818
 }
-.result-title{font-size:22px;font-weight:300;letter-spacing:.04em}
+.result-title{
+  font-family:"Eurostile",'Helvetica Neue',sans-serif;font-weight:700;
+  font-size:19px;letter-spacing:.06em;text-transform:uppercase;line-height:1.4
+}
+.result-date{font-size:11px;color:#777;margin-top:4px}
 .badge{
-  padding:5px 12px;font-size:9px;font-weight:700;letter-spacing:.18em;
+  font-family:"Eurostile",'Helvetica Neue',sans-serif;
+  padding:5px 12px;font-size:10px;font-weight:700;letter-spacing:.18em;
   text-transform:uppercase;flex-shrink:0;align-self:flex-start;margin-top:4px
 }
 
-.meta-grid{display:flex;flex-wrap:wrap;gap:24px;margin-bottom:24px}
+.meta-grid{display:flex;flex-wrap:wrap;gap:20px 28px;margin-bottom:24px}
 .meta-item{display:flex;flex-direction:column;gap:3px}
-.meta-key{font-size:9px;letter-spacing:.2em;color:#3a3a3a;text-transform:uppercase}
-.meta-val{font-size:13px;color:#aaa}
+.meta-key{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase}
+.meta-val{font-size:13px;color:#ddd}
 
 .comps-row{margin-bottom:24px}
-.comps-key{font-size:9px;letter-spacing:.2em;color:#3a3a3a;text-transform:uppercase;margin-bottom:6px}
-.comps-val{font-size:12px;color:#666;font-style:italic}
+.comps-key{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase;margin-bottom:6px}
+.comps-val{font-size:12.5px;color:#aaa;font-style:italic;line-height:1.8}
 
 .scores-block{margin-bottom:20px}
-.scores-key{font-size:9px;letter-spacing:.2em;color:#3a3a3a;text-transform:uppercase;margin-bottom:14px}
+.scores-key{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase;margin-bottom:14px}
 .score-row{display:flex;align-items:center;gap:12px;margin-bottom:9px}
-.score-name{font-size:10px;letter-spacing:.08em;color:#444;text-transform:uppercase;width:116px;flex-shrink:0}
-.score-track{flex:1;height:1px;background:#181818;position:relative}
-.score-fill{position:absolute;inset:0;background:red;transform-origin:left}
-.score-num{font-size:11px;font-family:'Courier New',monospace;color:#555;width:20px;text-align:right;flex-shrink:0}
+.score-name{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.08em;color:#999;text-transform:uppercase;width:116px;flex-shrink:0}
+.score-track{flex:1;height:2px;background:#1c1c1c;position:relative}
+.score-fill{position:absolute;top:0;bottom:0;left:0;background:red}
+.score-num{font-size:12px;font-family:'Courier New',monospace;color:#ccc;width:24px;text-align:right;flex-shrink:0}
+.score-just{font-size:11.5px;color:#777;line-height:1.65;margin:0 0 14px;max-width:640px}
 
 .weighted-row{display:flex;align-items:baseline;gap:10px;margin-bottom:24px}
-.weighted-key{font-size:10px;letter-spacing:.15em;color:#3a3a3a;text-transform:uppercase}
-.weighted-num{font-size:32px;font-weight:300;letter-spacing:.02em}
-.weighted-denom{font-size:13px;color:#333}
+.weighted-key{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.15em;color:#777;text-transform:uppercase}
+.weighted-num{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-weight:700;font-size:32px;letter-spacing:.02em}
+.weighted-denom{font-size:13px;color:#666}
 
-.summary-key{font-size:9px;letter-spacing:.2em;color:#3a3a3a;text-transform:uppercase;margin-bottom:8px}
-.summary-body{font-size:13px;color:#888;line-height:1.75;max-width:660px}
+.summary-key{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase;margin-bottom:8px}
+.summary-body{font-size:13.5px;color:#bbb;line-height:1.75;max-width:660px}
 
 /* ── divider ── */
 hr{border:none;border-top:1px solid #181818;margin:52px 0}
 
 /* ── table ── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .sub-table{width:100%;border-collapse:collapse}
 .sub-table th{
-  font-size:9px;letter-spacing:.2em;color:#333;text-transform:uppercase;
-  text-align:left;padding:0 20px 12px 0;font-weight:400;
+  font-family:"Eurostile",'Helvetica Neue',sans-serif;
+  font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase;
+  text-align:left;padding:0 16px 12px 0;font-weight:400;white-space:nowrap;
   border-bottom:1px solid #181818
 }
 .sub-table th:last-child{padding-right:0}
 .sub-table td{
-  padding:13px 20px 13px 0;border-bottom:1px solid #0d0d0d;
-  font-size:12px;color:#555;vertical-align:middle
+  padding:13px 16px 13px 0;border-bottom:1px solid #111;
+  font-size:12.5px;color:#999;vertical-align:middle
 }
 .sub-table td:last-child{padding-right:0}
 .sub-table tr[data-id]{cursor:pointer}
-.sub-table tr[data-id]:hover td{color:#ccc}
-.td-title{color:#bbb;font-size:13px}
-.td-score{font-family:'Courier New',monospace}
-.td-badge span{padding:3px 8px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-.td-empty{font-size:10px;letter-spacing:.12em;color:#2a2a2a;text-transform:uppercase;padding:28px 0}
-.td-loading{font-size:10px;letter-spacing:.1em;color:#222;text-transform:uppercase;padding:20px 0}
+.sub-table tr[data-id]:hover td{color:#fff}
+.sub-table tr[data-id]:hover .td-title{color:#fff}
+.td-title{color:#eee;font-size:13px}
+.td-score{font-family:'Courier New',monospace;color:#ccc}
+.td-badge span{font-family:"Eurostile",'Helvetica Neue',sans-serif;padding:3px 8px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.td-empty{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.12em;color:#666;text-transform:uppercase;padding:28px 0}
+.td-loading{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.1em;color:#666;text-transform:uppercase;padding:20px 0}
 
 /* ── modal ── */
 .modal-back{
@@ -156,13 +204,13 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .modal-back.open{display:block}
 .modal-wrap{min-height:100%;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px}
 .modal{
-  width:100%;max-width:640px;background:#060606;
-  border:1px solid #1a1a1a;padding:32px;position:relative
+  width:100%;max-width:680px;background:#070707;
+  border:1px solid #1c1c1c;padding:36px;position:relative
 }
 .modal-close{
-  position:absolute;top:20px;right:20px;
-  background:none;border:none;color:#333;font-size:22px;line-height:1;
-  cursor:pointer;padding:0;transition:color .15s
+  position:absolute;top:18px;right:18px;
+  background:none;border:none;color:#888;font-size:24px;line-height:1;
+  cursor:pointer;padding:4px;transition:color .15s
 }
 .modal-close:hover{color:#fff}
 .modal-spinner{display:flex;justify-content:center;padding:32px 0}
@@ -171,6 +219,11 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   header{padding:14px 20px}
   main{padding:32px 20px}
   .form-row{grid-template-columns:1fr}
+  .hide-m{display:none}
+  .result-title{font-size:16px}
+  .modal{padding:28px 20px}
+  .modal-wrap{padding:24px 12px}
+  .score-name{width:96px}
 }
 </style>
 </head>
@@ -188,6 +241,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 
 <main>
   <div class="section-label">Submit a Script</div>
+  <p class="section-sub">Upload your screenplay as a PDF (max 20&nbsp;MB). The evaluation runs immediately — results appear below in about a minute, and a copy is emailed to you.</p>
 
   <div class="form-row">
     <div class="field">
@@ -203,17 +257,17 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   <div class="form-full">
     <div class="field">
       <label for="iTitle">Script Title</label>
-      <input type="text" id="iTitle" placeholder="Title of your script">
+      <input type="text" id="iTitle" placeholder="Title of your script" autocomplete="off">
     </div>
   </div>
 
   <div class="form-full">
     <div class="field">
-      <label>PDF File</label>
+      <label for="iFile">PDF File</label>
       <label class="file-label" id="fileLabel" for="iFile">
         <span class="file-icon">↑</span>
-        <span class="file-text">Choose PDF</span>
-        <span class="file-size">Max 20 MB</span>
+        <span class="file-text">Choose PDF — or drop it here</span>
+        <span class="file-size" id="fileSize">Max 20 MB</span>
       </label>
       <input type="file" id="iFile" accept=".pdf,application/pdf">
     </div>
@@ -222,14 +276,17 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   <div class="error-msg" id="formError" aria-live="polite"></div>
   <button class="btn-submit" id="submitBtn" disabled>Evaluate Script</button>
 
-  <div class="loading-state" id="loadingState">
+  <div class="loading-state" id="loadingState" role="status">
     <div class="spinner"></div>
-    <span class="loading-msg">Evaluating — this may take up to 90 seconds</span>
+    <span class="loading-msg" id="loadingMsg">Evaluating</span>
+    <span class="loading-sub">Reading, scoring across six categories, and writing coverage — usually under 90 seconds</span>
   </div>
 
   <div class="result" id="resultPanel">
     <div class="result-header">
-      <div class="result-title" id="rTitle"></div>
+      <div>
+        <div class="result-title" id="rTitle"></div>
+      </div>
       <div class="badge" id="rBadge"></div>
     </div>
     <div class="meta-grid" id="rMeta"></div>
@@ -244,7 +301,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     <div class="weighted-row">
       <span class="weighted-key">Weighted Score</span>
       <span class="weighted-num" id="rWeighted"></span>
-      <span class="weighted-denom">/ 10</span>
+      <span class="weighted-denom">/ 100</span>
     </div>
     <div class="summary-key">Summary</div>
     <div class="summary-body" id="rSummary"></div>
@@ -253,21 +310,23 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   <hr>
 
   <div class="section-label">Past Submissions</div>
-  <table class="sub-table">
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Submitted By</th>
-        <th>Pages</th>
-        <th>Score</th>
-        <th>Decision</th>
-        <th>Date</th>
-      </tr>
-    </thead>
-    <tbody id="subBody">
-      <tr><td colspan="6" class="td-loading">Loading—</td></tr>
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table class="sub-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th class="hide-m">Submitted By</th>
+          <th class="hide-m">Pages</th>
+          <th>Score</th>
+          <th>Decision</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="subBody">
+        <tr><td colspan="6" class="td-loading">Loading —</td></tr>
+      </tbody>
+    </table>
+  </div>
 </main>
 
 <div class="modal-back" id="modalBack" role="dialog" aria-modal="true" aria-label="Script detail">
@@ -305,7 +364,7 @@ function getValidToken() {
   if (!token || Date.now() > expires) {
     localStorage.removeItem('session_token');
     localStorage.removeItem('session_expires');
-    window.location.href = '/passcode.html';
+    window.location.href = '/passcode';
     return null;
   }
   return token;
@@ -317,19 +376,148 @@ if (!token) throw new Error('unauthenticated');
 document.getElementById('signOutBtn').addEventListener('click', () => {
   localStorage.removeItem('session_token');
   localStorage.removeItem('session_expires');
-  window.location.href = '/passcode.html';
+  window.location.href = '/passcode';
 });
+
+// ── fetch helper ─────────────────────────────────────────────────────────────
+// The API host spins down when idle; the first request after a quiet spell can
+// stall or drop. Give each request a hard timeout and one retry.
+
+function fetchWithTimeout(url, opts, ms) {
+  if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+    return fetch(url, { ...opts, signal: AbortSignal.timeout(ms) });
+  }
+  return fetch(url, opts);
+}
+
+async function apiFetch(path, opts = {}, { retries = 1, timeout = 60000 } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetchWithTimeout(`${API}${path}`, opts, timeout);
+    } catch (err) {
+      if (attempt >= retries) throw err;
+      await new Promise(r => setTimeout(r, 2500));
+    }
+  }
+}
+
+// ── data helpers ─────────────────────────────────────────────────────────────
+// The evaluator returns scores as { score, justification } objects, comparable
+// films as { title, budget } objects, and the weighted score on a 0-100 scale.
+// Handle plain numbers / strings too so older rows still render.
+
+function scoreVal(v)  { return (v && typeof v === 'object') ? v.score : v; }
+function scoreJust(v) { return (v && typeof v === 'object') ? v.justification : null; }
+
+function weightedOf(ev) {
+  let v = ev?.weighted_score;
+  if (v == null || isNaN(Number(v))) return null;
+  v = Number(v);
+  if (v <= 10) v *= 10; // tolerate a 0-10 scale result
+  return v;
+}
+
+function fmtBudget(n) {
+  if (n == null || isNaN(Number(n))) return null;
+  n = Number(n);
+  if (n >= 1e9) return '$' + (n / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (n >= 1e3) return '$' + Math.round(n / 1e3) + 'K';
+  return '$' + n.toLocaleString();
+}
+
+function fmtComps(comps) {
+  if (!Array.isArray(comps)) return null;
+  const parts = comps.map(c => {
+    if (typeof c === 'string') return c;
+    if (c && c.title) {
+      const b = fmtBudget(c.budget);
+      return b ? `${c.title} (${b})` : c.title;
+    }
+    return null;
+  }).filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+function fmtGenre(g) {
+  if (!g) return null;
+  return String(g).replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+}
+
+function fmtDate(row, style) {
+  const raw = row.submitted_at ?? row.created_at;
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (isNaN(d)) return null;
+  return d.toLocaleDateString('en-US', { month: style === 'long' ? 'long' : 'short', day: 'numeric', year: 'numeric' });
+}
+
+function parseEval(row) {
+  const raw = row.evaluation_json ?? row.evaluation;
+  if (!raw) return {};
+  if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return {}; } }
+  return raw;
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildMeta(pairs) {
+  return pairs.filter(([, v]) => v != null && v !== '').map(([k, v]) =>
+    `<div class="meta-item">
+       <span class="meta-key">${k}</span>
+       <span class="meta-val">${esc(String(v))}</span>
+     </div>`
+  ).join('');
+}
+
+function buildBars(scores, { withJustifications = false } = {}) {
+  if (!scores || typeof scores !== 'object') return '';
+  return Object.entries(scores).map(([key, raw]) => {
+    const val = Number(scoreVal(raw));
+    if (isNaN(val)) return '';
+    const pct = Math.min(100, Math.max(0, (val / 10) * 100)).toFixed(1);
+    const just = withJustifications ? scoreJust(raw) : null;
+    return `<div class="score-row">
+      <span class="score-name">${SCORE_NAMES[key] || esc(key)}</span>
+      <div class="score-track"><div class="score-fill" style="width:${pct}%"></div></div>
+      <span class="score-num">${val}</span>
+    </div>${just ? `<div class="score-just">${esc(just)}</div>` : ''}`;
+  }).join('');
+}
+
+function decisionBadge(row, ev) {
+  if (row && row.status === 'error')      return `<span style="border:1px solid #7f1d1d;color:#f87171">Error</span>`;
+  if (row && row.status === 'processing') return `<span style="border:1px solid #333;color:#999">Processing</span>`;
+  const dec = ev?.decision;
+  const bg = DECISIONS[dec];
+  if (bg) return `<span style="background:${bg};color:#fff">${esc(dec)}</span>`;
+  return `<span style="color:#666">${dec ? esc(dec) : '—'}</span>`;
+}
 
 // ── form ─────────────────────────────────────────────────────────────────────
 
-const iName   = document.getElementById('iName');
-const iEmail  = document.getElementById('iEmail');
-const iTitle  = document.getElementById('iTitle');
-const iFile   = document.getElementById('iFile');
+const iName     = document.getElementById('iName');
+const iEmail    = document.getElementById('iEmail');
+const iTitle    = document.getElementById('iTitle');
+const iFile     = document.getElementById('iFile');
 const fileLabel = document.getElementById('fileLabel');
 const fileText  = fileLabel.querySelector('.file-text');
+const fileSize  = document.getElementById('fileSize');
 const submitBtn = document.getElementById('submitBtn');
 const formError = document.getElementById('formError');
+
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
+
+// writers come back — remember who they are
+iName.value  = localStorage.getItem('writer_name')  || '';
+iEmail.value = localStorage.getItem('writer_email') || '';
 
 function checkReady() {
   submitBtn.disabled = !(
@@ -339,18 +527,52 @@ function checkReady() {
     iFile.files.length
   );
 }
+checkReady();
 
 [iName, iEmail, iTitle].forEach(el => el.addEventListener('input', checkReady));
 
-iFile.addEventListener('change', () => {
+function reflectFile() {
+  formError.textContent = '';
   if (iFile.files.length) {
-    fileText.textContent = iFile.files[0].name;
+    const f = iFile.files[0];
+    if (f.size > MAX_PDF_BYTES) {
+      formError.textContent = 'That PDF is over the 20 MB limit';
+      iFile.value = '';
+      fileText.textContent = 'Choose PDF — or drop it here';
+      fileSize.textContent = 'Max 20 MB';
+      fileLabel.classList.remove('has-file');
+      checkReady();
+      return;
+    }
+    fileText.textContent = f.name;
+    fileSize.textContent = (f.size / 1024 / 1024).toFixed(1) + ' MB';
     fileLabel.classList.add('has-file');
   } else {
-    fileText.textContent = 'Choose PDF';
+    fileText.textContent = 'Choose PDF — or drop it here';
+    fileSize.textContent = 'Max 20 MB';
     fileLabel.classList.remove('has-file');
   }
   checkReady();
+}
+
+iFile.addEventListener('change', reflectFile);
+
+// drag & drop straight onto the file box
+['dragenter', 'dragover'].forEach(ev =>
+  fileLabel.addEventListener(ev, e => { e.preventDefault(); fileLabel.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev =>
+  fileLabel.addEventListener(ev, e => { e.preventDefault(); fileLabel.classList.remove('drag'); }));
+fileLabel.addEventListener('drop', e => {
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!f) return;
+  if (f.type !== 'application/pdf' && !/\.pdf$/i.test(f.name)) {
+    formError.textContent = 'Only PDF files are accepted';
+    return;
+  }
+  const dt = new DataTransfer();
+  dt.items.add(f);
+  iFile.files = dt.files;
+  reflectFile();
 });
 
 // ── submit ───────────────────────────────────────────────────────────────────
@@ -359,13 +581,30 @@ const STATUS_ERRORS = {
   400: null, // read from body
   413: 'PDF exceeds the 20 MB size limit.',
   422: 'PDF has no extractable text — image-based files are not supported.',
+  429: 'Too many requests — please wait a moment and try again.',
   504: 'Evaluation timed out. Please try again.',
 };
 
+const loadingState = document.getElementById('loadingState');
+const loadingMsg   = document.getElementById('loadingMsg');
+let loadingTimer   = null;
+
+function setLoading(on) {
+  loadingState.style.display = on ? 'flex' : 'none';
+  submitBtn.style.display = on ? 'none' : '';
+  clearInterval(loadingTimer);
+  if (on) {
+    const t0 = Date.now();
+    loadingMsg.textContent = 'Evaluating';
+    loadingTimer = setInterval(() => {
+      loadingMsg.textContent = `Evaluating — ${Math.round((Date.now() - t0) / 1000)}s`;
+    }, 1000);
+  }
+}
+
 submitBtn.addEventListener('click', async () => {
   formError.textContent = '';
-  submitBtn.style.display = 'none';
-  document.getElementById('loadingState').style.display = 'flex';
+  setLoading(true);
   document.getElementById('resultPanel').style.display = 'none';
 
   const fd = new FormData();
@@ -375,19 +614,18 @@ submitBtn.addEventListener('click', async () => {
   fd.append('script', iFile.files[0]);
 
   try {
-    const res = await fetch(`${API}/evaluate`, {
+    const res = await fetchWithTimeout(`${API}/evaluate`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: fd,
       // no Content-Type — browser sets multipart boundary
-    });
+    }, 180000);
 
-    document.getElementById('loadingState').style.display = 'none';
-    submitBtn.style.display = '';
+    setLoading(false);
 
     if (res.status === 401) {
       localStorage.removeItem('session_token');
-      window.location.href = '/passcode.html';
+      window.location.href = '/passcode';
       return;
     }
 
@@ -402,20 +640,19 @@ submitBtn.addEventListener('click', async () => {
     }
 
     const data = await res.json();
+
+    localStorage.setItem('writer_name',  iName.value.trim());
+    localStorage.setItem('writer_email', iEmail.value.trim());
+
     renderResult(data);
     loadSubmissions();
 
-    iName.value = '';
-    iEmail.value = '';
     iTitle.value = '';
     iFile.value = '';
-    fileText.textContent = 'Choose PDF';
-    fileLabel.classList.remove('has-file');
-    checkReady();
+    reflectFile();
 
   } catch {
-    document.getElementById('loadingState').style.display = 'none';
-    submitBtn.style.display = '';
+    setLoading(false);
     formError.textContent = 'Connection error — please try again.';
   }
 });
@@ -423,7 +660,7 @@ submitBtn.addEventListener('click', async () => {
 // ── render result ────────────────────────────────────────────────────────────
 
 function renderResult(data) {
-  const ev = data.evaluation || {};
+  const ev = (data.evaluation && typeof data.evaluation === 'object') ? data.evaluation : {};
   const bg = DECISIONS[ev.decision] || '#444';
 
   document.getElementById('rTitle').textContent = data.title || '';
@@ -434,29 +671,30 @@ function renderResult(data) {
   badge.style.color = '#fff';
 
   document.getElementById('rMeta').innerHTML = buildMeta([
-    ['Genre',       ev.genre],
+    ['Genre',       fmtGenre(ev.genre)],
     ['Country',     ev.country],
-    ['Max Budget',  ev.max_budget],
+    ['Max Budget',  fmtBudget(ev.max_budget)],
     ['Pages',       data.pageCount],
     ['Word Count',  data.wordCount ? data.wordCount.toLocaleString() : null],
   ]);
 
-  const comps = ev.comparable_films;
+  const compsText = fmtComps(ev.comparable_films);
   const compsEl = document.getElementById('rComps');
-  if (comps && comps.length) {
-    document.getElementById('rCompsList').textContent = comps.join(', ');
+  if (compsText) {
+    document.getElementById('rCompsList').textContent = compsText;
     compsEl.style.display = '';
   } else {
     compsEl.style.display = 'none';
   }
 
-  document.getElementById('rBars').innerHTML = buildBars(ev.scores);
-  document.getElementById('rWeighted').textContent = ev.weighted_score != null
-    ? ev.weighted_score.toFixed(1) : '—';
+  document.getElementById('rBars').innerHTML = buildBars(ev.scores, { withJustifications: true });
+
+  const w = weightedOf(ev);
+  document.getElementById('rWeighted').textContent = w != null ? w.toFixed(1) : '—';
   document.getElementById('rSummary').textContent = ev.summary || '';
 
   const panel = document.getElementById('resultPanel');
-  panel.style.display = '';
+  panel.style.display = 'block';
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -468,10 +706,10 @@ async function loadSubmissions() {
   if (!t) return;
 
   try {
-    const res = await fetch(`${API}/scripts?limit=50&offset=0`, {
+    const res = await apiFetch('/scripts?limit=50&offset=0', {
       headers: { Authorization: `Bearer ${t}` },
     });
-    if (res.status === 401) { window.location.href = '/passcode.html'; return; }
+    if (res.status === 401) { window.location.href = '/passcode'; return; }
 
     const { data } = await res.json();
 
@@ -481,26 +719,19 @@ async function loadSubmissions() {
     }
 
     tbody.innerHTML = data.map(row => {
-      const ev  = parseEval(row);
-      const dec = ev.decision || '';
-      const bg  = DECISIONS[dec];
-      const badgeHtml = bg
-        ? `<span style="background:${bg};color:#fff;padding:3px 8px;font-size:9px;font-weight:700;letter-spacing:.14em">${dec}</span>`
-        : `<span style="color:#333">${dec || '—'}</span>`;
-
-      const score = ev.weighted_score != null ? ev.weighted_score.toFixed(1) : '—';
+      const ev = parseEval(row);
+      const w  = weightedOf(ev);
+      const score = w != null ? w.toFixed(1) : '—';
       const name  = row.users ? esc(row.users.name || '—') : '—';
       const pages = row.page_count ?? row.pageCount ?? '—';
-      const date  = row.created_at
-        ? new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        : '—';
+      const date  = fmtDate(row) ?? '—';
 
       return `<tr data-id="${esc(row.id)}">
         <td class="td-title">${esc(row.title || '—')}</td>
-        <td>${name}</td>
-        <td>${pages}</td>
+        <td class="hide-m">${name}</td>
+        <td class="hide-m">${pages}</td>
         <td class="td-score">${score}</td>
-        <td class="td-badge">${badgeHtml}</td>
+        <td class="td-badge">${decisionBadge(row, ev)}</td>
         <td>${date}</td>
       </tr>`;
     }).join('');
@@ -509,7 +740,7 @@ async function loadSubmissions() {
       tr.addEventListener('click', () => openModal(tr.dataset.id));
     });
   } catch {
-    tbody.innerHTML = '<tr><td colspan="6" class="td-empty">Failed to load submissions</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="td-empty">Failed to load submissions — refresh to retry</td></tr>';
   }
 }
 
@@ -526,51 +757,51 @@ async function openModal(id) {
   if (!t) return;
 
   try {
-    const res = await fetch(`${API}/scripts/${id}`, {
+    const res = await apiFetch(`/scripts/${id}`, {
       headers: { Authorization: `Bearer ${t}` },
     });
-    if (res.status === 401) { window.location.href = '/passcode.html'; return; }
+    if (res.status === 401) { window.location.href = '/passcode'; return; }
 
-    const row = await res.json();
-    const ev  = parseEval(row);
-    const bg  = DECISIONS[ev.decision] || '#444';
-    const date = row.created_at
-      ? new Date(row.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-      : '';
+    const row  = await res.json();
+    const ev   = parseEval(row);
+    const date = fmtDate(row, 'long');
 
-    const compsHtml = ev.comparable_films && ev.comparable_films.length
+    const compsText = fmtComps(ev.comparable_films);
+    const compsHtml = compsText
       ? `<div class="comps-row">
            <div class="comps-key">Comparable Films</div>
-           <div class="comps-val">${esc(ev.comparable_films.join(', '))}</div>
+           <div class="comps-val">${esc(compsText)}</div>
          </div>`
       : '';
 
-    const barsHtml = buildBars(ev.scores);
+    const barsHtml = buildBars(ev.scores, { withJustifications: true });
+    const w = weightedOf(ev);
 
     content.innerHTML = `
-      <div class="result-header" style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #181818">
+      <div class="result-header">
         <div>
           <div class="result-title">${esc(row.title || '—')}</div>
-          ${date ? `<div style="font-size:11px;color:#333;margin-top:4px">${date}</div>` : ''}
+          ${date ? `<div class="result-date">${date}</div>` : ''}
         </div>
-        <div class="badge" style="background:${bg};color:#fff">${ev.decision || '—'}</div>
+        <div class="badge-slot">${decisionBadge(row, ev).replace('<span', '<span class="badge"')}</div>
       </div>
       <div class="meta-grid" style="margin-bottom:20px">${buildMeta([
         ['Submitted By', row.users?.name],
         ['Email',        row.users?.email],
-        ['Genre',        ev.genre],
+        ['Genre',        fmtGenre(ev.genre)],
         ['Country',      ev.country],
-        ['Max Budget',   ev.max_budget],
+        ['Max Budget',   fmtBudget(ev.max_budget)],
         ['Pages',        row.page_count ?? row.pageCount],
       ])}</div>
       ${compsHtml}
       ${barsHtml ? `<div class="scores-block"><div class="scores-key">Score Breakdown</div>${barsHtml}</div>` : ''}
       <div class="weighted-row">
         <span class="weighted-key">Weighted Score</span>
-        <span class="weighted-num">${ev.weighted_score != null ? ev.weighted_score.toFixed(1) : '—'}</span>
-        <span class="weighted-denom">/ 10</span>
+        <span class="weighted-num">${w != null ? w.toFixed(1) : '—'}</span>
+        <span class="weighted-denom">/ 100</span>
       </div>
       ${ev.summary ? `<div class="summary-key">Summary</div><div class="summary-body">${esc(ev.summary)}</div>` : ''}
+      ${row.status === 'error' && row.evaluation_result ? `<div class="summary-key">Error</div><div class="summary-body">${esc(row.evaluation_result)}</div>` : ''}
     `;
   } catch {
     content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
@@ -586,45 +817,6 @@ document.getElementById('modalBack').addEventListener('click', e => {
   if (e.target === e.currentTarget || e.target.classList.contains('modal-wrap')) closeModal();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-function parseEval(row) {
-  const raw = row.evaluation_json ?? row.evaluation;
-  if (!raw) return {};
-  if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return {}; } }
-  return raw;
-}
-
-function buildMeta(pairs) {
-  return pairs.filter(([, v]) => v != null && v !== '').map(([k, v]) =>
-    `<div class="meta-item">
-       <span class="meta-key">${k}</span>
-       <span class="meta-val">${esc(String(v))}</span>
-     </div>`
-  ).join('');
-}
-
-function buildBars(scores) {
-  if (!scores) return '';
-  return Object.entries(scores).map(([key, val]) => {
-    const pct = Math.min(100, Math.max(0, (val / 10) * 100)).toFixed(1);
-    return `<div class="score-row">
-      <span class="score-name">${SCORE_NAMES[key] || key}</span>
-      <div class="score-track"><div class="score-fill" style="width:${pct}%"></div></div>
-      <span class="score-num">${val}</span>
-    </div>`;
-  }).join('');
-}
-
-function esc(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 // ── init ──────────────────────────────────────────────────────────────────────
 

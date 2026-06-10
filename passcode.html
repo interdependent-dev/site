@@ -2,50 +2,94 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#000">
-<title>INTERDEPENDENT</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
+<title>INTERDEPENDENT — SUBMISSIONS</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA3NC42IDg5LjQnIGZpbGwtcnVsZT0nZXZlbm9kZCc+PHBhdGggZmlsbD0ncmVkJyBkPSdNOS4zIDI4YTI4IDI4IDAgMSAwIDU2IDAgMjggMjggMCAxIDAtNTYgME0yMCA2NC45YTcuNSA3LjMgMCAxIDAgMTUgMCA3LjUgNy4zIDAgMSAwLTE1IDBNMjMuMiA2NC43YTQuMSA0LjEgMCAxIDAgOC4yIDAgNC4xIDQuMSAwIDEgMC04LjIgME00My45IDYwYTQgNCAwIDEgMCA4IDAgNCA0IDAgMSAwLTggME00NS41IDYwYTIuNCAyLjQgMCAxIDAgNC44IDAgMi40IDIuNCAwIDEgMC00LjggME0zNy4zIDcyLjdhMy4zIDMuMyAwIDEgMCA2LjYgMCAzLjMgMy4zIDAgMSAwLTYuNiAwTTI5LjMgODUuNGE0IDQgMCAxIDAgOCAwIDQgNCAwIDEgMC04IDBNMCA1MC43YTYuNyA2LjcgMCAxIDAgMTMuNCAwIDYuNyA2LjcgMCAxIDAtMTMuNCAwTTYxLjMgNDkuM2E2LjcgNi43IDAgMSAwIDEzLjMgMCA2LjcgNi43IDAgMSAwLTEzLjMgMCcvPjwvc3ZnPg==">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
+@font-face{
+  font-family:"Eurostile";
+  src:url("fonts/EurostileNextPro-Regular.ttf") format("truetype");
+  font-weight:400;font-style:normal;font-display:swap
+}
+@font-face{
+  font-family:"Eurostile";
+  src:url("fonts/EurostileNextPro-Bold.ttf") format("truetype");
+  font-weight:700;font-style:normal;font-display:swap
+}
+@font-face{
+  font-family:"Eurostile Wide";
+  src:url("fonts/EurostileNextPro-WideBold.ttf") format("truetype");
+  font-weight:700;font-style:normal;font-display:swap
+}
+
 *{margin:0;box-sizing:border-box}
-html,body{height:100%;background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif}
+html{color-scheme:dark}
+html,body{height:100%;background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;animation:f .6s ease-out both}
 @keyframes f{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-.logo{display:flex;flex-direction:column;align-items:center;gap:16px;text-decoration:none;margin-bottom:56px}
-.logo svg{width:48px;height:auto}
-.logo-name{font-size:11px;letter-spacing:.25em;color:#555;text-transform:uppercase}
+.logo{display:flex;flex-direction:column;align-items:center;gap:20px;text-decoration:none;margin-bottom:56px}
+.logo svg{width:76px;height:auto}
+.logo-name{font-family:"Eurostile Wide","Eurostile",'Helvetica Neue',sans-serif;font-weight:700;font-size:12px;letter-spacing:.3em;margin-right:-.3em;color:#999;text-transform:uppercase}
 
 .gate{display:flex;flex-direction:column;align-items:center;gap:28px;width:100%;max-width:300px}
 
-.label{font-size:10px;letter-spacing:.2em;color:#444;text-transform:uppercase}
+.label{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:11px;letter-spacing:.22em;margin-right:-.22em;color:#888;text-transform:uppercase}
 
 .pin-row{display:flex;gap:10px}
 .pin-row input{
   width:60px;height:72px;
-  background:#0a0a0a;border:1px solid #222;
+  background:#0a0a0a;border:1px solid #2a2a2a;
   color:#fff;font-size:28px;font-weight:300;text-align:center;
   outline:none;caret-color:red;
   -moz-appearance:textfield;appearance:textfield;
   transition:border-color .15s;border-radius:0;
   font-family:inherit
 }
-.pin-row input:focus{border-color:#555}
+.pin-row input:focus{border-color:red}
+.pin-row input:disabled{opacity:.5}
 .pin-row input::-webkit-inner-spin-button,
 .pin-row input::-webkit-outer-spin-button{-webkit-appearance:none}
 
 .btn{
   width:100%;height:50px;
   background:red;border:none;
-  color:#fff;font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
-  cursor:pointer;transition:opacity .15s;font-family:inherit
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  color:#fff;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  cursor:pointer;transition:opacity .15s;
+  font-family:"Eurostile",'Helvetica Neue',sans-serif
 }
-.btn:hover:not(:disabled){opacity:.8}
+.btn:hover:not(:disabled){opacity:.85}
 .btn:disabled{opacity:.35;cursor:default}
+.btn.busy{opacity:1;cursor:wait}
 
-.error{font-size:10px;letter-spacing:.12em;color:red;text-transform:uppercase;min-height:1em;text-align:center}
+.btn-spinner{
+  display:none;width:14px;height:14px;flex-shrink:0;
+  border:1.5px solid rgba(255,255,255,.35);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite
+}
+.btn.busy .btn-spinner{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.msg{
+  font-family:"Eurostile",'Helvetica Neue',sans-serif;
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  min-height:2.6em;text-align:center;line-height:1.8;max-width:300px
+}
+.msg.error{color:red}
+.msg.status{color:#777}
+
+@media (prefers-reduced-motion:reduce){
+  body{animation:none}
+  .btn-spinner{animation-duration:1.4s}
+}
 </style>
 </head>
 <body>
@@ -65,26 +109,57 @@ body{display:flex;flex-direction:column;align-items:center;justify-content:cente
     <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Digit 3">
     <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Digit 4">
   </div>
-  <button class="btn" id="submitBtn" disabled>Submit</button>
-  <span class="error" id="errorMsg" aria-live="polite"></span>
+  <button class="btn" id="submitBtn" disabled>
+    <span class="btn-spinner" aria-hidden="true"></span>
+    <span class="btn-text">Enter</span>
+  </button>
+  <span class="msg" id="msg" role="status" aria-live="polite"></span>
 </div>
 
 <script>
 const API = 'https://interdependent-api.onrender.com';
 
-// redirect if already authenticated
+// ── redirect if already authenticated ──────────────────────────────────────
 (function () {
   const token = localStorage.getItem('session_token');
   const expires = parseInt(localStorage.getItem('session_expires') || '0', 10);
-  if (token && Date.now() < expires) window.location.href = '/submissions.html';
+  if (token && Date.now() < expires) window.location.replace('/submissions');
 }());
 
+// ── wake the API ───────────────────────────────────────────────────────────
+// The API host spins down when idle and takes ~30-60s to wake. Ping it the
+// moment the page loads so it's warm by the time the passcode is typed, and
+// tell the visitor what's happening instead of leaving a dead button.
+let apiAwake = false;
+let submitting = false;
+const msg = document.getElementById('msg');
+
+function setMsg(text, kind) {
+  msg.textContent = text;
+  msg.className = 'msg' + (kind ? ' ' + kind : '');
+}
+
+(function warm() {
+  const coldNotice = setTimeout(() => {
+    if (!apiAwake && !submitting) setMsg('Waking the server — this can take up to a minute', 'status');
+  }, 2500);
+
+  fetch(`${API}/health`, { cache: 'no-store' })
+    .then(r => { if (r.ok) apiAwake = true; })
+    .catch(() => {})
+    .finally(() => {
+      clearTimeout(coldNotice);
+      if (apiAwake && !submitting && msg.classList.contains('status')) setMsg('');
+    });
+}());
+
+// ── pin inputs ─────────────────────────────────────────────────────────────
 const inputs = [...document.querySelectorAll('#pinRow input')];
 const btn = document.getElementById('submitBtn');
-const errorMsg = document.getElementById('errorMsg');
+const btnText = btn.querySelector('.btn-text');
 
 function checkReady() {
-  btn.disabled = inputs.some(inp => !inp.value);
+  btn.disabled = submitting || inputs.some(inp => !inp.value);
 }
 
 inputs.forEach((input, i) => {
@@ -92,6 +167,8 @@ inputs.forEach((input, i) => {
     input.value = input.value.replace(/\D/g, '').slice(-1);
     if (input.value && i < inputs.length - 1) inputs[i + 1].focus();
     checkReady();
+    // all four digits in → go, no extra tap needed
+    if (inputs.every(inp => inp.value)) submit();
   });
 
   input.addEventListener('keydown', e => {
@@ -100,7 +177,9 @@ inputs.forEach((input, i) => {
       inputs[i - 1].focus();
       checkReady();
     }
-    if (e.key === 'Enter' && !btn.disabled) submit();
+    if (e.key === 'ArrowLeft' && i > 0) inputs[i - 1].focus();
+    if (e.key === 'ArrowRight' && i < inputs.length - 1) inputs[i + 1].focus();
+    if (e.key === 'Enter') submit();
   });
 
   input.addEventListener('paste', e => {
@@ -111,42 +190,106 @@ inputs.forEach((input, i) => {
     const focus = Math.min(i + digits.length, inputs.length - 1);
     inputs[focus].focus();
     checkReady();
+    if (inputs.every(inp => inp.value)) submit();
   });
 });
 
-async function submit() {
-  const passcode = inputs.map(i => i.value).join('');
-  btn.disabled = true;
-  btn.textContent = '—';
-  errorMsg.textContent = '';
-
-  try {
-    const res = await fetch(`${API}/auth/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passcode }),
-    });
-
-    if (res.ok) {
-      const { token, expiresIn } = await res.json();
-      localStorage.setItem('session_token', token);
-      localStorage.setItem('session_expires', Date.now() + expiresIn * 1000);
-      window.location.href = '/submissions.html';
-      return;
-    }
-
-    errorMsg.textContent = 'Invalid passcode';
-    inputs.forEach(inp => { inp.value = ''; });
-    inputs[0].focus();
-  } catch {
-    errorMsg.textContent = 'Connection error — try again';
-  }
-
-  btn.textContent = 'Submit';
+// ── submit with timeout + retry ────────────────────────────────────────────
+// A cold server can drop or stall the first request, so each attempt gets a
+// hard timeout and network failures retry automatically before giving up.
+function setBusy(on) {
+  submitting = on;
+  btn.classList.toggle('busy', on);
+  btnText.textContent = on ? 'Verifying' : 'Enter';
+  inputs.forEach(inp => { inp.disabled = on; });
   checkReady();
 }
 
+function fetchWithTimeout(url, opts, ms) {
+  if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+    return fetch(url, { ...opts, signal: AbortSignal.timeout(ms) });
+  }
+  return fetch(url, opts);
+}
+
+async function submit() {
+  if (submitting || inputs.some(inp => !inp.value)) return;
+
+  const passcode = inputs.map(i => i.value).join('');
+  setBusy(true);
+  setMsg('');
+
+  const slowNotice = setTimeout(() => {
+    setMsg('Waking the server — this can take up to a minute', 'status');
+  }, 5000);
+
+  const MAX_ATTEMPTS = 3;
+  try {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      let res;
+      try {
+        res = await fetchWithTimeout(`${API}/auth/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode }),
+        }, 45000);
+      } catch {
+        if (attempt < MAX_ATTEMPTS) {
+          setMsg('Still waking the server — retrying', 'status');
+          await new Promise(r => setTimeout(r, 3000));
+          continue;
+        }
+        setMsg('Could not reach the server — please try again', 'error');
+        return;
+      }
+
+      if (res.ok) {
+        const { token, expiresIn } = await res.json();
+        localStorage.setItem('session_token', token);
+        localStorage.setItem('session_expires', Date.now() + expiresIn * 1000);
+        btnText.textContent = 'Welcome';
+        window.location.href = '/submissions';
+        return;
+      }
+
+      if (res.status === 401) {
+        setMsg('Invalid passcode — try again', 'error');
+        inputs.forEach(inp => { inp.disabled = false; inp.value = ''; });
+        inputs[0].focus();
+        return;
+      }
+
+      if (res.status === 429) {
+        setMsg('Too many attempts — wait a minute and try again', 'error');
+        return;
+      }
+
+      // 5xx while the server boots — retry
+      if (attempt < MAX_ATTEMPTS) {
+        setMsg('Server is starting up — retrying', 'status');
+        await new Promise(r => setTimeout(r, 3000));
+        continue;
+      }
+      setMsg('Server error — please try again in a moment', 'error');
+      return;
+    }
+  } finally {
+    clearTimeout(slowNotice);
+    setBusy(false);
+  }
+}
+
 btn.addEventListener('click', submit);
+
+// restore a clean slate when navigating back to this page from bfcache
+window.addEventListener('pageshow', e => {
+  if (e.persisted) {
+    inputs.forEach(inp => { inp.disabled = false; inp.value = ''; });
+    setBusy(false);
+    setMsg('');
+  }
+});
+
 inputs[0].focus();
 </script>
 </body>
