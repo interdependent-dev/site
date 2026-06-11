@@ -619,9 +619,7 @@ submitBtn.addEventListener('click', async () => {
       headers: { Authorization: `Bearer ${token}` },
       body: fd,
       // no Content-Type — browser sets multipart boundary
-    }, 180000);
-
-    setLoading(false);
+    }, 120000);
 
     if (res.status === 401) {
       localStorage.removeItem('session_token');
@@ -630,6 +628,7 @@ submitBtn.addEventListener('click', async () => {
     }
 
     if (!res.ok) {
+      setLoading(false);
       let msg = STATUS_ERRORS[res.status];
       if (!msg) {
         const body = await res.json().catch(() => ({}));
@@ -644,18 +643,67 @@ submitBtn.addEventListener('click', async () => {
     localStorage.setItem('writer_name',  iName.value.trim());
     localStorage.setItem('writer_email', iEmail.value.trim());
 
-    renderResult(data);
+    // The API replies 202 right away and evaluates in the background;
+    // poll the script row until the result (or an error) lands.
+    const result = (data.evaluation && typeof data.evaluation === 'object')
+      ? data
+      : await pollEvaluation(data.id);
+
+    setLoading(false);
+    renderResult(result);
     loadSubmissions();
 
     iTitle.value = '';
     iFile.value = '';
     reflectFile();
 
-  } catch {
+  } catch (err) {
     setLoading(false);
-    formError.textContent = 'Connection error — please try again.';
+    formError.textContent = err && err.message
+      ? err.message
+      : 'Connection error — please try again.';
+    loadSubmissions();
   }
 });
+
+async function pollEvaluation(id) {
+  if (!id) throw new Error('Submission failed — please try again.');
+  const deadline = Date.now() + 10 * 60 * 1000;
+
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 5000));
+
+    const t = getValidToken();
+    if (!t) throw new Error('Session expired — please sign in again.');
+
+    let row;
+    try {
+      const res = await apiFetch(`/scripts/${id}`, {
+        headers: { Authorization: `Bearer ${t}` },
+      }, { retries: 1, timeout: 20000 });
+      if (res.status === 401) { window.location.href = '/passcode'; throw new Error('Session expired'); }
+      if (!res.ok) continue;
+      row = await res.json();
+    } catch {
+      continue; // transient — keep polling until the deadline
+    }
+
+    if (row.status === 'evaluated') {
+      return {
+        id: row.id,
+        title: row.title,
+        evaluation: parseEval(row),
+        pageCount: row.page_count,
+        wordCount: row.word_count,
+      };
+    }
+    if (row.status === 'error') {
+      throw new Error(row.evaluation_result || 'Evaluation failed — please try again.');
+    }
+  }
+
+  throw new Error('Still evaluating — your results will also arrive by email. Refresh in a few minutes to see them here.');
+}
 
 // ── render result ────────────────────────────────────────────────────────────
 
