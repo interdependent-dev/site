@@ -195,6 +195,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .td-badge span{font-family:"Eurostile",'Helvetica Neue',sans-serif;padding:3px 8px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
 .td-empty{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.12em;color:#666;text-transform:uppercase;padding:28px 0}
 .td-loading{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.1em;color:#666;text-transform:uppercase;padding:20px 0}
+.sub-foot{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.18em;color:#555;text-transform:uppercase;text-align:center;padding:22px 0}
 
 /* ── modal ── */
 .modal-back{
@@ -336,6 +337,8 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
       </tbody>
     </table>
   </div>
+  <div class="sub-foot" id="subFoot" style="display:none"></div>
+  <div id="subSentinel" aria-hidden="true"></div>
 </main>
 
 <div class="modal-back" id="modalBack" role="dialog" aria-modal="true" aria-label="Script detail">
@@ -800,51 +803,116 @@ function renderResult(data) {
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// ── load submissions ─────────────────────────────────────────────────────────
+// ── load submissions (infinite scroll) ───────────────────────────────────────
+// Pages of PAGE_SIZE append as the sentinel below the table scrolls into view,
+// all the way back to the first submission. loadSubmissions() with no args
+// resets to the newest page (used after submit/retry); the observer passes
+// {reset:false} to append the next page.
 
-async function loadSubmissions() {
+const PAGE_SIZE = 50;
+let subOffset = 0;
+let subDone = false;
+let subFetching = false;
+const subSeen = new Set();
+
+const subFoot = document.getElementById('subFoot');
+
+function subRowHtml(row) {
+  const ev = parseEval(row);
+  const w  = weightedOf(ev);
+  const score = w != null ? w.toFixed(1) : '—';
+  const name  = row.users ? esc(row.users.name || '—') : '—';
+  const pages = row.page_count ?? row.pageCount ?? '—';
+  const date  = fmtDate(row) ?? '—';
+
+  return `<tr data-id="${esc(row.id)}">
+    <td class="td-title">${esc(row.title || '—')}</td>
+    <td class="hide-m">${name}</td>
+    <td class="hide-m">${pages}</td>
+    <td class="td-score">${score}</td>
+    <td class="td-badge">${decisionBadge(row, ev)}</td>
+    <td>${date}</td>
+  </tr>`;
+}
+
+async function loadSubmissions({ reset = true } = {}) {
+  if (subFetching) return;
+  if (!reset && subDone) return;
+
   const tbody = document.getElementById('subBody');
   const t = getValidToken();
   if (!t) return;
 
+  subFetching = true;
+  const offset = reset ? 0 : subOffset;
+
+  if (reset) {
+    tbody.innerHTML = '<tr><td colspan="6" class="td-loading">Loading —</td></tr>';
+    subFoot.style.display = 'none';
+  } else {
+    subFoot.textContent = 'Loading more —';
+    subFoot.style.display = '';
+  }
+
   try {
-    const res = await apiFetch('/scripts?limit=50&offset=0', {
+    const res = await apiFetch(`/scripts?limit=${PAGE_SIZE}&offset=${offset}`, {
       headers: { Authorization: `Bearer ${t}` },
     });
     if (res.status === 401) { window.location.href = '/passcode'; return; }
 
     const { data } = await res.json();
+    const rows = data || [];
 
-    if (!data || !data.length) {
+    if (reset) {
+      tbody.innerHTML = '';
+      subSeen.clear();
+      subOffset = 0;
+      subDone = false;
+    }
+
+    if (offset === 0 && !rows.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="td-empty">No submissions yet</td></tr>';
+      subDone = true;
+      subFoot.style.display = 'none';
       return;
     }
 
-    tbody.innerHTML = data.map(row => {
-      const ev = parseEval(row);
-      const w  = weightedOf(ev);
-      const score = w != null ? w.toFixed(1) : '—';
-      const name  = row.users ? esc(row.users.name || '—') : '—';
-      const pages = row.page_count ?? row.pageCount ?? '—';
-      const date  = fmtDate(row) ?? '—';
+    // Skip rows already shown — new submissions landing between page fetches
+    // shift offsets, which would otherwise duplicate entries.
+    const fresh = rows.filter(r => r.id && !subSeen.has(r.id));
+    fresh.forEach(r => subSeen.add(r.id));
+    if (fresh.length) tbody.insertAdjacentHTML('beforeend', fresh.map(subRowHtml).join(''));
 
-      return `<tr data-id="${esc(row.id)}">
-        <td class="td-title">${esc(row.title || '—')}</td>
-        <td class="hide-m">${name}</td>
-        <td class="hide-m">${pages}</td>
-        <td class="td-score">${score}</td>
-        <td class="td-badge">${decisionBadge(row, ev)}</td>
-        <td>${date}</td>
-      </tr>`;
-    }).join('');
+    subOffset = offset + rows.length;
+    subDone = rows.length < PAGE_SIZE;
 
-    tbody.querySelectorAll('tr[data-id]').forEach(tr => {
-      tr.addEventListener('click', () => openModal(tr.dataset.id));
-    });
+    if (subDone && subSeen.size > PAGE_SIZE) {
+      subFoot.textContent = `End of submissions — ${subSeen.size} total`;
+      subFoot.style.display = '';
+    } else {
+      subFoot.style.display = 'none';
+    }
   } catch {
-    tbody.innerHTML = '<tr><td colspan="6" class="td-empty">Failed to load submissions — refresh to retry</td></tr>';
+    if (reset) {
+      tbody.innerHTML = '<tr><td colspan="6" class="td-empty">Failed to load submissions — refresh to retry</td></tr>';
+    } else {
+      subFoot.textContent = 'Could not load more — scroll to retry';
+      subFoot.style.display = '';
+    }
+  } finally {
+    subFetching = false;
   }
 }
+
+// One delegated click handler covers rows added by any page.
+document.getElementById('subBody').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr[data-id]');
+  if (tr) openModal(tr.dataset.id);
+});
+
+new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting) loadSubmissions({ reset: false });
+}, { rootMargin: '500px' }).observe(document.getElementById('subSentinel'));
 
 // ── modal ────────────────────────────────────────────────────────────────────
 
@@ -863,6 +931,11 @@ async function openModal(id) {
       headers: { Authorization: `Bearer ${t}` },
     });
     if (res.status === 401) { window.location.href = '/passcode'; return; }
+
+    if (!res.ok) {
+      content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
+      return;
+    }
 
     const row  = await res.json();
     const ev   = parseEval(row);
