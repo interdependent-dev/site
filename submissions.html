@@ -904,9 +904,51 @@ async function openModal(id) {
       </div>
       ${ev.summary ? `<div class="summary-key">Summary</div><div class="summary-body">${esc(ev.summary)}</div>` : ''}
       ${row.status === 'error' && row.evaluation_result ? `<div class="summary-key">Error</div><div class="summary-body">${esc(row.evaluation_result)}</div>` : ''}
+      ${row.status === 'error' ? `<button class="btn-submit" id="retryBtn" style="margin-top:28px">Retry Evaluation</button>` : ''}
     `;
+
+    const retryBtn = content.querySelector('#retryBtn');
+    if (retryBtn) retryBtn.addEventListener('click', () => retryEvaluation(row.id, retryBtn));
   } catch {
     content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
+  }
+}
+
+// Re-run a failed evaluation from the stored PDF — no resubmission needed.
+async function retryEvaluation(id, btn) {
+  const t = getValidToken();
+  if (!t) return;
+  btn.disabled = true;
+  btn.textContent = 'Retrying…';
+
+  try {
+    const res = await apiFetch(`/scripts/${id}/retry`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${t}` },
+    }, { retries: 0, timeout: 60000 });
+
+    if (res.status === 401) { window.location.href = '/passcode'; return; }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      btn.disabled = false;
+      btn.textContent = 'Retry Evaluation';
+      formError.textContent = body.error || `Retry failed (${res.status})`;
+      return;
+    }
+
+    closeModal();
+    formError.textContent = '';
+    setLoading(true);
+    loadSubmissions();
+
+    const result = await pollEvaluation(id);
+    setLoading(false);
+    renderResult(result);
+    loadSubmissions();
+  } catch (err) {
+    setLoading(false);
+    formError.textContent = err && err.message ? err.message : 'Retry failed — please try again.';
+    loadSubmissions();
   }
 }
 
