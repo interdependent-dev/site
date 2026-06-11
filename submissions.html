@@ -904,7 +904,7 @@ async function openModal(id) {
       </div>
       ${ev.summary ? `<div class="summary-key">Summary</div><div class="summary-body">${esc(ev.summary)}</div>` : ''}
       ${row.status === 'error' && row.evaluation_result ? `<div class="summary-key">Error</div><div class="summary-body">${esc(row.evaluation_result)}</div>` : ''}
-      ${row.status === 'error' ? `<button class="btn-submit" id="retryBtn" style="margin-top:28px">Retry Evaluation</button>` : ''}
+      ${row.status === 'error' || (row.status === 'evaluated' && !ev.scores) ? `<button class="btn-submit" id="retryBtn" style="margin-top:28px">Retry Evaluation</button>` : ''}
     `;
 
     const retryBtn = content.querySelector('#retryBtn');
