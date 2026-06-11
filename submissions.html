@@ -215,6 +215,12 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .modal-close:hover{color:#fff}
 .modal-spinner{display:flex;justify-content:center;padding:32px 0}
 
+.service-banner{
+  background:#78350f;border:1px solid #92400e;padding:14px 16px;
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;line-height:1.7;
+  color:#fde68a;margin-bottom:12px
+}
+
 @media(max-width:580px){
   header{padding:14px 20px}
   main{padding:32px 20px}
@@ -273,6 +279,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     </div>
   </div>
 
+  <div class="service-banner" id="serviceBanner" style="display:none" role="alert">
+    The evaluation service is temporarily unavailable. Your script has been saved — we'll notify you when it's back online.
+  </div>
   <div class="error-msg" id="formError" aria-live="polite"></div>
   <button class="btn-submit" id="submitBtn" disabled>Evaluate Script</button>
 
@@ -577,14 +586,6 @@ fileLabel.addEventListener('drop', e => {
 
 // ── submit ───────────────────────────────────────────────────────────────────
 
-const STATUS_ERRORS = {
-  400: null, // read from body
-  413: 'PDF exceeds the 20 MB size limit.',
-  422: 'PDF has no extractable text — image-based files are not supported.',
-  429: 'Too many requests — please wait a moment and try again.',
-  504: 'Evaluation timed out. Please try again.',
-};
-
 const loadingState = document.getElementById('loadingState');
 const loadingMsg   = document.getElementById('loadingMsg');
 let loadingTimer   = null;
@@ -600,6 +601,79 @@ function setLoading(on) {
       loadingMsg.textContent = `Evaluating — ${Math.round((Date.now() - t0) / 1000)}s`;
     }, 1000);
   }
+}
+
+let cooldownTimer = null;
+let creditsExhausted = false;
+
+function showError(msg) {
+  formError.textContent = msg;
+}
+
+function showBanner() {
+  creditsExhausted = true;
+  submitBtn.disabled = true;
+  document.getElementById('serviceBanner').style.display = '';
+}
+
+function disableSubmitFor(ms) {
+  submitBtn.disabled = true;
+  const end = Date.now() + ms;
+  cooldownTimer = setInterval(() => {
+    const remaining = Math.ceil((end - Date.now()) / 1000);
+    if (remaining > 0) {
+      submitBtn.textContent = `Wait ${remaining}s`;
+    } else {
+      clearInterval(cooldownTimer);
+      cooldownTimer = null;
+      submitBtn.textContent = 'Evaluate Script';
+      checkReady();
+    }
+  }, 1000);
+}
+
+const CODE_MESSAGES = {
+  llm_auth_error: 'The evaluation service is misconfigured. Please contact the team.',
+  llm_error:      'Evaluation failed due to a service error. Please try again.',
+  llm_timeout:    'The evaluation took too long (your script may be very long). Please try again.',
+};
+
+const STATUS_MESSAGES = {
+  413: 'Your PDF exceeds the 20MB limit. Please compress or trim the file.',
+  422: 'This PDF has no extractable text. It may be a scanned image — please export it from your screenwriting software as a text PDF.',
+};
+
+async function handleEvaluateResponse(res) {
+  if (res.ok) return res.json();
+
+  const body = await res.json().catch(() => ({}));
+  const code = body.code;
+
+  if (res.status === 401) {
+    localStorage.removeItem('session_token');
+    localStorage.removeItem('session_expires');
+    window.location.href = '/passcode';
+    return null;
+  }
+
+  if (code === 'credits_exhausted') {
+    showBanner();
+    return null;
+  }
+
+  if (code === 'rate_limited') {
+    showError('Too many submissions right now. Please wait a moment and try again.');
+    disableSubmitFor(30_000);
+    return null;
+  }
+
+  const msg = CODE_MESSAGES[code]
+    || STATUS_MESSAGES[res.status]
+    || body.error
+    || `Error ${res.status}`;
+
+  showError(msg);
+  return null;
 }
 
 submitBtn.addEventListener('click', async () => {
@@ -621,35 +695,16 @@ submitBtn.addEventListener('click', async () => {
       // no Content-Type — browser sets multipart boundary
     }, 120000);
 
-    if (res.status === 401) {
-      localStorage.removeItem('session_token');
-      window.location.href = '/passcode';
-      return;
-    }
-
-    if (!res.ok) {
-      setLoading(false);
-      let msg = STATUS_ERRORS[res.status];
-      if (!msg) {
-        const body = await res.json().catch(() => ({}));
-        msg = body.message || body.error || `Error ${res.status}`;
-      }
-      formError.textContent = msg;
-      return;
-    }
-
-    const data = await res.json();
+    const data = await handleEvaluateResponse(res);
+    if (!data) return;
 
     localStorage.setItem('writer_name',  iName.value.trim());
     localStorage.setItem('writer_email', iEmail.value.trim());
 
-    // The API replies 202 right away and evaluates in the background;
-    // poll the script row until the result (or an error) lands.
     const result = (data.evaluation && typeof data.evaluation === 'object')
       ? data
       : await pollEvaluation(data.id);
 
-    setLoading(false);
     renderResult(result);
     loadSubmissions();
 
@@ -658,11 +713,10 @@ submitBtn.addEventListener('click', async () => {
     reflectFile();
 
   } catch (err) {
+    showError(err && err.message ? err.message : 'Connection error — please try again.');
+  } finally {
     setLoading(false);
-    formError.textContent = err && err.message
-      ? err.message
-      : 'Connection error — please try again.';
-    loadSubmissions();
+    if (!creditsExhausted && !cooldownTimer) checkReady();
   }
 });
 
