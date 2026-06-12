@@ -63,7 +63,23 @@ main{flex:1;padding:48px 32px;max-width:900px;margin:0 auto;width:100%}
   font-size:11px;letter-spacing:.25em;color:#888;text-transform:uppercase;
   padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:12px
 }
-.section-sub{font-size:12px;color:#777;margin-bottom:28px;max-width:560px}
+.section-sub{font-size:12px;color:#777;margin-bottom:20px;max-width:560px}
+
+/* ── TV promo strip ── */
+.tv-promo{
+  display:flex;align-items:center;gap:14px;
+  border:1px solid #222;border-left:3px solid red;
+  padding:14px 16px;margin-bottom:30px;text-decoration:none;
+  transition:border-color .15s
+}
+.tv-promo:hover{border-color:#555;border-left-color:red}
+.tv-promo-dot{width:7px;height:7px;border-radius:50%;background:red;flex-shrink:0;animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.tv-promo-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tv-promo-eyebrow{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.22em;color:red;text-transform:uppercase}
+.tv-promo-title{font-size:12.5px;color:#ccc;line-height:1.5}
+.tv-promo-arrow{margin-left:auto;color:#555;font-size:15px;flex-shrink:0;transition:color .15s}
+.tv-promo:hover .tv-promo-arrow{color:#fff}
 
 /* ── form ── */
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
@@ -206,14 +222,16 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .modal-wrap{min-height:100%;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px}
 .modal{
   width:100%;max-width:680px;background:#070707;
-  border:1px solid #1c1c1c;padding:36px;position:relative
+  border:1px solid #1c1c1c;padding:62px 36px 36px;position:relative
 }
 .modal-close{
-  position:absolute;top:18px;right:18px;
-  background:none;border:none;color:#888;font-size:24px;line-height:1;
-  cursor:pointer;padding:4px;transition:color .15s
+  position:absolute;top:12px;right:12px;z-index:5;
+  width:42px;height:42px;display:flex;align-items:center;justify-content:center;
+  background:rgba(7,7,7,.7);border:1px solid #333;color:#bbb;
+  font-size:20px;line-height:1;cursor:pointer;padding:0;
+  transition:color .15s,border-color .15s
 }
-.modal-close:hover{color:#fff}
+.modal-close:hover{color:#fff;border-color:#777}
 .modal-spinner{display:flex;justify-content:center;padding:32px 0}
 
 .service-banner{
@@ -228,9 +246,15 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   .form-row{grid-template-columns:1fr}
   .hide-m{display:none}
   .result-title{font-size:16px}
-  .modal{padding:28px 20px}
+  .modal{padding:58px 20px 28px}
   .modal-wrap{padding:24px 12px}
   .score-name{width:96px}
+  /* On long reviews the close button must survive scrolling — pin it
+     to the viewport instead of the modal's top corner. */
+  .modal-close{
+    position:fixed;top:calc(10px + env(safe-area-inset-top));right:10px;
+    background:rgba(7,7,7,.88)
+  }
 }
 </style>
 </head>
@@ -243,12 +267,21 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     </svg>
     <span class="logo-name">Interdependent</span>
   </a>
-  <button class="btn-ghost" id="signOutBtn">Sign Out</button>
+  <button class="btn-ghost" id="signOutBtn">EXIT</button>
 </header>
 
 <main>
   <div class="section-label">Submit a Script</div>
   <p class="section-sub">Upload your screenplay as a PDF (max 20&nbsp;MB). The evaluation runs immediately — results appear below in about a minute, and a copy is emailed to you.</p>
+
+  <a class="tv-promo" href="https://interdependent.tv/watch?s=screenplay-submissions">
+    <span class="tv-promo-dot" aria-hidden="true"></span>
+    <span class="tv-promo-text">
+      <span class="tv-promo-eyebrow">On Interdependent.TV</span>
+      <span class="tv-promo-title">Watch SCREENPLAY SUBMISSIONS — a writer submits his script and reads back his evaluation, on camera</span>
+    </span>
+    <span class="tv-promo-arrow" aria-hidden="true">→</span>
+  </a>
 
   <div class="form-row">
     <div class="field">
