@@ -79,7 +79,7 @@
     const bytes = new Uint8Array(buf);
     let str = '';
     for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
-    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   }
 
   function b64urlToBuf(value) {
@@ -129,12 +129,10 @@
       response: {
         clientDataJSON: bufToB64url(r.clientDataJSON),
         attestationObject: bufToB64url(r.attestationObject),
+        // @simplewebauthn/server expects this present — default to [].
+        transports: (typeof r.getTransports === 'function' ? r.getTransports() : null) || [],
       },
     };
-    if (typeof r.getTransports === 'function') {
-      const t = r.getTransports();
-      if (t && t.length) out.response.transports = t;
-    }
     if (cred.authenticatorAttachment) out.authenticatorAttachment = cred.authenticatorAttachment;
     return out;
   }
