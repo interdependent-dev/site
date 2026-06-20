@@ -197,6 +197,9 @@
     // Map server error codes; fall back to the HTTP status.
     let bodyJson = {};
     try { bodyJson = await res.json(); } catch { /* no body */ }
+    // Surface the server's real reason for debugging (the user-facing message is
+    // intentionally generic; the console keeps the exact code/detail).
+    try { console.warn('[ReaderAuth] ' + path + ' → ' + res.status, bodyJson); } catch {}
     const code = bodyJson.code;
     if (code && (CODE_MESSAGES[code] || LOCAL_MESSAGES[code])) throw err(code, res.status);
     throw new ReaderAuthError(code || `http_${res.status}`, bodyJson.error || `Request failed (${res.status})`, res.status);
@@ -512,7 +515,7 @@
             : "Create your reader passkey. You'll use Touch ID, Face ID, or your device passcode — no password to remember."}</div>
           <div class="ra-field">
             <label for="ra-first">First name</label>
-            <input id="ra-first" type="text" autocomplete="${conditional ? 'given-name webauthn' : 'given-name'}" placeholder="First name">
+            <input id="ra-first" type="text" autocomplete="${conditional ? 'username webauthn' : 'given-name'}" placeholder="First name">
           </div>
           <div class="ra-field">
             <label for="ra-last">Last name</label>
