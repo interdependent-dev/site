@@ -1266,22 +1266,16 @@ async function championScript(row, btn, msgEl) {
   btn.disabled = true;
   setText('Verifying');
 
-  // Establish the reader session (discoverable-first; form only if truly new).
+  // Known browser → reauth (Face/Touch ID); new browser → register form. No QR.
   try {
     await ReaderAuth.signInOrRegister();
   } catch (e) {
     btn.disabled = false; setText('Champion');
     if (e && e.code === 'passkey_cancelled') {
-      // They likely have a passkey and just cancelled — don't show the form.
-      msgEl.innerHTML = 'Passkey dismissed — <a href="#" id="champRetry">try again</a> · <a href="#" id="champReg">register</a>';
+      // Returning reader dismissed Face/Touch ID (or backed out of the form).
+      msgEl.innerHTML = 'Dismissed — <a href="#" id="champRetry">try again</a>';
       const retry = msgEl.querySelector('#champRetry');
-      const reg   = msgEl.querySelector('#champReg');
       if (retry) retry.addEventListener('click', ev => { ev.preventDefault(); championScript(row, btn, msgEl); });
-      if (reg) reg.addEventListener('click', async ev => {
-        ev.preventDefault();
-        try { await ReaderAuth.promptRegister(); championScript(row, btn, msgEl); }
-        catch (e2) { if (!(e2 && e2.code === 'passkey_cancelled')) msgEl.textContent = (e2 && e2.message) || 'Could not register'; }
-      });
     } else {
       msgEl.textContent = (e && e.message) || 'Could not verify';
     }

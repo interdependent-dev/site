@@ -319,6 +319,16 @@
     if (!(await checkSupport())) throw err('unsupported');
   }
 
+  // Is passkey autofill (conditional mediation) usable? Lets a returning reader's
+  // synced passkey appear as a silent autofill suggestion — no modal, no QR.
+  async function isConditionalMediationAvailable() {
+    try {
+      return !!(window.PublicKeyCredential
+        && PublicKeyCredential.isConditionalMediationAvailable
+        && await PublicKeyCredential.isConditionalMediationAvailable());
+    } catch { return false; }
+  }
+
   // ── Flow 1: registration ──────────────────────────────────────────────────
   // Pure primitive: takes two strings, performs the WebAuthn create ceremony,
   // persists the new reader. The UI (or promptRegister below) owns the inputs.
@@ -394,31 +404,27 @@
     return isRegistered() ? reauth() : signInWithPasskey();
   }
 
-  // Full reader decision tree — the one entry point that may register.
-  //   1. Known browser (reader_handle in localStorage) → reauth (Face ID only).
-  //   2. New browser → DISCOVERABLE first: if a passkey exists in iCloud Keychain
-  //      it surfaces and signs the reader straight in — NO name form.
-  //   3. Only when there is provably no passkey anywhere — the device can't do
-  //      passkeys (NotSupportedError → 'unsupported') or the authenticated passkey
-  //      maps to no reader (404 reader_not_found) — do we show the one-time
-  //      first/last name form, then reauth for the first action token.
-  // A plain dismissal (NotAllowedError → 'passkey_cancelled') is rethrown so the
-  // caller can let the reader retry: they likely have a passkey, they just
-  // cancelled. We never auto-open the name form on a cancel.
+  // Reader entry point — the one place that may register. No QR, ever:
+  //   1. This browser knows the reader (reader_handle in localStorage) → reauth,
+  //      a targeted get() by credential id → Face/Touch ID, no QR.
+  //   2. This browser doesn't → open the modal, which runs passkey AUTOFILL
+  //      (conditional mediation) alongside the name form. A returning reader on a
+  //      fresh browser sees their synced passkey as a silent suggestion → one tap
+  //      signs them in (no QR). A true first-timer types their name and registers.
   async function signInOrRegister() {
     if (isRegistered()) return reauth();
-    try {
-      return await signInWithPasskey();
-    } catch (e) {
-      // Capability is settled by STEP 0 (checkSupport) before any flow runs, so
-      // an 'unsupported' here is terminal, not "new reader". The only automatic
-      // name-form trigger is the server reporting the passkey maps to no reader.
-      if (e && e.code === 'reader_not_found') {
-        await promptRegister(); // one-time name form → register() (stores reader)
-        return reauth();        // mint the first action token
-      }
-      throw e;
+    const res = await promptRegister({ conditional: true });
+    if (res && res.signedIn) {
+      return { actionToken: res.actionToken, readerId: res.readerId, handle: res.handle, displayName: res.displayName };
     }
+    return reauth(); // registered via the form → mint the first action token
+  }
+
+  // Reauth against a SPECIFIC handle (e.g. a leaderboard's owner handle from the
+  // URL) without relying on localStorage. Still a targeted, non-discoverable
+  // get() → no QR. Only the holder of that handle's passkey can pass.
+  function signInAs(handle) {
+    return handle ? authenticate(handle) : signInOrRegister();
   }
 
   // ── protected writes (leaderboard add / remove / reorder) ──────────────────
@@ -482,20 +488,31 @@
     document.head.appendChild(el);
   }
 
-  async function promptRegister() {
+  // The brand-styled modal. With { conditional: true } it ALSO runs passkey
+  // autofill (conditional mediation) anchored to the name field: a returning
+  // reader's synced passkey appears as a silent suggestion — one tap signs them
+  // in (no QR, no typing) and the promise resolves with { signedIn: true, ... };
+  // a new reader types their name and the promise resolves with the reader.
+  async function promptRegister(opts = {}) {
     if (!(await checkSupport())) throw err('unsupported');
+    const conditional = !!opts.conditional
+      && typeof AbortController !== 'undefined'
+      && await isConditionalMediationAvailable();
+
     return new Promise((resolve, reject) => {
       injectStyles();
 
       const back = document.createElement('div');
       back.className = 'ra-back';
       back.innerHTML = `
-        <div class="ra-card" role="dialog" aria-modal="true" aria-label="Register as a reader">
-          <div class="ra-title">Register</div>
-          <div class="ra-sub">Create your reader passkey. You'll use Touch ID, Face ID, or your device passcode — no password to remember.</div>
+        <div class="ra-card" role="dialog" aria-modal="true" aria-label="Sign in or register as a reader">
+          <div class="ra-title">${conditional ? 'Sign in or register' : 'Register'}</div>
+          <div class="ra-sub">${conditional
+            ? "Returning reader? Choose your saved passkey. New here? Enter your name to create one — Touch ID, Face ID, or your device passcode, no password."
+            : "Create your reader passkey. You'll use Touch ID, Face ID, or your device passcode — no password to remember."}</div>
           <div class="ra-field">
             <label for="ra-first">First name</label>
-            <input id="ra-first" type="text" autocomplete="given-name" placeholder="First name">
+            <input id="ra-first" type="text" autocomplete="${conditional ? 'given-name webauthn' : 'given-name'}" placeholder="First name">
           </div>
           <div class="ra-field">
             <label for="ra-last">Last name</label>
@@ -518,10 +535,12 @@
       const goText = back.querySelector('.ra-go-text');
       const cancel = back.querySelector('#ra-cancel');
       let busy = false, done = false;
+      const condAC = conditional ? new AbortController() : null;
 
       function close(result, error) {
         if (done) return;
         done = true;
+        if (condAC) { try { condAC.abort(); } catch {} }
         document.removeEventListener('keydown', onKey, true);
         back.remove();
         if (error) reject(error); else resolve(result);
@@ -533,6 +552,7 @@
         errEl.textContent = '';
         const f = first.value.trim(), l = last.value.trim();
         if (!f || !l) { errEl.textContent = LOCAL_MESSAGES.missing_name; (f ? last : first).focus(); return; }
+        if (condAC) { try { condAC.abort(); } catch {} } // stop autofill before creating
 
         busy = true;
         goBtn.classList.add('busy'); goBtn.disabled = true; cancel.disabled = true;
@@ -560,6 +580,40 @@
       back.addEventListener('click', e => { if (e.target === back) bail(); });
       document.addEventListener('keydown', onKey, true);
       first.focus();
+
+      // Passkey autofill — best-effort; registration stays available regardless.
+      if (conditional) startConditional();
+
+      async function startConditional() {
+        try {
+          const begin = await postJSON('/readers/auth/begin', {}, { retries: 0, timeout: 30000 });
+          if (done || !begin || !begin.challengeId || !begin.options) return;
+
+          let cred;
+          try {
+            cred = await navigator.credentials.get({
+              publicKey: prepRequestOptions(begin.options),
+              mediation: 'conditional',
+              signal: condAC.signal,
+            });
+          } catch { return; } // aborted (registered/cancelled) or dismissed — stay silent
+          if (done || !cred) return;
+
+          const completed = await postJSON('/readers/auth/complete',
+            { challengeId: begin.challengeId, credential: encodeAssertion(cred) }, { retries: 0, timeout: 30000 });
+          if (done || !completed || !completed.actionToken) return;
+
+          setToken(completed.actionToken);
+          storeReader(completed);
+          close({
+            signedIn: true,
+            actionToken: completed.actionToken,
+            readerId: completed.readerId,
+            handle: completed.handle,
+            displayName: completed.displayName,
+          }, null);
+        } catch { /* conditional UI is best-effort */ }
+      }
     });
   }
 
@@ -586,11 +640,12 @@
 
     // flows
     register,          // (firstName, lastName) — pure, no DOM
-    promptRegister,    // built-in brand-styled modal → register()
+    promptRegister,    // modal; { conditional:true } adds passkey autofill (sign-in or register)
     reauth,            // Flow 2: returning reader, stored handle
     signInWithPasskey, // Flow 3: discoverable, no handle
     signIn,            // smart: reauth if registered, else discoverable (never registers)
-    signInOrRegister,  // full decision tree: reauth → discoverable → name form only if truly new
+    signInOrRegister,  // reauth if known browser, else register form — no discoverable, no QR
+    signInAs,          // reauth against a specific handle (leaderboard owner) — no QR
 
     // protected writes (leaderboard)
     authedWrite,
