@@ -1366,8 +1366,12 @@ async function renderReaderPdf(url) {
   nav.innerHTML = `<div class="nav-h">${pdf.numPages} Pages</div>` +
     slots.map((_, i) => `<button class="nav-pg" data-pg="${i}"><b>${i + 1}</b></button>`).join('');
   const navBtns = [...nav.querySelectorAll('.nav-pg')];
-  navBtns.forEach(b => b.addEventListener('click', () =>
-    slots[+b.dataset.pg].scrollIntoView({ behavior: 'smooth', block: 'start' })));
+  navBtns.forEach(b => b.addEventListener('click', () => {
+    // jump straight to the page (instant, not a 90-page smooth-scroll that
+    // would render every page in between)
+    const target = slots[+b.dataset.pg];
+    doc.scrollTop += target.getBoundingClientRect().top - doc.getBoundingClientRect().top - 12;
+  }));
 
   const renderSlot = async (slot) => {
     if (slot.dataset.done) return;
