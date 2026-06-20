@@ -274,11 +274,31 @@
       && !!(navigator.credentials && navigator.credentials.create && navigator.credentials.get);
   }
 
-  // Authoritative STEP-0 check, async + cached. The API existing isn't enough:
-  // Firefox on macOS exposes PublicKeyCredential but has no iCloud Keychain, so
-  // isUserVerifyingPlatformAuthenticatorAvailable() resolves false. Gate every
-  // reader flow on this; if it's false, show the static unsupported message and
-  // never attempt an auth ceremony.
+  // Is this an Apple platform (Mac / iPhone / iPad)? Readers must use iCloud
+  // Keychain so their passkey syncs across their devices, and no web API reports
+  // "iCloud Keychain" directly — UVPAA only says a platform authenticator exists
+  // (it's true for Windows Hello / Android too). So we additionally require an
+  // Apple platform. Prefer userAgentData (precise on Chromium); fall back to the
+  // UA/platform string for Safari, which has no userAgentData.
+  function isApplePlatform() {
+    try {
+      const uaData = navigator.userAgentData;
+      if (uaData && typeof uaData.platform === 'string' && uaData.platform) {
+        const p = uaData.platform.toLowerCase();
+        return p.includes('mac') || p.includes('ios') || p.includes('iphone') || p.includes('ipad');
+      }
+      const ua = navigator.userAgent || '';
+      const plat = navigator.platform || '';
+      if (/iPhone|iPod|iPad/.test(ua)) return true;       // iOS / iPadOS browsers
+      return /Mac/i.test(plat) || /Macintosh/i.test(ua);  // macOS, and iPadOS that reports as Mac
+    } catch { return false; }
+  }
+
+  // Authoritative STEP-0 check, async + cached. Three gates: the WebAuthn API is
+  // present (false on IE), it's an Apple platform (iCloud Keychain only), and a
+  // user-verifying platform authenticator is actually available (false on e.g.
+  // Firefox/Mac, which has no iCloud Keychain). If false → show the static
+  // unsupported message and never attempt an auth ceremony.
   let _supportPromise = null;
   function checkSupport() {
     if (_supportPromise) return _supportPromise;
@@ -286,6 +306,7 @@
       try {
         if (!isSupported()) return false;
         if (window.isSecureContext === false) return false;
+        if (!isApplePlatform()) return false;
         if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') return false;
         return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
       } catch { return false; }
