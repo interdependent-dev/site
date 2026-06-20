@@ -1231,9 +1231,11 @@ async function retryEvaluation(id, btn) {
 }
 
 // ── Champion: add this script to the reader's own leaderboard ─────────────────
-// Adding to a leaderboard means adding to *my* leaderboard, so the device must
-// be a known reader. First time on this device → register inline (passkey),
-// then add. Writes go through ReaderAuth.authedWrite (reauth + bearer token).
+// Auth follows ReaderAuth.signInOrRegister()'s decision tree: a returning
+// browser gets Face ID; a new browser with a synced iCloud passkey signs in
+// discoverably (no form); only a reader who has never registered anywhere sees
+// the one-time name form. A dismissed passkey prompt never auto-opens the form —
+// we offer "try again" / "register" instead. Writes go through authedWrite.
 
 function wireChampion(row) {
   const btn = document.getElementById('championBtn');
@@ -1252,19 +1254,35 @@ async function championScript(row, btn, msgEl) {
     return;
   }
 
-  if (!ReaderAuth.isRegistered()) {
-    try { await ReaderAuth.promptRegister(); }
-    catch (e) {
-      if (e && e.code && e.code !== 'passkey_cancelled') msgEl.textContent = e.message || 'Could not register';
-      return;
+  btn.disabled = true;
+  setText('Verifying');
+
+  // Establish the reader session (discoverable-first; form only if truly new).
+  try {
+    await ReaderAuth.signInOrRegister();
+  } catch (e) {
+    btn.disabled = false; setText('Champion');
+    if (e && e.code === 'passkey_cancelled') {
+      // They likely have a passkey and just cancelled — don't show the form.
+      msgEl.innerHTML = 'Passkey dismissed — <a href="#" id="champRetry">try again</a> · <a href="#" id="champReg">register</a>';
+      const retry = msgEl.querySelector('#champRetry');
+      const reg   = msgEl.querySelector('#champReg');
+      if (retry) retry.addEventListener('click', ev => { ev.preventDefault(); championScript(row, btn, msgEl); });
+      if (reg) reg.addEventListener('click', async ev => {
+        ev.preventDefault();
+        try { await ReaderAuth.promptRegister(); championScript(row, btn, msgEl); }
+        catch (e2) { if (!(e2 && e2.code === 'passkey_cancelled')) msgEl.textContent = (e2 && e2.message) || 'Could not register'; }
+      });
+    } else {
+      msgEl.textContent = (e && e.message) || 'Could not verify';
     }
+    return;
   }
 
   const reader = ReaderAuth.getReader();
-  if (!reader || !reader.handle) { msgEl.textContent = 'Could not identify reader'; return; }
+  if (!reader || !reader.handle) { btn.disabled = false; setText('Champion'); msgEl.textContent = 'Could not identify reader'; return; }
 
-  btn.disabled = true;
-  setText('Verifying');
+  setText('Adding');
   try {
     const res = await ReaderAuth.authedWrite(`/leaderboard/${encodeURIComponent(reader.handle)}/scripts`, {
       method: 'POST',

@@ -204,6 +204,7 @@
     const name = e && e.name;
     if (name === 'NotAllowedError' || name === 'AbortError') return err('passkey_cancelled');
     if (name === 'InvalidStateError' && phase === 'register') return err('already_registered');
+    if (name === 'NotSupportedError') return err('unsupported');
     if (name === 'SecurityError') return err('insecure_context');
     return err('passkey_verify_failed');
   }
@@ -342,8 +343,34 @@
   }
 
   // Smart entry point: reauth if this device knows who it is, else discoverable.
+  // Never shows the name form — used for writes by readers who already exist.
   function signIn() {
     return isRegistered() ? reauth() : signInWithPasskey();
+  }
+
+  // Full reader decision tree — the one entry point that may register.
+  //   1. Known browser (reader_handle in localStorage) → reauth (Face ID only).
+  //   2. New browser → DISCOVERABLE first: if a passkey exists in iCloud Keychain
+  //      it surfaces and signs the reader straight in — NO name form.
+  //   3. Only when there is provably no passkey anywhere — the device can't do
+  //      passkeys (NotSupportedError → 'unsupported') or the authenticated passkey
+  //      maps to no reader (404 reader_not_found) — do we show the one-time
+  //      first/last name form, then reauth for the first action token.
+  // A plain dismissal (NotAllowedError → 'passkey_cancelled') is rethrown so the
+  // caller can let the reader retry: they likely have a passkey, they just
+  // cancelled. We never auto-open the name form on a cancel.
+  async function signInOrRegister() {
+    if (isRegistered()) return reauth();
+    try {
+      return await signInWithPasskey();
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 'unsupported' || code === 'reader_not_found') {
+        await promptRegister(); // one-time name form → register() (stores reader)
+        return reauth();        // mint the first action token
+      }
+      throw e;
+    }
   }
 
   // ── protected writes (leaderboard add / remove / reorder) ──────────────────
@@ -512,7 +539,8 @@
     promptRegister,    // built-in brand-styled modal → register()
     reauth,            // Flow 2: returning reader, stored handle
     signInWithPasskey, // Flow 3: discoverable, no handle
-    signIn,            // smart: reauth if registered, else discoverable
+    signIn,            // smart: reauth if registered, else discoverable (never registers)
+    signInOrRegister,  // full decision tree: reauth → discoverable → name form only if truly new
 
     // protected writes (leaderboard)
     authedWrite,
