@@ -364,6 +364,24 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   .reader-tools .rtool span{display:none}
   .reader-tools .rtool{padding:9px 11px}
 }
+
+/* ── search / filter controls ── */
+.sub-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.search-box{position:relative;flex:1 1 260px;max-width:440px}
+.search-box .s-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;fill:#666;pointer-events:none}
+.search-box input{width:100%;background:#0a0a0a;border:1px solid #2a2a2a;padding:11px 34px;color:#fff;font-size:13px;outline:none;font-family:inherit;-webkit-appearance:none;border-radius:0;transition:border-color .15s}
+.search-box input::placeholder{color:#555}
+.search-box input:focus{border-color:red}
+.s-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:#777;font-size:18px;line-height:1;cursor:pointer;padding:0}
+.s-clear:hover{color:#fff}
+.dec-filters{display:flex;gap:7px}
+.dec-chip{font-family:"Eurostile",'Helvetica Neue',sans-serif;background:#0a0a0a;border:1px solid #2a2a2a;color:#888;padding:9px 13px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}
+.dec-chip:hover{color:#ccc;border-color:#555}
+.dec-chip[data-dec="RECOMMEND"].on{border-color:#16a34a;color:#16a34a}
+.dec-chip[data-dec="CONSIDER"].on{border-color:#d97706;color:#d97706}
+.dec-chip[data-dec="PASS"].on{border-color:#dc2626;color:#dc2626}
+.search-count{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.16em;color:#777;text-transform:uppercase;margin-bottom:14px}
+@media(max-width:580px){ .dec-filters{width:100%} .dec-chip{flex:1} }
 </style>
 </head>
 <body>
@@ -464,6 +482,19 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   <hr>
 
   <div class="section-label">Past Submissions</div>
+  <div class="sub-controls">
+    <div class="search-box">
+      <svg class="s-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
+      <input type="text" id="subSearch" placeholder="Search by title or writer…" autocomplete="off" spellcheck="false">
+      <button class="s-clear" id="subSearchClear" aria-label="Clear search" hidden>×</button>
+    </div>
+    <div class="dec-filters">
+      <button class="dec-chip" data-dec="RECOMMEND">Recommend</button>
+      <button class="dec-chip" data-dec="CONSIDER">Consider</button>
+      <button class="dec-chip" data-dec="PASS">Pass</button>
+    </div>
+  </div>
+  <div class="search-count" id="searchCount" style="display:none"></div>
   <div class="table-wrap">
     <table class="sub-table">
       <thead>
@@ -1018,6 +1049,8 @@ function subRowHtml(row) {
 async function loadSubmissions({ reset = true } = {}) {
   if (subFetching) return;
   if (!reset && subDone) return;
+  if (!reset && searchActive) return;                 // search owns the table while active
+  if (reset) { allLoaded = false; allRows = []; allIds.clear(); allLoadingPromise = null; } // refresh invalidates the search cache
 
   const tbody = document.getElementById('subBody');
   const t = getValidToken();
@@ -1091,8 +1124,107 @@ document.getElementById('subBody').addEventListener('click', (e) => {
 });
 
 new IntersectionObserver((entries) => {
+  if (searchActive) return;
   if (entries[0].isIntersecting) loadSubmissions({ reset: false });
 }, { rootMargin: '500px' }).observe(document.getElementById('subSentinel'));
+
+// ── search / filter ───────────────────────────────────────────────────────────
+// ~486 submissions: small enough to load once and filter instantly client-side
+// (title, writer, genre, decision). The first search/filter loads every row;
+// after that it's all local. A new submission or refresh invalidates the cache.
+let allRows = [], allIds = new Set(), allLoaded = false, allLoadingPromise = null;
+let searchActive = false, searchDebounce = null;
+
+const subSearch      = document.getElementById('subSearch');
+const subSearchClear = document.getElementById('subSearchClear');
+const searchCount    = document.getElementById('searchCount');
+
+function ensureAllLoaded() {
+  if (allLoaded) return Promise.resolve();
+  if (allLoadingPromise) return allLoadingPromise;
+  allLoadingPromise = (async () => {
+    const t = getValidToken();
+    if (!t) return;
+    let offset = 0;
+    for (;;) {
+      const res = await apiFetch(`/scripts?limit=100&offset=${offset}`, { headers: { Authorization: `Bearer ${t}` } });
+      if (res.status === 401) { window.location.href = '/passcode'; return; }
+      if (!res.ok) throw new Error(`load ${res.status}`);
+      const { data } = await res.json();
+      const rows = data || [];
+      for (const r of rows) if (r.id && !allIds.has(r.id)) { allIds.add(r.id); allRows.push(r); }
+      offset += rows.length;
+      if (rows.length < 100) break;
+    }
+    allLoaded = true;
+  })();
+  return allLoadingPromise;
+}
+
+function activeDecisions() {
+  return new Set([...document.querySelectorAll('.dec-chip.on')].map(b => b.dataset.dec));
+}
+
+function rowMatches(row, terms, decisions) {
+  const ev = parseEval(row);
+  if (decisions.size && (!ev.decision || !decisions.has(ev.decision))) return false;
+  if (!terms.length) return true;
+  const hay = [row.title, row.submitter_name || row.users?.name, row.submitter_email || row.users?.email, fmtGenre(ev.genre), ev.decision]
+    .filter(Boolean).join(' ').toLowerCase();
+  return terms.every(t => hay.includes(t));
+}
+
+function renderSearchResults() {
+  const tbody = document.getElementById('subBody');
+  const terms = subSearch.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const decisions = activeDecisions();
+  const results = allRows.filter(r => rowMatches(r, terms, decisions));
+  tbody.innerHTML = results.length
+    ? results.map(subRowHtml).join('')
+    : '<tr><td colspan="6" class="td-empty">No matching submissions</td></tr>';
+  subFoot.style.display = 'none';
+  searchCount.style.display = '';
+  searchCount.textContent = `${results.length} ${results.length === 1 ? 'match' : 'matches'} of ${allRows.length}`;
+}
+
+async function runSearch() {
+  const q = subSearch.value.trim();
+  subSearchClear.hidden = !q;
+  const decisions = activeDecisions();
+
+  // nothing selected → leave search mode, show the full list (already loaded)
+  if (!q && !decisions.size) {
+    if (searchActive) {
+      searchActive = false;
+      searchCount.style.display = 'none';
+      if (allLoaded) {
+        document.getElementById('subBody').innerHTML = allRows.map(subRowHtml).join('');
+        subSeen.clear(); allRows.forEach(r => subSeen.add(r.id));
+        subOffset = allRows.length; subDone = true;
+        subFoot.textContent = `${allRows.length} total`; subFoot.style.display = '';
+      } else {
+        loadSubmissions({ reset: true });
+      }
+    }
+    return;
+  }
+
+  searchActive = true;
+  if (!allLoaded) {
+    document.getElementById('subBody').innerHTML = '<tr><td colspan="6" class="td-loading">Searching all submissions —</td></tr>';
+    subFoot.style.display = 'none';
+    try { await ensureAllLoaded(); }
+    catch { document.getElementById('subBody').innerHTML = '<tr><td colspan="6" class="td-empty">Search failed — refresh to retry</td></tr>'; return; }
+    if (!searchActive) return; // cleared while loading
+  }
+  renderSearchResults();
+}
+
+subSearch.addEventListener('input', () => { clearTimeout(searchDebounce); searchDebounce = setTimeout(runSearch, 160); });
+subSearch.addEventListener('keydown', (e) => { if (e.key === 'Escape') { subSearch.value = ''; runSearch(); } });
+subSearchClear.addEventListener('click', () => { subSearch.value = ''; subSearch.focus(); runSearch(); });
+document.querySelectorAll('.dec-chip').forEach(chip =>
+  chip.addEventListener('click', () => { chip.classList.toggle('on'); runSearch(); }));
 
 // ── modal ────────────────────────────────────────────────────────────────────
 
