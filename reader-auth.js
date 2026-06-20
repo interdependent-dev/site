@@ -58,9 +58,13 @@
     already_on_leaderboard:'This script is already on the leaderboard.',
   };
 
+  // Shown when the platform can't do passkeys at all (STEP 0 fails).
+  const UNSUPPORTED_MESSAGE =
+    "Passkeys aren't supported on this browser. Please use Safari or Chrome on iPhone, iPad, or Mac.";
+
   // Client-side / WebAuthn codes we raise ourselves.
   const LOCAL_MESSAGES = {
-    unsupported:        'This device or browser does not support passkeys.',
+    unsupported:        UNSUPPORTED_MESSAGE,
     insecure_context:   'Passkeys require a secure (https) connection.',
     not_registered:     'This device is not registered yet — please register first.',
     missing_name:       'Please enter your first and last name.',
@@ -262,22 +266,43 @@
   }
 
   // ── capability ────────────────────────────────────────────────────────────
+  // Cheap synchronous pre-check: is the WebAuthn API even present? (false on IE
+  // and very old browsers, where PublicKeyCredential is undefined.)
   function isSupported() {
     return typeof window !== 'undefined'
       && !!window.PublicKeyCredential
       && !!(navigator.credentials && navigator.credentials.create && navigator.credentials.get);
   }
 
-  function assertSupported() {
-    if (!isSupported()) throw err('unsupported');
+  // Authoritative STEP-0 check, async + cached. The API existing isn't enough:
+  // Firefox on macOS exposes PublicKeyCredential but has no iCloud Keychain, so
+  // isUserVerifyingPlatformAuthenticatorAvailable() resolves false. Gate every
+  // reader flow on this; if it's false, show the static unsupported message and
+  // never attempt an auth ceremony.
+  let _supportPromise = null;
+  function checkSupport() {
+    if (_supportPromise) return _supportPromise;
+    _supportPromise = (async () => {
+      try {
+        if (!isSupported()) return false;
+        if (window.isSecureContext === false) return false;
+        if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') return false;
+        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      } catch { return false; }
+    })();
+    return _supportPromise;
+  }
+
+  async function ensureCapable() {
     if (window.isSecureContext === false) throw err('insecure_context');
+    if (!(await checkSupport())) throw err('unsupported');
   }
 
   // ── Flow 1: registration ──────────────────────────────────────────────────
   // Pure primitive: takes two strings, performs the WebAuthn create ceremony,
   // persists the new reader. The UI (or promptRegister below) owns the inputs.
   async function register(firstName, lastName) {
-    assertSupported();
+    await ensureCapable();
     const first = String(firstName || '').trim();
     const last  = String(lastName || '').trim();
     if (!first || !last) throw err('missing_name');
@@ -304,7 +329,7 @@
   // browser picks the passkey). Both return a fresh action token and refresh
   // the stored identity.
   async function authenticate(handle) {
-    assertSupported();
+    await ensureCapable();
 
     const begin = await postJSON('/readers/auth/begin',
       handle ? { handle } : {}, { retries: 1, timeout: 45000 });
@@ -364,8 +389,10 @@
     try {
       return await signInWithPasskey();
     } catch (e) {
-      const code = e && e.code;
-      if (code === 'unsupported' || code === 'reader_not_found') {
+      // Capability is settled by STEP 0 (checkSupport) before any flow runs, so
+      // an 'unsupported' here is terminal, not "new reader". The only automatic
+      // name-form trigger is the server reporting the passkey maps to no reader.
+      if (e && e.code === 'reader_not_found') {
         await promptRegister(); // one-time name form → register() (stores reader)
         return reauth();        // mint the first action token
       }
@@ -434,9 +461,9 @@
     document.head.appendChild(el);
   }
 
-  function promptRegister() {
+  async function promptRegister() {
+    if (!(await checkSupport())) throw err('unsupported');
     return new Promise((resolve, reject) => {
-      if (!isSupported()) { reject(err('unsupported')); return; }
       injectStyles();
 
       const back = document.createElement('div');
@@ -522,7 +549,9 @@
     CODES: CODE_MESSAGES,
 
     // capability
-    isSupported,
+    isSupported,                  // sync: is the WebAuthn API present at all?
+    checkSupport,                 // async STEP 0: platform authenticator actually available?
+    UNSUPPORTED_MESSAGE,
 
     // identity
     getReader,

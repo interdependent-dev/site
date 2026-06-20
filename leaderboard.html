@@ -172,6 +172,19 @@ function ownerMsg(text, isErr){
   el.classList.toggle('err', !!isErr);
 }
 
+// STEP 0: passkey capability. Viewing the board is public and needs no passkey,
+// so we don't blank the page — we just disable the owner-edit control and explain
+// when the platform can't do passkeys (e.g. Firefox on Mac).
+let readerSupported = true;
+function applyUnsupported(){
+  const ob = $('ownerBtn');
+  if(ob){ ob.disabled = true; ob.title = ReaderAuth.UNSUPPORTED_MESSAGE; }
+  ownerMsg(ReaderAuth.UNSUPPORTED_MESSAGE);
+}
+if(window.ReaderAuth){
+  ReaderAuth.checkSupport().then(ok => { readerSupported = !!ok; if(!ok) applyUnsupported(); });
+}
+
 // ── load (public, no auth) ────────────────────────────────────────────────────
 async function load(){
   if(!handle){
@@ -224,6 +237,7 @@ function render(){
     ? `${firstName()}, you done?`
     : `${firstName()}, is that you?`;
   $('editHint').style.display = state.editing ? '' : 'none';
+  if(!readerSupported) applyUnsupported(); // re-apply: render() just re-enabled the button
 
   const list = $('lbList');
   list.classList.toggle('editing', state.editing);
@@ -275,7 +289,8 @@ $('ownerBtn').addEventListener('click', () => {
 
 async function startEdit(){
   ownerMsg('');
-  if(!window.ReaderAuth || !ReaderAuth.isSupported()){ ownerMsg('Passkeys not supported on this device', true); return; }
+  if(!window.ReaderAuth){ ownerMsg('Passkeys not supported on this device', true); return; }
+  if(!(await ReaderAuth.checkSupport())){ ownerMsg(ReaderAuth.UNSUPPORTED_MESSAGE, true); return; }
   setOwnerBusy(true);
   try{
     // reuse a fresh token if we have one, else this prompts the passkey

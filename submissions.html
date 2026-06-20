@@ -1241,6 +1241,17 @@ function wireChampion(row) {
   const btn = document.getElementById('championBtn');
   if (!btn || !row.id) return;
   const msgEl = document.getElementById('championMsg');
+
+  // STEP 0: only offer Champion if this device can actually do platform passkeys
+  // (catches Firefox/Mac, where the API exists but no authenticator is available).
+  if (window.ReaderAuth) {
+    ReaderAuth.checkSupport().then(ok => {
+      if (!ok) { btn.disabled = true; btn.title = ReaderAuth.UNSUPPORTED_MESSAGE; msgEl.textContent = ReaderAuth.UNSUPPORTED_MESSAGE; }
+    });
+  } else {
+    btn.disabled = true;
+  }
+
   btn.addEventListener('click', () => championScript(row, btn, msgEl));
 }
 
@@ -1249,10 +1260,8 @@ async function championScript(row, btn, msgEl) {
   const setText = (s) => { if (txt) txt.textContent = s; else btn.textContent = s; };
   msgEl.textContent = '';
 
-  if (!window.ReaderAuth || !ReaderAuth.isSupported()) {
-    msgEl.textContent = 'Passkeys not supported here';
-    return;
-  }
+  if (!window.ReaderAuth) { msgEl.textContent = 'Passkeys not supported here'; return; }
+  if (!(await ReaderAuth.checkSupport())) { msgEl.textContent = ReaderAuth.UNSUPPORTED_MESSAGE; return; }
 
   btn.disabled = true;
   setText('Verifying');
@@ -1671,6 +1680,10 @@ document.getElementById('readerNewTab').addEventListener('click', async () => {
 });
 
 // ── init ──────────────────────────────────────────────────────────────────────
+
+// STEP 0: probe passkey capability once on load (cached) so Champion can reflect
+// it immediately when a detail modal opens.
+if (window.ReaderAuth) ReaderAuth.checkSupport();
 
 // Point the header link at this reader's own leaderboard once we know who they
 // are; otherwise it lands on the bare page (which prompts for / explains).
