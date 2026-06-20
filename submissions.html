@@ -944,7 +944,7 @@ function subRowHtml(row) {
   const ev = parseEval(row);
   const w  = weightedOf(ev);
   const score = w != null ? w.toFixed(1) : '—';
-  const name  = row.users ? esc(row.users.name || '—') : '—';
+  const name  = esc(row.submitter_name || row.users?.name || '—');
   const pages = row.page_count ?? row.pageCount ?? '—';
   const date  = fmtDate(row) ?? '—';
 
@@ -1100,8 +1100,8 @@ async function openModal(id) {
         <div class="badge-slot">${decisionBadge(row, ev).replace('<span', '<span class="badge"')}</div>
       </div>
       <div class="meta-grid" style="margin-bottom:20px">${buildMeta([
-        ['Submitted By', row.users?.name],
-        ['Email',        row.users?.email],
+        ['Submitted By', row.submitter_name || row.users?.name],
+        ['Email',        row.submitter_email || row.users?.email],
         ['Genre',        fmtGenre(ev.genre)],
         ['Country',      ev.country],
         ['Max Budget',   fmtBudget(ev.max_budget)],
