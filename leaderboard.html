@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="format-detection" content="telephone=no">
+<title>INTERDEPENDENT — LEADERBOARD</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA3NC42IDg5LjQnIGZpbGwtcnVsZT0nZXZlbm9kZCc+PHBhdGggZmlsbD0ncmVkJyBkPSdNOS4zIDI4YTI4IDI4IDAgMSAwIDU2IDAgMjggMjggMCAxIDAtNTYgME0yMCA2NC45YTcuNSA3LjMgMCAxIDAgMTUgMCA3LjUgNy4zIDAgMSAwLTE1IDBNMjMuMiA2NC43YTQuMSA0LjEgMCAxIDAgOC4yIDAgNC4xIDQuMSAwIDEgMC04LjIgME00My45IDYwYTQgNCAwIDEgMCA4IDAgNCA0IDAgMSAwLTggME00NS41IDYwYTIuNCAyLjQgMCAxIDAgNC44IDAgMi40IDIuNCAwIDEgMC00LjggME0zNy4zIDcyLjdhMy4zIDMuMyAwIDEgMCA2LjYgMCAzLjMgMy4zIDAgMSAwLTYuNiAwTTI5LjMgODUuNGE0IDQgMCAxIDAgOCAwIDQgNCAwIDEgMC04IDBNMCA1MC43YTYuNyA2LjcgMCAxIDAgMTMuNCAwIDYuNyA2LjcgMCAxIDAtMTMuNCAwTTYxLjMgNDkuM2E2LjcgNi43IDAgMSAwIDEzLjMgMCA2LjcgNi43IDAgMSAwLTEzLjMgMCcvPjwvc3ZnPg==">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Bold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Eurostile Wide";src:url("fonts/EurostileNextPro-WideBold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap}
+
+*{margin:0;box-sizing:border-box}
+html{background:#000;color:#fff;color-scheme:dark;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;display:flex;flex-direction:column;animation:f .5s ease-out both}
+@keyframes f{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){body{animation:none}}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid #181818;position:sticky;top:0;background:#000;z-index:10}
+.logo{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo svg{width:32px;height:auto}
+.logo-name{font-family:"Eurostile Wide","Eurostile",'Helvetica Neue',sans-serif;font-weight:700;font-size:11px;letter-spacing:.28em;color:#999;text-transform:uppercase}
+.btn-ghost{background:none;border:1px solid #333;padding:8px 16px;color:#999;font-size:10px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s;font-family:"Eurostile",'Helvetica Neue',sans-serif;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn-ghost:hover:not(:disabled){border-color:#777;color:#fff}
+.btn-ghost:disabled{opacity:.4;cursor:default}
+.btn-ghost.busy{cursor:wait}
+.btn-ghost.editing{border-color:red;color:#fff}
+.gspin{display:none;width:12px;height:12px;border:1.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.btn-ghost.busy .gspin{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* layout */
+main{flex:1;padding:48px 32px;max-width:900px;margin:0 auto;width:100%}
+.lb-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:6px}
+.lb-eyebrow{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:11px;letter-spacing:.25em;color:#888;text-transform:uppercase;margin-bottom:10px}
+.lb-title{font-family:"Eurostile Wide","Eurostile",'Helvetica Neue',sans-serif;font-weight:700;font-size:26px;letter-spacing:.04em;text-transform:uppercase;line-height:1.2}
+.lb-sub{font-size:12px;color:#777;margin-top:8px}
+.owner-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888;min-height:1.2em;margin:14px 0 0;text-align:right}
+.owner-msg.err{color:red}
+.edit-hint{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#666;border:1px solid #222;border-left:3px solid red;padding:11px 14px;margin:18px 0 0}
+
+hr{border:none;border-top:1px solid #181818;margin:30px 0 8px}
+
+/* list */
+.lb-list{list-style:none;margin:18px 0 0;padding:0}
+.lb-row{display:flex;align-items:center;gap:16px;padding:16px 14px;border:1px solid #141414;border-bottom:none;background:#070707;position:relative;will-change:transform}
+.lb-row:last-child{border-bottom:1px solid #141414}
+.lb-row.dragging{z-index:5;border-color:red;background:#0e0e0e;box-shadow:0 10px 30px rgba(0,0,0,.6);opacity:.97}
+.editing .lb-row{cursor:default}
+.lb-pos{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-weight:700;font-size:18px;width:34px;flex-shrink:0;text-align:center;color:#666}
+.lb-row:nth-child(1) .lb-pos{color:red}
+.lb-row:nth-child(2) .lb-pos,.lb-row:nth-child(3) .lb-pos{color:#bbb}
+.lb-main{flex:1;min-width:0}
+.lb-name{font-size:14px;color:#eee;font-family:"Eurostile",'Helvetica Neue',sans-serif;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-meta{font-size:11px;color:#777;margin-top:3px}
+.lb-score{font-family:'Courier New',monospace;font-size:14px;color:#ccc;width:46px;text-align:right;flex-shrink:0}
+.lb-badge span{font-family:"Eurostile",'Helvetica Neue',sans-serif;padding:3px 9px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.lb-badge{flex-shrink:0;width:104px;text-align:right}
+
+/* edit-mode controls */
+.lb-grip{display:none;flex-shrink:0;width:26px;height:34px;align-items:center;justify-content:center;cursor:grab;color:#666;touch-action:none;border:none;background:none;padding:0}
+.lb-grip:active{cursor:grabbing}
+.lb-grip svg{width:16px;height:16px;fill:currentColor}
+.lb-grip:hover{color:#fff}
+.lb-remove{display:none;flex-shrink:0;width:30px;height:30px;align-items:center;justify-content:center;border:1px solid #333;background:none;color:#999;font-size:18px;line-height:1;cursor:pointer;transition:border-color .15s,color .15s}
+.lb-remove:hover{border-color:red;color:red}
+.editing .lb-grip{display:flex}
+.editing .lb-remove{display:flex}
+
+.lb-empty{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:11px;letter-spacing:.14em;color:#666;text-transform:uppercase;text-align:center;padding:60px 0}
+.lb-loading{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:11px;letter-spacing:.14em;color:#666;text-transform:uppercase;text-align:center;padding:60px 0}
+
+@media(max-width:580px){
+  header{padding:14px 20px}
+  main{padding:32px 20px}
+  .lb-title{font-size:21px}
+  .lb-badge{display:none}
+  .lb-meta .hide-m{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo">
+    <svg viewBox="0 0 74.6 89.4" fill-rule="evenodd" aria-hidden="true">
+      <path fill="red" d="M9.3 28a28 28 0 1 0 56 0 28 28 0 1 0-56 0M20 64.9a7.5 7.3 0 1 0 15 0 7.5 7.3 0 1 0-15 0M23.2 64.7a4.1 4.1 0 1 0 8.2 0 4.1 4.1 0 1 0-8.2 0M43.9 60a4 4 0 1 0 8 0 4 4 0 1 0-8 0M45.5 60a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0M37.3 72.7a3.3 3.3 0 1 0 6.6 0 3.3 3.3 0 1 0-6.6 0M29.3 85.4a4 4 0 1 0 8 0 4 4 0 1 0-8 0M0 50.7a6.7 6.7 0 1 0 13.4 0 6.7 6.7 0 1 0-13.4 0M61.3 49.3a6.7 6.7 0 1 0 13.3 0 6.7 6.7 0 1 0-13.3 0"/>
+    </svg>
+    <span class="logo-name">Interdependent</span>
+  </a>
+  <a class="btn-ghost" href="/submissions">Portal</a>
+</header>
+
+<main>
+  <div class="lb-eyebrow">Reader Leaderboard</div>
+  <div class="lb-head">
+    <div>
+      <div class="lb-title" id="lbTitle">—</div>
+      <div class="lb-sub" id="lbSub"></div>
+    </div>
+    <button class="btn-ghost" id="ownerBtn" style="display:none">
+      <span class="gspin" aria-hidden="true"></span><span class="owner-text">—</span>
+    </button>
+  </div>
+  <div class="owner-msg" id="ownerMsg"></div>
+  <div class="edit-hint" id="editHint" style="display:none">Drag the handles to reorder · tap × to remove · then “you done?” to save</div>
+
+  <hr>
+
+  <ul class="lb-list" id="lbList">
+    <li class="lb-loading">Loading —</li>
+  </ul>
+</main>
+
+<script src="/reader-auth.js"></script>
+<script>
+const API = 'https://interdependent-api.onrender.com';
+
+const DECISIONS = { RECOMMEND:'#16a34a', CONSIDER:'#d97706', PASS:'#dc2626' };
+
+// ── small shared-ish helpers (mirrors submissions.html) ───────────────────────
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function parseEval(scriptRow){
+  const raw = scriptRow && (scriptRow.evaluation_json ?? scriptRow.evaluation);
+  if(!raw) return {};
+  if(typeof raw === 'string'){ try{return JSON.parse(raw);}catch{return {};} }
+  return raw;
+}
+function weightedOf(ev){
+  let v = ev && ev.weighted_score;
+  if(v==null || isNaN(Number(v))) return null;
+  v = Number(v); if(v<=10) v*=10;
+  return v;
+}
+function decisionBadge(scriptRow, ev){
+  if(scriptRow && scriptRow.status==='processing') return `<span style="border:1px solid #333;color:#999">Processing</span>`;
+  if(scriptRow && scriptRow.status==='error') return `<span style="border:1px solid #7f1d1d;color:#f87171">Error</span>`;
+  const dec = ev && ev.decision;
+  const bg = DECISIONS[dec];
+  if(bg) return `<span style="background:${bg};color:#fff">${esc(dec)}</span>`;
+  return dec ? `<span style="color:#666">${esc(dec)}</span>` : `<span style="color:#555">Pending</span>`;
+}
+
+function fetchWithTimeout(url, opts, ms){
+  if(typeof AbortSignal!=='undefined' && AbortSignal.timeout) return fetch(url, Object.assign({}, opts, {signal:AbortSignal.timeout(ms)}));
+  return fetch(url, opts);
+}
+
+// ── state ─────────────────────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+let handle = (params.get('h') || params.get('handle') || '').trim().toLowerCase();
+// fall back to the reader signed in on this device
+if(!handle && window.ReaderAuth && ReaderAuth.isRegistered()){
+  const r = ReaderAuth.getReader();
+  if(r && r.handle){ handle = r.handle; }
+}
+
+const state = { handle, displayName: '', scripts: [], editing: false };
+
+const $ = (id) => document.getElementById(id);
+const enc = encodeURIComponent;
+const firstName = () => (state.displayName || state.handle || 'You').trim().split(/\s+/)[0];
+
+function ownerMsg(text, isErr){
+  const el = $('ownerMsg');
+  el.textContent = text || '';
+  el.classList.toggle('err', !!isErr);
+}
+
+// ── load (public, no auth) ────────────────────────────────────────────────────
+async function load(){
+  if(!handle){
+    $('lbTitle').textContent = 'No leaderboard';
+    $('lbList').innerHTML = '<li class="lb-empty">No reader specified — open a leaderboard link, or sign in on the portal.</li>';
+    return;
+  }
+  try{
+    let res;
+    for(let attempt=0;;attempt++){
+      try{ res = await fetchWithTimeout(`${API}/leaderboard/${enc(handle)}`, {cache:'no-store'}, 30000); break; }
+      catch(e){ if(attempt>=1) throw e; await new Promise(r=>setTimeout(r,2500)); }
+    }
+    if(res.status===404){
+      $('lbTitle').textContent = 'Not found';
+      $('lbSub').textContent = '@'+handle;
+      $('lbList').innerHTML = '<li class="lb-empty">No leaderboard found for this reader.</li>';
+      return;
+    }
+    if(!res.ok) throw new Error('http '+res.status);
+    applyData(await res.json());
+    render();
+  }catch(e){
+    $('lbTitle').textContent = 'Leaderboard';
+    $('lbList').innerHTML = '<li class="lb-empty">Could not load — refresh to retry.</li>';
+  }
+}
+
+function applyData(data){
+  if(!data) return;
+  state.handle = data.handle || state.handle;
+  state.displayName = data.displayName || state.displayName;
+  state.scripts = Array.isArray(data.scripts) ? data.scripts.slice() : [];
+  // trust position order if present
+  state.scripts.sort((a,b)=>(a.position||0)-(b.position||0));
+}
+
+// ── render ────────────────────────────────────────────────────────────────────
+function render(){
+  $('lbTitle').textContent = `${state.displayName || '@'+state.handle}’s Top Scripts`;
+  $('lbSub').textContent = state.scripts.length
+    ? `${state.scripts.length} script${state.scripts.length===1?'':'s'} · @${state.handle}`
+    : `@${state.handle}`;
+
+  // owner toggle button (shown to everyone; only the owner's passkey unlocks it)
+  const ob = $('ownerBtn');
+  ob.style.display = '';
+  ob.classList.toggle('editing', state.editing);
+  ob.querySelector('.owner-text').textContent = state.editing
+    ? `${firstName()}, you done?`
+    : `${firstName()}, is that you?`;
+  $('editHint').style.display = state.editing ? '' : 'none';
+
+  const list = $('lbList');
+  list.classList.toggle('editing', state.editing);
+
+  if(!state.scripts.length){
+    list.innerHTML = '<li class="lb-empty">No scripts on this leaderboard yet.</li>';
+    return;
+  }
+
+  list.innerHTML = state.scripts.map((entry, i) => {
+    const s = entry.script || {};
+    const ev = parseEval(s);
+    const w = weightedOf(ev);
+    const pages = s.page_count ?? '';
+    const meta = [pages ? `${pages} pages` : null, ev.genre ? esc(String(ev.genre).replace(/_/g,' ')) : null].filter(Boolean).join(' · ');
+    return `<li class="lb-row" data-id="${esc(s.id)}">
+      <button class="lb-grip" aria-label="Drag to reorder" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M9 5h2v2H9zm4 0h2v2h-2zM9 11h2v2H9zm4 0h2v2h-2zM9 17h2v2H9zm4 0h2v2h-2z"/></svg></button>
+      <div class="lb-pos">${i+1}</div>
+      <div class="lb-main">
+        <div class="lb-name">${esc(s.title || 'Untitled')}</div>
+        <div class="lb-meta">${meta || '&nbsp;'}</div>
+      </div>
+      <div class="lb-score">${w!=null ? w.toFixed(1) : '—'}</div>
+      <div class="lb-badge">${decisionBadge(s, ev)}</div>
+      <button class="lb-remove" aria-label="Remove" data-remove="${esc(s.id)}">×</button>
+    </li>`;
+  }).join('');
+
+  // wire edit-mode controls
+  list.querySelectorAll('.lb-grip').forEach(g => {
+    g.addEventListener('pointerdown', e => onGripDown(e, g.closest('.lb-row')));
+  });
+  list.querySelectorAll('.lb-remove').forEach(b => {
+    b.addEventListener('click', () => removeScript(b.dataset.remove, b));
+  });
+}
+
+// ── owner edit toggle ─────────────────────────────────────────────────────────
+function setOwnerBusy(on){
+  const ob = $('ownerBtn');
+  ob.classList.toggle('busy', on);
+  ob.disabled = on;
+}
+
+$('ownerBtn').addEventListener('click', () => {
+  if(state.editing) saveOrder();
+  else startEdit();
+});
+
+async function startEdit(){
+  ownerMsg('');
+  if(!window.ReaderAuth || !ReaderAuth.isSupported()){ ownerMsg('Passkeys not supported on this device', true); return; }
+  setOwnerBusy(true);
+  try{
+    // reuse a fresh token if we have one, else this prompts the passkey
+    await ReaderAuth.ensureActionToken();
+    const r = ReaderAuth.getReader();
+    if(!r || r.handle !== state.handle){
+      ownerMsg(`This is ${state.displayName || state.handle}’s leaderboard — you can only edit your own.`, true);
+      return;
+    }
+    state.editing = true;
+    ownerMsg('');
+    render();
+  }catch(e){
+    if(!(e && e.code==='passkey_cancelled')) ownerMsg((e && e.message) || 'Could not verify', true);
+  }finally{ setOwnerBusy(false); }
+}
+
+async function saveOrder(){
+  ownerMsg('');
+  setOwnerBusy(true);
+  try{
+    const scriptIds = state.scripts.map(s => s.script && s.script.id).filter(Boolean);
+    const res = await ReaderAuth.authedWrite(`/leaderboard/${enc(state.handle)}/order`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ scriptIds })
+    });
+    if(res.ok){ applyData(await res.json()); state.editing = false; render(); ownerMsg('Saved'); }
+    else await handleWriteError(res);
+  }catch(e){
+    if(!(e && e.code==='passkey_cancelled')) ownerMsg((e && e.message) || 'Could not save order', true);
+  }finally{ setOwnerBusy(false); }
+}
+
+async function removeScript(id, btn){
+  ownerMsg('');
+  if(btn) btn.disabled = true;
+  try{
+    const res = await ReaderAuth.authedWrite(`/leaderboard/${enc(state.handle)}/scripts/${enc(id)}`, { method:'DELETE' });
+    if(res.ok){ applyData(await res.json()); render(); }   // stays in edit mode
+    else { if(btn) btn.disabled = false; await handleWriteError(res); }
+  }catch(e){
+    if(btn) btn.disabled = false;
+    if(!(e && e.code==='passkey_cancelled')) ownerMsg((e && e.message) || 'Could not remove', true);
+  }
+}
+
+async function handleWriteError(res){
+  if(res.status===401){ ownerMsg('Verification expired — tap the button again', true); return; }
+  if(res.status===403){ ownerMsg('You can only edit your own leaderboard', true); return; }
+  const b = await res.json().catch(()=>({}));
+  ownerMsg(b.error || `Request failed (${res.status})`, true);
+}
+
+// ── pointer-based drag reorder (mouse + touch) ────────────────────────────────
+let drag = null;
+
+function onGripDown(e, row){
+  if(!state.editing || !row) return;
+  e.preventDefault();
+  const list = $('lbList');
+  drag = { row, list, startY: e.clientY };
+  row.classList.add('dragging');
+  try{ row.setPointerCapture(e.pointerId); }catch{}
+  window.addEventListener('pointermove', onGripMove);
+  window.addEventListener('pointerup', onGripUp);
+  window.addEventListener('pointercancel', onGripUp);
+}
+
+function onGripMove(e){
+  if(!drag) return;
+  drag.row.style.transform = `translateY(${e.clientY - drag.startY}px)`;
+
+  const center = drag.row.getBoundingClientRect().top + drag.row.offsetHeight/2;
+  const others = [...drag.list.querySelectorAll('.lb-row:not(.dragging)')];
+  let ref = null;
+  for(const o of others){
+    const r = o.getBoundingClientRect();
+    if(center < r.top + r.height/2){ ref = o; break; }
+  }
+  // live-reorder in the DOM; rebase so the row stays under the cursor
+  if(ref){
+    if(drag.row.nextElementSibling !== ref){ drag.list.insertBefore(drag.row, ref); rebase(e); }
+  }else{
+    if(drag.list.lastElementChild !== drag.row){ drag.list.appendChild(drag.row); rebase(e); }
+  }
+}
+
+function rebase(e){ drag.row.style.transform=''; drag.startY = e.clientY; }
+
+function onGripUp(){
+  if(!drag) return;
+  const { row, list } = drag;
+  row.classList.remove('dragging');
+  row.style.transform = '';
+  window.removeEventListener('pointermove', onGripMove);
+  window.removeEventListener('pointerup', onGripUp);
+  window.removeEventListener('pointercancel', onGripUp);
+  drag = null;
+
+  // commit the DOM order back into state, then re-render to fix position numbers
+  const order = [...list.querySelectorAll('.lb-row')].map(r => r.dataset.id);
+  state.scripts.sort((a,b) => order.indexOf(a.script && a.script.id) - order.indexOf(b.script && b.script.id));
+  render();
+}
+
+// ── init ──────────────────────────────────────────────────────────────────────
+load();
+</script>
+</body>
+</html>

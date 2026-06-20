@@ -256,6 +256,25 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     background:rgba(7,7,7,.88)
   }
 }
+/* ── Champion button (detail modal header, beside the decision badge) ── */
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:9px;flex-shrink:0}
+.champion-btn{
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+  background:none;border:1px solid red;color:#fff;
+  padding:8px 14px;font-family:"Eurostile",'Helvetica Neue',sans-serif;
+  font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  cursor:pointer;transition:background .15s,opacity .15s
+}
+.champion-btn:hover:not(:disabled){background:red}
+.champion-btn:disabled{cursor:default}
+.champion-btn.done{background:red;border-color:red;opacity:1;cursor:default}
+.champion-btn .star{color:red;font-size:12px;line-height:1}
+.champion-btn:hover:not(:disabled) .star,
+.champion-btn.done .star{color:#fff}
+.champion-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;text-align:right;max-width:180px;min-height:1em}
+.champion-msg a{color:red;text-decoration:none}
+.champion-msg a:hover{text-decoration:underline}
+
 /* ── read-the-screenplay action bar (inside the detail modal) ── */
 .read-bar{border:1px solid #222;border-left:3px solid red;background:#0c0c0c;padding:16px 18px;margin-bottom:24px}
 .read-bar-h{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.18em;color:#aaa;text-transform:uppercase;margin-bottom:13px;display:flex;align-items:center;gap:8px}
@@ -356,7 +375,10 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     </svg>
     <span class="logo-name">Interdependent</span>
   </a>
-  <button class="btn-ghost" id="signOutBtn">EXIT</button>
+  <div style="display:flex;align-items:center;gap:10px">
+    <a class="btn-ghost" id="lbLink" href="/leaderboard.html" style="text-decoration:none">Leaderboard</a>
+    <button class="btn-ghost" id="signOutBtn">EXIT</button>
+  </div>
 </header>
 
 <main>
@@ -504,6 +526,9 @@ if (window.pdfjsLib) {
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 </script>
+
+<!-- Reader passkey auth — powers the Champion button (add to a reader's leaderboard). -->
+<script src="/reader-auth.js"></script>
 
 <script>
 const API = 'https://interdependent-api.onrender.com';
@@ -1129,7 +1154,13 @@ async function openModal(id) {
           <div class="result-title">${esc(row.title || '—')}</div>
           ${date ? `<div class="result-date">${date}</div>` : ''}
         </div>
-        <div class="badge-slot">${decisionBadge(row, ev).replace('<span', '<span class="badge"')}</div>
+        <div class="header-right">
+          <div class="badge-slot">${decisionBadge(row, ev).replace('<span', '<span class="badge"')}</div>
+          <button class="champion-btn" id="championBtn" title="Add to your leaderboard">
+            <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
+          </button>
+          <div class="champion-msg" id="championMsg" aria-live="polite"></div>
+        </div>
       </div>
       <div class="meta-grid" style="margin-bottom:20px">${buildMeta([
         ['Submitted By', row.submitter_name || row.users?.name],
@@ -1155,6 +1186,7 @@ async function openModal(id) {
     const retryBtn = content.querySelector('#retryBtn');
     if (retryBtn) retryBtn.addEventListener('click', () => retryEvaluation(row.id, retryBtn));
     wireReadActions(row);
+    wireChampion(row);
   } catch {
     content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
   }
@@ -1195,6 +1227,65 @@ async function retryEvaluation(id, btn) {
     setLoading(false);
     formError.textContent = err && err.message ? err.message : 'Retry failed — please try again.';
     loadSubmissions();
+  }
+}
+
+// ── Champion: add this script to the reader's own leaderboard ─────────────────
+// Adding to a leaderboard means adding to *my* leaderboard, so the device must
+// be a known reader. First time on this device → register inline (passkey),
+// then add. Writes go through ReaderAuth.authedWrite (reauth + bearer token).
+
+function wireChampion(row) {
+  const btn = document.getElementById('championBtn');
+  if (!btn || !row.id) return;
+  const msgEl = document.getElementById('championMsg');
+  btn.addEventListener('click', () => championScript(row, btn, msgEl));
+}
+
+async function championScript(row, btn, msgEl) {
+  const txt = btn.querySelector('.champion-text');
+  const setText = (s) => { if (txt) txt.textContent = s; else btn.textContent = s; };
+  msgEl.textContent = '';
+
+  if (!window.ReaderAuth || !ReaderAuth.isSupported()) {
+    msgEl.textContent = 'Passkeys not supported here';
+    return;
+  }
+
+  if (!ReaderAuth.isRegistered()) {
+    try { await ReaderAuth.promptRegister(); }
+    catch (e) {
+      if (e && e.code && e.code !== 'passkey_cancelled') msgEl.textContent = e.message || 'Could not register';
+      return;
+    }
+  }
+
+  const reader = ReaderAuth.getReader();
+  if (!reader || !reader.handle) { msgEl.textContent = 'Could not identify reader'; return; }
+
+  btn.disabled = true;
+  setText('Verifying');
+  try {
+    const res = await ReaderAuth.authedWrite(`/leaderboard/${encodeURIComponent(reader.handle)}/scripts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scriptId: row.id }),
+    });
+
+    if (res.ok || res.status === 409) {
+      setText(res.status === 409 ? 'Already added' : 'Championed');
+      btn.classList.add('done');
+      const star = btn.querySelector('.star'); if (star) star.textContent = '✓';
+      msgEl.innerHTML = `<a href="/leaderboard.html?h=${encodeURIComponent(reader.handle)}">View leaderboard →</a>`;
+      return;
+    }
+
+    btn.disabled = false; setText('Champion');
+    if (res.status === 401) msgEl.textContent = 'Verification expired — try again';
+    else { const b = await res.json().catch(() => ({})); msgEl.textContent = b.error || `Could not add (${res.status})`; }
+  } catch (e) {
+    btn.disabled = false; setText('Champion');
+    if (!(e && e.code === 'passkey_cancelled')) msgEl.textContent = (e && e.message) || 'Could not add';
   }
 }
 
@@ -1562,6 +1653,16 @@ document.getElementById('readerNewTab').addEventListener('click', async () => {
 });
 
 // ── init ──────────────────────────────────────────────────────────────────────
+
+// Point the header link at this reader's own leaderboard once we know who they
+// are; otherwise it lands on the bare page (which prompts for / explains).
+(function () {
+  const link = document.getElementById('lbLink');
+  if (link && window.ReaderAuth && ReaderAuth.isRegistered()) {
+    const r = ReaderAuth.getReader();
+    if (r && r.handle) link.href = `/leaderboard.html?h=${encodeURIComponent(r.handle)}`;
+  }
+}());
 
 loadSubmissions();
 </script>
