@@ -356,13 +356,22 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .reader-rail .comps-val{font-size:13px}
 
 /* no room for the scene navigator on narrower screens */
-@media(max-width:1200px){ .reader-nav{display:none} }
+/* tablet: drop the scene column — script + coverage side by side */
+@media(min-width:821px) and (max-width:1200px){ .reader-nav{display:none} }
+/* phone: one panel at a time. The screenplay fills the screen; Scenes and
+   Coverage are full-screen overlays BELOW the toolbar, toggled one at a time
+   and hidden when the reader opens — so the script is never covered by default
+   and the toolbar toggle stays reachable to switch back. */
 @media(max-width:820px){
-  .reader-rail{position:absolute;right:0;top:0;bottom:0;width:min(90vw,372px);box-shadow:-20px 0 40px rgba(0,0,0,.6)}
+  .reader-body{position:relative}
+  .reader-nav,.reader-rail{position:absolute;inset:0;width:auto;z-index:6;border:none;box-shadow:none}
+  .reader-rail{padding:24px 20px 40px}
 }
 @media(max-width:580px){
   .reader-tools .rtool span{display:none}
   .reader-tools .rtool{padding:9px 11px}
+  .reader-back{padding:9px 11px}
+  .reader-top{gap:10px;padding:11px 12px}
 }
 
 /* ── search / filter controls ── */
@@ -1677,6 +1686,7 @@ function buildPageNav(numPages, slots) {
   const btns = [...nav.querySelectorAll('.nav-pg')];
   btns.forEach((b, i) => b.addEventListener('click', () => {
     doc.scrollTop += slots[i].getBoundingClientRect().top - doc.getBoundingClientRect().top - 12;
+    closeNavOverlayIfCompact();
   }));
   const origin = doc.getBoundingClientRect().top - doc.scrollTop;
   installNavHighlight(slots.map((s, i) => ({ btn: btns[i], scrollY: s.getBoundingClientRect().top - origin })));
@@ -1737,7 +1747,7 @@ async function buildSceneNav(pdf, base, scale, slots, token) {
   nav.innerHTML = `<div class="nav-h">${scenes.length} Scenes</div>` +
     scenes.map((s, i) => `<button class="nav-sc" data-i="${i}"><span class="sc-pg">${s.page}</span><span class="sc-txt">${esc(s.text)}</span></button>`).join('');
   const btns = [...nav.querySelectorAll('.nav-sc')];
-  btns.forEach((b, i) => b.addEventListener('click', () => { doc.scrollTop = Math.max(0, scenes[i].scrollY - 16); }));
+  btns.forEach((b, i) => b.addEventListener('click', () => { doc.scrollTop = Math.max(0, scenes[i].scrollY - 16); closeNavOverlayIfCompact(); }));
   installNavHighlight(scenes.map((s, i) => ({ scrollY: s.scrollY, btn: btns[i] })));
 }
 
@@ -1763,9 +1773,13 @@ function openReader(row) {
 
   const r = document.getElementById('reader');
   r.classList.add('open');
-  r.classList.remove('rail-hidden', 'nav-hidden');
-  document.getElementById('railToggle').classList.add('on');
-  document.getElementById('navToggle').classList.add('on');
+  // On phones there's only room for one panel, so open to the SCRIPT and keep
+  // Scenes/Coverage as overlays you tap to bring up. On wider screens show both.
+  const compact = window.matchMedia('(max-width: 820px)').matches;
+  r.classList.toggle('rail-hidden', compact);
+  r.classList.toggle('nav-hidden', compact);
+  document.getElementById('railToggle').classList.toggle('on', !compact);
+  document.getElementById('navToggle').classList.toggle('on', !compact);
 
   document.getElementById('readerDoc').innerHTML = '<div class="pdf-loading">Loading screenplay —</div>';
   signedPdfUrl(row.id)
@@ -1780,19 +1794,31 @@ function closeReader() {
 
 document.getElementById('readerBack').addEventListener('click', closeReader);
 
-const navToggleEl = document.getElementById('navToggle');
-navToggleEl.addEventListener('click', () => {
-  const r = document.getElementById('reader');
-  r.classList.toggle('nav-hidden');
-  navToggleEl.classList.toggle('on', !r.classList.contains('nav-hidden'));
-});
-
+const navToggleEl  = document.getElementById('navToggle');
 const railToggleEl = document.getElementById('railToggle');
-railToggleEl.addEventListener('click', () => {
+
+// On phones the panels are full-screen overlays, so only one shows at a time.
+function toggleReaderPanel(which) {
   const r = document.getElementById('reader');
-  r.classList.toggle('rail-hidden');
-  railToggleEl.classList.toggle('on', !r.classList.contains('rail-hidden'));
-});
+  const compact   = window.matchMedia('(max-width: 820px)').matches;
+  const hiddenCls = which === 'nav' ? 'nav-hidden'  : 'rail-hidden';
+  const otherCls  = which === 'nav' ? 'rail-hidden' : 'nav-hidden';
+  const toggleEl  = which === 'nav' ? navToggleEl   : railToggleEl;
+  const otherEl   = which === 'nav' ? railToggleEl  : navToggleEl;
+  const willShow  = r.classList.contains(hiddenCls);
+  r.classList.toggle(hiddenCls, !willShow);
+  toggleEl.classList.toggle('on', willShow);
+  if (willShow && compact) { r.classList.add(otherCls); otherEl.classList.remove('on'); }
+}
+navToggleEl.addEventListener('click', () => toggleReaderPanel('nav'));
+railToggleEl.addEventListener('click', () => toggleReaderPanel('rail'));
+
+// On phones, jumping to a scene/page should reveal the script — close the overlay.
+function closeNavOverlayIfCompact() {
+  if (!window.matchMedia('(max-width: 820px)').matches) return;
+  document.getElementById('reader').classList.add('nav-hidden');
+  navToggleEl.classList.remove('on');
+}
 
 document.getElementById('readerDownload').addEventListener('click', async () => {
   if (!readerCurrentId) return;
