@@ -510,7 +510,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
           <th>Title</th>
           <th class="hide-m">Submitted By</th>
           <th class="hide-m">Pages</th>
-          <th>Score</th>
+          <th>Craft</th>
           <th>Decision</th>
           <th>Date</th>
         </tr>
@@ -1288,11 +1288,23 @@ function rowMatches(row, terms, decisions) {
   return terms.every(t => hay.includes(t));
 }
 
+// Craft/weighted score for ranking; unscored rows sort to the bottom.
+function craftValue(row) {
+  const v = normalizeEval(parseEval(row)).scoreValue;
+  return v == null ? -Infinity : v;
+}
+
 function renderSearchResults() {
   const tbody = document.getElementById('subBody');
   const terms = subSearch.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const decisions = activeDecisions();
-  const results = allRows.filter(r => rowMatches(r, terms, decisions));
+  let results = allRows.filter(r => rowMatches(r, terms, decisions));
+  // When a decision filter (Recommend/Consider/Pass) is selected, rank those
+  // results by Craft score, highest to lowest. The unfiltered list keeps its
+  // natural order (most recently submitted).
+  if (decisions.size) {
+    results = results.slice().sort((a, b) => craftValue(b) - craftValue(a));
+  }
   tbody.innerHTML = results.length
     ? results.map(subRowHtml).join('')
     : '<tr><td colspan="6" class="td-empty">No matching submissions</td></tr>';
