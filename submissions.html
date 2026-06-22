@@ -193,6 +193,11 @@ input:-webkit-autofill:focus{
 .champ-name{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.08em;color:#aaa;text-transform:uppercase;margin-bottom:4px}
 .champ-desc{font-size:12.5px;color:#888;line-height:1.65;max-width:640px}
 
+/* read-verification flag */
+.read-status{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;line-height:1.7;margin:16px 0;max-width:640px}
+.read-status.warn{color:#fbbf24;background:#1a1206;border:1px solid #3a2a0a;border-left:3px solid #b45309;padding:11px 13px}
+.read-status.ok{color:#5d7a5d;font-size:9px;letter-spacing:.18em}
+
 /* ── divider ── */
 hr{border:none;border-top:1px solid #181818;margin:52px 0}
 
@@ -783,7 +788,9 @@ function normalizeEval(ev) {
       budget: fmtBudgetAny(ev.budget),
       scoreValue: numOr(cs.final_craft_score), scoreLabel: 'Craft Score',
       categories, championship, comps: null,
-      summary: cs.craft_justification || '',
+      summary: ev.summary || cs.craft_justification || '',
+      craftAssessment: cs.craft_justification || '',
+      readVerified: ev.read_verified,
     };
   }
 
@@ -796,7 +803,7 @@ function normalizeEval(ev) {
     budget: fmtBudgetAny(ev.max_budget),
     scoreValue: weightedOf(ev), scoreLabel: 'Weighted Score',
     categories, championship: null, comps: fmtComps(ev.comparable_films),
-    summary: ev.summary || '',
+    summary: ev.summary || '', craftAssessment: '', readVerified: undefined,
   };
 }
 
@@ -834,9 +841,14 @@ function coverageBodyHtml(n) {
       <span class="weighted-num">${n.scoreValue != null ? n.scoreValue.toFixed(1) : '—'}</span>
       <span class="weighted-denom">/ 100</span>
     </div>`;
+  const readHtml = n.readVerified === false
+    ? `<div class="read-status warn">⚠ Partial read — the model could not be confirmed to have read the ending. Treat the scores and summary with caution.</div>`
+    : (n.readVerified === true ? `<div class="read-status ok">✓ Full read verified</div>` : '');
   const sumHtml = n.summary
-    ? `<div class="summary-key">${n.championship ? 'Craft Assessment' : 'Summary'}</div><div class="summary-body">${esc(n.summary)}</div>` : '';
-  return compsHtml + barsHtml + scoreHtml + championabilityHtml(n.championship) + sumHtml;
+    ? `<div class="summary-key">Summary</div><div class="summary-body">${esc(n.summary)}</div>` : '';
+  const craftHtml = (n.craftAssessment && n.craftAssessment !== n.summary)
+    ? `<div class="summary-key">Craft Assessment</div><div class="summary-body">${esc(n.craftAssessment)}</div>` : '';
+  return compsHtml + barsHtml + scoreHtml + readHtml + championabilityHtml(n.championship) + sumHtml + craftHtml;
 }
 
 // ── form ─────────────────────────────────────────────────────────────────────
@@ -1844,13 +1856,15 @@ function openReader(row) {
   document.getElementById('readerRail').innerHTML = `
     <div class="rail-dec"><span class="badge" style="background:${DECISIONS[ev.decision] || '#444'};color:#fff">${ev.decision ? esc(ev.decision) : '—'}</span></div>
     <div class="rail-weighted">${n.scoreValue != null ? n.scoreValue.toFixed(1) : '—'}<small> / 100 ${champ ? 'craft' : 'weighted'}</small></div>
+    ${n.readVerified === false ? `<div class="read-status warn">⚠ Partial read — ending unverified; treat with caution</div>` : (n.readVerified === true ? `<div class="read-status ok">✓ Full read verified</div>` : '')}
     ${champ ? `<div class="rail-section">Championability</div>
       <div class="champ-head"><span class="champ-badge" style="background:${champColor}">${esc(champ.rating || '—')}</span></div>
       ${(champ.items || []).map(it => `<div class="champ-item"><div class="champ-name">${esc(it.name)}</div><div class="champ-desc">${esc(it.description || '')}</div></div>`).join('')}
       ${champ.justification ? `<div class="score-just" style="margin-top:10px">${esc(champ.justification)}</div>` : ''}` : ''}
     ${n.comps ? `<div class="rail-section">Comparable Films</div><div class="comps-val">${esc(n.comps)}</div>` : ''}
     ${bars ? `<div class="rail-section">Score Breakdown</div>${bars}` : ''}
-    ${n.summary ? `<div class="rail-section">${champ ? 'Craft Assessment' : 'Summary'}</div><div class="summary-body">${esc(n.summary)}</div>` : ''}`;
+    ${n.summary ? `<div class="rail-section">Summary</div><div class="summary-body">${esc(n.summary)}</div>` : ''}
+    ${(n.craftAssessment && n.craftAssessment !== n.summary) ? `<div class="rail-section">Craft Assessment</div><div class="summary-body">${esc(n.craftAssessment)}</div>` : ''}`;
 
   const r = document.getElementById('reader');
   r.classList.add('open');
