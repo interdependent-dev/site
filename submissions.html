@@ -1502,26 +1502,47 @@ async function retryEvaluation(id, btn) {
 // the one-time name form. A dismissed passkey prompt never auto-opens the form —
 // we offer "try again" / "register" instead. Writes go through authedWrite.
 
-// Copy/share a public recommendation link. Uses the native share sheet where
-// available (mobile), otherwise copies the link with inline "Link copied" feedback.
+// Build/copy a personalized recommendation link. The recommender is identified
+// the same way as Champion (name + passkey); the link carries their name so the
+// recipient sees "Recommended to you by [name]". Returning recommenders keep the
+// native share sheet; first-timers identify, then the link is copied.
 function wireShare(row) {
   const btn = document.getElementById('shareBtn');
   if (!btn || !row.id) return;
   const textEl = btn.querySelector('.share-text');
-  const url = `${location.origin}/share.html?id=${row.id}`;
-  btn.addEventListener('click', async () => {
-    if (navigator.share) {
-      try { await navigator.share({ title: `${row.title} — INTERDEPENDENT`, text: `A screenplay recommendation: ${row.title}`, url }); }
-      catch { /* user cancelled */ }
-      return;
-    }
+  const makeUrl = (name) => {
+    const u = new URL(`${location.origin}/share.html`);
+    u.searchParams.set('id', row.id);
+    if (name) u.searchParams.set('by', name);
+    return u.toString();
+  };
+  const copyLink = async (url) => {
     try {
       await navigator.clipboard.writeText(url);
       textEl.textContent = 'Link copied'; btn.classList.add('done');
       setTimeout(() => { textEl.textContent = 'Recommend'; btn.classList.remove('done'); }, 1800);
-    } catch {
-      window.prompt('Copy this recommendation link:', url);
+    } catch { window.prompt('Copy this recommendation link:', url); }
+  };
+  btn.addEventListener('click', async () => {
+    // Already a known recommender → keep the gesture so native share still works.
+    const existing = window.ReaderAuth ? ReaderAuth.getReader() : null;
+    if (existing && existing.displayName) {
+      const url = makeUrl(existing.displayName);
+      if (navigator.share) {
+        try { await navigator.share({ title: `${row.title} — INTERDEPENDENT`, text: `A screenplay recommendation: ${row.title}`, url }); } catch {}
+        return;
+      }
+      return copyLink(url);
     }
+    // First time recommending → identify (name + passkey), same as Champion.
+    let name = '';
+    try {
+      if (window.ReaderAuth && await ReaderAuth.checkSupport()) {
+        const r = await ReaderAuth.signInOrRegister();
+        name = (r && r.displayName) || (ReaderAuth.getReader() || {}).displayName || '';
+      }
+    } catch { /* cancelled — recommend without attribution */ }
+    copyLink(makeUrl(name));
   });
 }
 
