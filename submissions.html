@@ -1425,8 +1425,8 @@ async function openModal(id) {
             <button class="champion-btn" id="championBtn" title="Add to your leaderboard">
               <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
             </button>
-            <button class="share-btn" id="shareBtn" title="Copy a shareable recommendation link">
-              <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Share</span>
+            <button class="share-btn" id="shareBtn" title="Copy a link to recommend this screenplay">
+              <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Recommend</span>
             </button>
           </div>
           <div class="champion-msg" id="championMsg" aria-live="polite"></div>
@@ -1518,7 +1518,7 @@ function wireShare(row) {
     try {
       await navigator.clipboard.writeText(url);
       textEl.textContent = 'Link copied'; btn.classList.add('done');
-      setTimeout(() => { textEl.textContent = 'Share'; btn.classList.remove('done'); }, 1800);
+      setTimeout(() => { textEl.textContent = 'Recommend'; btn.classList.remove('done'); }, 1800);
     } catch {
       window.prompt('Copy this recommendation link:', url);
     }
