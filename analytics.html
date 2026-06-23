@@ -112,7 +112,9 @@ function ago(iso) {
   if (s < 86400) return Math.floor(s/3600) + 'h ago'; if (s < 2592000) return Math.floor(s/86400) + 'd ago';
   return new Date(iso).toLocaleDateString();
 }
-const EVENT_LABEL = { recommend_open:'Opened recommendation', script_view:'Viewed script', reader_open:'Opened reader', read_progress:'Read progress', read_complete:'Finished reading', quick_preview:'Quick preview', new_tab:'Opened in new tab', download:'Downloaded', champion:'Championed', browse_unlock:'Unlocked portal' };
+const EVENT_LABEL = { recommend_open:'Opened recommendation', script_view:'Viewed script', reader_open:'Opened reader', read_progress:'Read progress', read_complete:'Reached end', quick_preview:'Quick preview', new_tab:'Opened in new tab', download:'Downloaded', champion:'Championed', browse_unlock:'Unlocked portal' };
+const fmtTime = (s) => { s = Math.round(s||0); if (s < 60) return s + 's'; const m = Math.floor(s/60), r = s%60; return r ? `${m}m ${r}s` : `${m}m`; };
+const VERDICT = { finished:'<span class="pill g">Read</span>', engaged:'<span class="pill g">Engaged</span>', skimmed:'<span class="pill r">Skimmed</span>', opened:'<span class="pill m">Opened</span>' };
 
 let DATA = null, sortKey = 'opens', sortDir = -1;
 const card = (n, l) => `<div class="card"><div class="n">${n}</div><div class="l">${l}</div></div>`;
@@ -123,17 +125,19 @@ function funnelRow(label, val, total) {
 }
 
 function scoreboard(rows) {
-  const cols = [['title','Script',false],['opens','Opens',true],['uniqueReaders','Readers',true],['avgDepth','Avg read',true],['completionRate','Finished',true],['champions','Champions',true],['recommends','Rec’d',true]];
+  const cols = [['title','Script',false],['opens','Opens',true],['uniqueReaders','Readers',true],['reachedAvg','Reached',true],['avgSeconds','Avg time',true],['finished','Read',true],['champions','Champions',true],['recommends','Rec’d',true]];
+  if (!cols.some(c => c[0] === sortKey)) sortKey = 'opens';
   const sorted = rows.slice().sort((a, b) => { const x=a[sortKey], y=b[sortKey]; if (typeof x === 'string') return sortDir*String(x).localeCompare(String(y)); return sortDir*((x||0)-(y||0)); }).slice(0, 80);
   const head = cols.map(([k,l,num]) => `<th class="${num?'num':''}" data-k="${k}">${l}${sortKey===k?(sortDir<0?' ▾':' ▴'):''}</th>`).join('');
   const body = sorted.map(r => `<tr class="clk" data-id="${r.script_id}" data-title="${esc(r.title)}">
     <td>${esc(r.title)} <span class="arrow">›</span></td>
     <td class="num">${r.opens}</td><td class="num">${r.uniqueReaders}</td>
-    <td class="num">${r.avgDepth}%<span class="depthbar"><span style="width:${r.avgDepth}%"></span></span></td>
-    <td class="num">${r.completionRate}%</td>
+    <td class="num">${r.reachedAvg}%<span class="depthbar"><span style="width:${r.reachedAvg}%"></span></span></td>
+    <td class="num">${r.avgSeconds ? fmtTime(r.avgSeconds) : '<span class="muted">—</span>'}</td>
+    <td class="num">${r.finished ? `<span class="pill g">${r.finished}</span>` : '<span class="muted">0</span>'}</td>
     <td class="num">${r.champions ? `<span class="pill g">${r.champions}</span>` : '<span class="muted">0</span>'}</td>
     <td class="num">${r.recommends || '<span class="muted">0</span>'}</td></tr>`).join('');
-  return `<table><thead><tr>${head}</tr></thead><tbody>${body || '<tr><td colspan="7" class="muted" style="padding:24px 0">No reads recorded yet.</td></tr>'}</tbody></table>`;
+  return `<table><thead><tr>${head}</tr></thead><tbody>${body || '<tr><td colspan="8" class="muted" style="padding:24px 0">No reads recorded yet.</td></tr>'}</tbody></table>`;
 }
 
 function chart(days) {
@@ -146,8 +150,8 @@ function chart(days) {
 function render(d) {
   DATA = d;
   const t = d.totals, f = d.recommendFunnel;
-  const recTable = d.byRecommender.length ? `<table><thead><tr><th>Recommender</th><th class="num">Sent</th><th class="num">Opened</th><th class="num">Finished</th><th class="num">Championed</th></tr></thead><tbody>${
-    d.byRecommender.map(r => `<tr><td>${esc(r.recommender)}</td><td class="num">${r.sent}</td><td class="num">${r.opened} <span class="muted">${pct(r.opened,r.sent)}%</span></td><td class="num">${r.completed}</td><td class="num">${r.championed}</td></tr>`).join('')
+  const recTable = d.byRecommender.length ? `<table><thead><tr><th>Recommender</th><th class="num">Sent</th><th class="num">Opened</th><th class="num">Engaged</th><th class="num">Read</th></tr></thead><tbody>${
+    d.byRecommender.map(r => `<tr><td>${esc(r.recommender)}</td><td class="num">${r.sent}</td><td class="num">${r.opened} <span class="muted">${pct(r.opened,r.sent)}%</span></td><td class="num">${r.engaged}</td><td class="num">${r.finished}</td></tr>`).join('')
   }</tbody></table>` : '<div class="empty">No recommendation links opened yet.</div>';
 
   const champTable = d.champions.length ? `<table><thead><tr><th>Script</th><th>Championed by</th><th class="num">When</th></tr></thead><tbody>${
@@ -164,15 +168,15 @@ function render(d) {
       ${card(t.uniqueReaders,'Unique readers')}
       ${card(t.scriptViews,'Script views')}
       ${card(t.readerOpens,'Reader opens')}
-      ${card(t.completions,'Finished reads')}
+      ${card(t.finishedReads,'Reads (depth + time)')}
       <div class="card clk" data-jump="champions"><div class="n">${t.champions}</div><div class="l">Champions ›</div></div>
       ${card(t.recommendOpens,'Recommend opens')}
     </div>
 
-    <h2>Recommendation funnel — did recommendations land?</h2>
+    <h2>Recommendation funnel — did recommendations land? <span class="hint">"Read" = reached the end AND spent real time</span></h2>
     <div class="funnel">
-      ${funnelRow('Recommended', f.total, f.total)}${funnelRow('Opened', f.opened, f.total)}${funnelRow('Read 25%+', f.read25, f.total)}
-      ${funnelRow('Read 75%+', f.read75, f.total)}${funnelRow('Finished', f.completed, f.total)}${funnelRow('Championed', f.championed, f.total)}
+      ${funnelRow('Recommended', f.total, f.total)}${funnelRow('Opened', f.opened, f.total)}${funnelRow('Reached 25%+', f.read25, f.total)}
+      ${funnelRow('Reached 75%+', f.read75, f.total)}${funnelRow('Engaged', f.engaged, f.total)}${funnelRow('Read', f.finished, f.total)}
     </div>
 
     <h2>By recommender</h2>${recTable}
@@ -217,24 +221,24 @@ async function openScript(id, title) {
 
 function renderDetail(d, id) {
   const s = d.summary;
-  const status = (r) => [r.championed ? '<span class="pill g">Championed</span>' : '', r.finished ? '<span class="pill m">Finished</span>' : (r.maxDepth >= 25 ? `<span class="pill m">${r.maxDepth}%</span>` : '')].filter(Boolean).join(' ');
   const readers = d.readers.length ? d.readers.map(r => `<div class="rrow">
       <span class="rn">${esc(r.name)}${r.recommender ? ` <span class="muted">· via ${esc(r.recommender)}</span>` : ''}</span>
-      ${status(r) || '<span class="muted" style="font-size:11px">opened</span>'}
-      <span class="depthbar"><span style="width:${r.maxDepth}%"></span></span>
+      ${VERDICT[r.verdict] || ''}
+      <span class="muted" style="font-size:11px;width:78px;text-align:right">${r.depth}% · ${fmtTime(r.seconds)}</span>
+      <span class="depthbar"><span style="width:${r.depth}%"></span></span>
       <span class="rd">${ago(r.last)}</span></div>`).join('') : '<div class="empty">No reads recorded.</div>';
   const champs = d.champions.length ? d.champions.map(c => `<div class="rrow"><span class="rn">${esc(c.reader)}</span><span class="rd">${ago(c.addedAt)}</span></div>`).join('') : '<div class="empty">Not championed yet.</div>';
-  const recs = d.recommenders.length ? `<table><thead><tr><th>By</th><th class="num">Sent</th><th class="num">Opened</th><th class="num">Finished</th><th class="num">Champ.</th></tr></thead><tbody>${
-    d.recommenders.map(r => `<tr><td>${esc(r.recommender)}</td><td class="num">${r.sent}</td><td class="num">${r.opened}</td><td class="num">${r.finished}</td><td class="num">${r.championed}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">Not recommended through the platform yet.</div>';
-  const timeline = d.timeline.length ? `<div class="tl">${d.timeline.map(e => `<div class="te"><span class="tt">${ago(e.ts)}</span><span>${EVENT_LABEL[e.type]||e.type}${e.depth!=null?` (${Math.round(e.depth)}%)`:''} <span class="muted">— ${esc(e.who)}</span></span></div>`).join('')}</div>` : '<div class="empty">No events.</div>';
+  const recs = d.recommenders.length ? `<table><thead><tr><th>By</th><th class="num">Sent</th><th class="num">Opened</th><th class="num">Engaged</th><th class="num">Read</th></tr></thead><tbody>${
+    d.recommenders.map(r => `<tr><td>${esc(r.recommender)}</td><td class="num">${r.sent}</td><td class="num">${r.opened}</td><td class="num">${r.engaged}</td><td class="num">${r.finished}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">Not recommended through the platform yet.</div>';
+  const timeline = d.timeline.length ? `<div class="tl">${d.timeline.map(e => `<div class="te"><span class="tt">${ago(e.ts)}</span><span>${EVENT_LABEL[e.type]||e.type}${e.depth!=null?` (${Math.round(e.depth)}%${e.seconds?', '+fmtTime(e.seconds):''})`:''} <span class="muted">— ${esc(e.who)}</span></span></div>`).join('')}</div>` : '<div class="empty">No events.</div>';
 
   document.querySelector('#drawerBody .dbody').innerHTML = `
     <div class="dstats">
       <div class="dstat"><div class="n">${s.sessions}</div><div class="l">Readers</div></div>
-      <div class="dstat"><div class="n">${s.opens}</div><div class="l">Opens</div></div>
-      <div class="dstat"><div class="n">${s.avgDepth}%</div><div class="l">Avg read</div></div>
-      <div class="dstat"><div class="n">${s.finished}</div><div class="l">Finished</div></div>
-      <div class="dstat"><div class="n">${s.champions}</div><div class="l">Champions</div></div>
+      <div class="dstat"><div class="n">${s.avgDepth}%</div><div class="l">Avg reached</div></div>
+      <div class="dstat"><div class="n">${fmtTime(s.avgSeconds)}</div><div class="l">Avg time</div></div>
+      <div class="dstat"><div class="n">${s.engaged}</div><div class="l">Engaged</div></div>
+      <div class="dstat"><div class="n">${s.finished}</div><div class="l">Read</div></div>
     </div>
     <a class="lnk" style="display:inline-block;margin-top:6px" href="/submissions.html?rec=${encodeURIComponent(id)}" target="_blank">Open script ↗</a>
     <div class="dh3">Who read it</div>${readers}

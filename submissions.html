@@ -1873,7 +1873,19 @@ function wireReadActions(row) {
 
 // ── full-screen reader ────────────────────────────────────────────────────────
 let readerCurrentId = null;
-let _readerAnalytics = null, _readerProgressFn = null; // read-depth analytics state
+let _readerAnalytics = null, _readerProgressFn = null, _readerTick = null, _readerHeartbeat = null; // read analytics state
+
+// Report read DEPTH + ACTIVE TIME for the current reader session (best-effort).
+function sendReadProgress() {
+  if (!_readerAnalytics || !window.Analytics) return;
+  Analytics.track('read_progress', {
+    script_id: _readerAnalytics.id,
+    depth_pct: _readerAnalytics.maxDepth,
+    seconds: _readerAnalytics.activeSec,
+    source: _readerAnalytics.source,
+    recommender: REC_BY || undefined,
+  });
+}
 
 // The reader renders pages LAZILY: a full screenplay can be 120 pages, and
 // rendering every page to a full-res canvas up front would exhaust memory.
@@ -2081,20 +2093,29 @@ function openReader(row) {
   const r = document.getElementById('reader');
   r.classList.add('open');
 
-  // analytics: reader opened + scroll-based read-depth tracking
+  // analytics: reader opened + read DEPTH and ACTIVE READING TIME. Depth alone is
+  // gameable (scroll to the bottom in seconds), so we also accumulate real time
+  // spent with the reader visible and recently active (idle/hidden time excluded).
+  // "Read" / "finished" is derived from depth AND time downstream — never scroll.
   const _rdoc = document.getElementById('readerDoc');
-  _readerAnalytics = { id: row.id, maxDepth: 0, completed: false, source: window.GUEST_REC ? 'recommend' : 'portal' };
+  _readerAnalytics = { id: row.id, maxDepth: 0, activeSec: 0, lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal' };
   if (window.Analytics) Analytics.track('reader_open', { script_id: row.id, total_pages: row.page_count || undefined, source: _readerAnalytics.source, recommender: REC_BY || undefined });
+  const _bump = () => { if (_readerAnalytics) _readerAnalytics.lastActive = Date.now(); };
   _readerProgressFn = () => {
     const sh = _rdoc.scrollHeight - _rdoc.clientHeight;
     const pct = sh > 0 ? Math.min(100, Math.round((_rdoc.scrollTop / sh) * 100)) : 0;
     if (pct > _readerAnalytics.maxDepth) _readerAnalytics.maxDepth = pct;
-    if (!_readerAnalytics.completed && _readerAnalytics.maxDepth >= 90) {
-      _readerAnalytics.completed = true;
-      if (window.Analytics) Analytics.track('read_complete', { script_id: _readerAnalytics.id, depth_pct: _readerAnalytics.maxDepth, source: _readerAnalytics.source, recommender: REC_BY || undefined });
-    }
+    _bump();
   };
   _rdoc.addEventListener('scroll', _readerProgressFn, { passive: true });
+  _rdoc.addEventListener('pointermove', _bump, { passive: true });
+  _rdoc.addEventListener('pointerdown', _bump, { passive: true });
+  // count active time: +1s per tick only while visible and active within 90s
+  _readerTick = setInterval(() => {
+    if (_readerAnalytics && document.visibilityState === 'visible' && (Date.now() - _readerAnalytics.lastActive) < 90000) _readerAnalytics.activeSec += 1;
+  }, 1000);
+  // heartbeat so long reads record progress even without a clean close
+  _readerHeartbeat = setInterval(sendReadProgress, 60000);
 
   // On phones there's only room for one panel, so open to the SCRIPT and keep
   // Scenes/Coverage as overlays you tap to bring up. On wider screens show both.
@@ -2113,17 +2134,20 @@ function openReader(row) {
 function closeReader() {
   document.getElementById('reader').classList.remove('open');
   if (_readerAnalytics) {
-    if (window.Analytics) Analytics.track('read_progress', { script_id: _readerAnalytics.id, depth_pct: _readerAnalytics.maxDepth, source: _readerAnalytics.source, recommender: REC_BY || undefined });
+    sendReadProgress(); // final depth + active time
     const d = document.getElementById('readerDoc');
     if (_readerProgressFn) { d.removeEventListener('scroll', _readerProgressFn); _readerProgressFn = null; }
+    if (_readerTick) { clearInterval(_readerTick); _readerTick = null; }
+    if (_readerHeartbeat) { clearInterval(_readerHeartbeat); _readerHeartbeat = null; }
     _readerAnalytics = null;
   }
   teardownReader();
 }
 
 document.getElementById('readerBack').addEventListener('click', closeReader);
-// flush read depth if the reader leaves the tab mid-read
-window.addEventListener('pagehide', () => { if (_readerAnalytics && window.Analytics) Analytics.track('read_progress', { script_id: _readerAnalytics.id, depth_pct: _readerAnalytics.maxDepth, source: _readerAnalytics.source }); });
+// flush read depth + time when the tab is hidden or the page is left mid-read
+window.addEventListener('pagehide', sendReadProgress);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') sendReadProgress(); });
 
 const navToggleEl  = document.getElementById('navToggle');
 const railToggleEl = document.getElementById('railToggle');
