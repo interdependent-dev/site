@@ -1428,11 +1428,31 @@ function showRecBanner(id, by) {
   if (document.getElementById('recBanner')) return;
   const bar = document.createElement('div');
   bar.id = 'recBanner';
+  bar.dataset.recId = id;
   bar.innerHTML = `<span class="rb-star">★</span>
     <span class="rb-text">Recommended to you${by ? ` by <b>${esc(by)}</b>` : ''}</span>
-    <button class="rb-open" id="rbOpen">View the recommendation →</button>`;
+    <button class="rb-open" id="rbOpen"></button>`;
   document.body.insertBefore(bar, document.body.firstChild);
-  document.getElementById('rbOpen').addEventListener('click', () => openModal(id));
+  document.getElementById('rbOpen').addEventListener('click', () => {
+    const modalOpen = document.getElementById('modalBack').classList.contains('open');
+    if (modalOpen) {
+      // already viewing the recommendation → send them to browse the rest
+      closeModal();
+      if (window.GUEST_REC) { const inp = document.getElementById('guestPass'); if (inp) { inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); inp.focus(); } }
+    } else {
+      openModal(id); // navigated away → re-open the recommended script
+    }
+  });
+  updateRecBanner();
+}
+
+// The banner button flips by context: viewing the recommendation → "View All
+// Submissions"; away from it → "View the recommendation".
+function updateRecBanner() {
+  const btn = document.getElementById('rbOpen');
+  if (!btn) return;
+  const modalOpen = document.getElementById('modalBack').classList.contains('open');
+  btn.textContent = modalOpen ? 'View All Submissions' : 'View the recommendation →';
 }
 
 function enterGuestRec(id, by) {
@@ -1553,6 +1573,7 @@ async function openModal(id) {
     wireReadActions(row);
     wireChampion(row);
     wireShare(row);
+    updateRecBanner();
   } catch {
     content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
   }
@@ -1725,6 +1746,7 @@ async function championScript(row, btn, msgEl) {
 
 function closeModal() {
   document.getElementById('modalBack').classList.remove('open');
+  updateRecBanner();
 }
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
