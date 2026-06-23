@@ -285,6 +285,17 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .champion-btn:hover:not(:disabled) .star,
 .champion-btn.done .star{color:#fff}
 .champion-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;text-align:right;max-width:180px;min-height:1em}
+.hr-btns{display:flex;gap:8px;align-items:center}
+.share-btn{
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+  background:none;border:1px solid #444;color:#ccc;
+  padding:8px 14px;font-family:"Eurostile",'Helvetica Neue',sans-serif;
+  font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  cursor:pointer;transition:background .15s,border-color .15s,color .15s
+}
+.share-btn:hover{border-color:#fff;color:#fff}
+.share-btn.done{border-color:#16a34a;color:#16a34a}
+.share-btn .share-ico{font-size:12px;line-height:1}
 .champion-msg a{color:red;text-decoration:none}
 .champion-msg a:hover{text-decoration:underline}
 
@@ -1410,9 +1421,14 @@ async function openModal(id) {
         </div>
         <div class="header-right">
           <div class="badge-slot">${decisionBadge(row, ev).replace('<span', '<span class="badge"')}</div>
-          <button class="champion-btn" id="championBtn" title="Add to your leaderboard">
-            <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
-          </button>
+          <div class="hr-btns">
+            <button class="champion-btn" id="championBtn" title="Add to your leaderboard">
+              <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
+            </button>
+            <button class="share-btn" id="shareBtn" title="Copy a shareable recommendation link">
+              <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Share</span>
+            </button>
+          </div>
           <div class="champion-msg" id="championMsg" aria-live="polite"></div>
         </div>
       </div>
@@ -1435,6 +1451,7 @@ async function openModal(id) {
     if (retryBtn) retryBtn.addEventListener('click', () => retryEvaluation(row.id, retryBtn));
     wireReadActions(row);
     wireChampion(row);
+    wireShare(row);
   } catch {
     content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
   }
@@ -1484,6 +1501,29 @@ async function retryEvaluation(id, btn) {
 // discoverably (no form); only a reader who has never registered anywhere sees
 // the one-time name form. A dismissed passkey prompt never auto-opens the form —
 // we offer "try again" / "register" instead. Writes go through authedWrite.
+
+// Copy/share a public recommendation link. Uses the native share sheet where
+// available (mobile), otherwise copies the link with inline "Link copied" feedback.
+function wireShare(row) {
+  const btn = document.getElementById('shareBtn');
+  if (!btn || !row.id) return;
+  const textEl = btn.querySelector('.share-text');
+  const url = `${location.origin}/share.html?id=${row.id}`;
+  btn.addEventListener('click', async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: `${row.title} — INTERDEPENDENT`, text: `A screenplay recommendation: ${row.title}`, url }); }
+      catch { /* user cancelled */ }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      textEl.textContent = 'Link copied'; btn.classList.add('done');
+      setTimeout(() => { textEl.textContent = 'Share'; btn.classList.remove('done'); }, 1800);
+    } catch {
+      window.prompt('Copy this recommendation link:', url);
+    }
+  });
+}
 
 function wireChampion(row) {
   const btn = document.getElementById('championBtn');
