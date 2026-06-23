@@ -58,9 +58,9 @@
     already_on_leaderboard:'This script is already on the leaderboard.',
   };
 
-  // Shown when the platform can't do passkeys at all (STEP 0 fails).
+  // Shown when the device can't do passkeys at all (STEP 0 fails).
   const UNSUPPORTED_MESSAGE =
-    "Passkeys aren't supported on this browser. Please use Safari or Chrome on iPhone, iPad, or Mac.";
+    "Passkeys aren't available on this device. Use a device with Touch ID, Face ID, Windows Hello, or a screen lock (a recent iPhone, iPad, Mac, Windows PC, or Android phone).";
 
   // Client-side / WebAuthn codes we raise ourselves.
   const LOCAL_MESSAGES = {
@@ -297,10 +297,11 @@
     } catch { return false; }
   }
 
-  // Authoritative STEP-0 check, async + cached. Three gates: the WebAuthn API is
-  // present (false on IE), it's an Apple platform (iCloud Keychain only), and a
-  // user-verifying platform authenticator is actually available (false on e.g.
-  // Firefox/Mac, which has no iCloud Keychain). If false → show the static
+  // Authoritative STEP-0 check, async + cached. Cross-platform: the WebAuthn API
+  // is present (false on IE), the page is secure (https), and a user-verifying
+  // platform authenticator is actually available — true for Touch ID / Face ID
+  // (Apple), Windows Hello, and Android's screen lock. (Previously gated to Apple
+  // only; lifted so Microsoft/Android readers work too.) If false → show the
   // unsupported message and never attempt an auth ceremony.
   let _supportPromise = null;
   function checkSupport() {
@@ -309,7 +310,6 @@
       try {
         if (!isSupported()) return false;
         if (window.isSecureContext === false) return false;
-        if (!isApplePlatform()) return false;
         if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') return false;
         return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
       } catch { return false; }
@@ -355,6 +355,7 @@
       { challengeId: begin.challengeId, credential: encodeAttestation(cred) }, { retries: 0, timeout: 30000 });
     if (!done || !done.readerId) throw err('bad_response');
 
+    if (done.actionToken) setToken(done.actionToken); // server mints one on register — no second prompt
     return storeReader(done);
   }
 
@@ -415,12 +416,32 @@
   //      fresh browser sees their synced passkey as a silent suggestion → one tap
   //      signs them in (no QR). A true first-timer types their name and registers.
   async function signInOrRegister() {
-    if (isRegistered()) return reauth();
+    // Known device → reauth with the stored handle (one Face/Touch ID, no name
+    // form). If the stored identity is STALE (server reader/credential gone),
+    // clear it and fall through to registration instead of dead-ending on an
+    // error — "smart enough to register one if it doesn't exist".
+    if (isRegistered()) {
+      try {
+        return await reauth();
+      } catch (e) {
+        const c = e && e.code;
+        const stale = c === 'reader_not_found' || c === 'credential_not_found' || c === 'not_registered' || (e && e.status === 404);
+        if (!stale) throw e;          // genuine cancel / verify failure → surface it
+        clearReader();                // stale identity — re-register below
+      }
+    }
+    // New / cleared device → the modal: passkey autofill (a returning reader on a
+    // fresh browser taps their synced passkey) OR registration (a true first-timer
+    // types their name). Registration now returns an action token directly.
     const res = await promptRegister({ conditional: true });
     if (res && res.signedIn) {
       return { actionToken: res.actionToken, readerId: res.readerId, handle: res.handle, displayName: res.displayName };
     }
-    return reauth(); // registered via the form → mint the first action token
+    // Registered via the form — register() already minted the action token.
+    const tok = getActionToken();
+    const r = getReader();
+    if (tok && r) return { actionToken: tok, readerId: r.readerId, handle: r.handle, displayName: r.displayName };
+    return reauth(); // fallback for an older server that didn't return a token
   }
 
   // Reauth against a SPECIFIC handle (e.g. a leaderboard's owner handle from the
@@ -511,8 +532,8 @@
         <div class="ra-card" role="dialog" aria-modal="true" aria-label="Sign in or register as a reader">
           <div class="ra-title">${conditional ? 'Sign in or register' : 'Register'}</div>
           <div class="ra-sub">${conditional
-            ? "Returning reader? Choose your saved passkey. New here? Enter your name to create one — Touch ID, Face ID, or your device passcode, no password."
-            : "Create your reader passkey. You'll use Touch ID, Face ID, or your device passcode — no password to remember."}</div>
+            ? "Returning reader? Choose your saved passkey. New here? Enter your name to create one — Touch ID, Face ID, Windows Hello, or your screen lock, no password."
+            : "Create your reader passkey. You'll use Touch ID, Face ID, Windows Hello, or your device's screen lock — no password to remember."}</div>
           <div class="ra-field">
             <label for="ra-first">First name</label>
             <input id="ra-first" type="text" autocomplete="${conditional ? 'username webauthn' : 'given-name'}" placeholder="First name">
