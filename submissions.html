@@ -297,6 +297,39 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .share-btn.done{border-color:#16a34a;color:#16a34a}
 .share-btn .share-ico{font-size:12px;line-height:1}
 
+/* reader feedback form */
+.fb-back{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85)}
+.fb-card{width:100%;max-width:440px;max-height:92vh;overflow-y:auto;background:#0a0a0a;border:1px solid #222;padding:26px 24px;font-family:'Helvetica Neue',sans-serif}
+.fb-card h3{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px;color:#fff}
+.fb-card .fb-sub{color:#888;font-size:12px;margin-bottom:18px;line-height:1.55}
+.fb-card .fb-q{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin:20px 0 8px}
+.fb-verdicts{display:flex;gap:8px}
+.fb-vbtn{flex:1;background:#141414;border:1px solid #2a2a2a;color:#ccc;padding:11px 6px;font-size:10.5px;letter-spacing:.04em;cursor:pointer;text-transform:uppercase}
+.fb-vbtn.on{border-color:red;color:#fff;background:#1a0606}
+.fb-dim{display:flex;align-items:center;gap:10px;margin:8px 0}
+.fb-dim .fbd-name{flex:1;font-size:12.5px;color:#bbb}
+.fb-dots{display:flex;gap:5px}
+.fb-dot{width:16px;height:16px;border-radius:50%;border:1px solid #3a3a3a;cursor:pointer;background:none;padding:0}
+.fb-dot.on{background:red;border-color:red}
+.fb-card textarea{width:100%;background:#0c0c0c;border:1px solid #2a2a2a;color:#fff;padding:11px;font-size:13px;font-family:inherit;resize:vertical;min-height:68px;outline:none}
+.fb-card textarea:focus{border-color:red}
+.fb-rec{display:flex;align-items:center;gap:10px;margin-top:8px}
+.fb-recbtn{background:#141414;border:1px solid #2a2a2a;color:#ccc;padding:9px 14px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.fb-recbtn.rec{border-color:red;color:#ff6b6b}
+.fb-recdot{width:9px;height:9px;border-radius:50%;background:red;display:none}
+.fb-recbtn.rec .fb-recdot{display:inline-block;animation:fbpulse 1s infinite}
+@keyframes fbpulse{50%{opacity:.3}}
+.fb-rectime{color:#888;font-size:12px}
+.fb-transcript{font-size:12px;color:#999;background:#0c0c0c;border:1px solid #1c1c1c;padding:8px 10px;margin-top:8px;line-height:1.5;display:none}
+.fb-transcript.show{display:block}
+.fb-actions{display:flex;gap:10px;margin-top:22px}
+.fb-actions button{flex:1;padding:12px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border:none}
+.fb-cancel{background:none;border:1px solid #333!important;color:#999}
+.fb-submit{background:red;color:#fff}
+.fb-submit:disabled{opacity:.5;cursor:default}
+.fb-msg{font-size:11px;color:#888;margin-top:10px;min-height:1em;text-align:center}
+.fb-msg.err{color:#e0726a}
+
 /* recommendation banner + guest lock */
 #recBanner{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   background:#140000;border-bottom:1px solid #3a0a0a;border-top:3px solid red;padding:12px 22px;
@@ -1549,6 +1582,9 @@ async function openModal(id) {
             <button class="share-btn" id="shareBtn" title="Copy a link to recommend this screenplay">
               <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Recommend</span>
             </button>
+            <button class="share-btn" id="feedbackBtn" title="Leave reader feedback">
+              <span class="share-ico" aria-hidden="true">✎</span><span>Feedback</span>
+            </button>
           </div>
           <div class="champion-msg" id="championMsg" aria-live="polite"></div>
         </div>
@@ -1573,6 +1609,7 @@ async function openModal(id) {
     wireReadActions(row);
     wireChampion(row);
     wireShare(row);
+    wireFeedback(row);
     updateRecBanner();
   } catch {
     content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
@@ -1667,6 +1704,109 @@ function wireShare(row) {
       }
     } catch { /* cancelled — recommend without attribution */ }
     copyLink(makeUrl(name));
+  });
+}
+
+// ── reader feedback (text + Championability ratings + voice note) ──────────────
+const FB_DIMS = [['distinctiveness','Distinctiveness'],['writers_voice',"Writer's Voice"],['memorability','Memorability'],['genre_competence','Genre Competence']];
+const blobToBase64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
+
+function wireFeedback(row) {
+  const btn = document.getElementById('feedbackBtn');
+  if (btn && row.id) btn.addEventListener('click', () => openFeedback(row));
+}
+
+function openFeedback(row) {
+  const back = document.createElement('div');
+  back.className = 'fb-back';
+  back.innerHTML = `<div class="fb-card">
+    <h3>Reader Feedback</h3>
+    <div class="fb-sub">${esc(row.title || 'this screenplay')} — your read informs the writer and re-calibrates the evaluation, especially championability.</div>
+    <div class="fb-q">Would you champion this?</div>
+    <div class="fb-verdicts">
+      <button class="fb-vbtn" data-v="would_champion">Would champion</button>
+      <button class="fb-vbtn" data-v="maybe">Maybe</button>
+      <button class="fb-vbtn" data-v="would_not">Would not</button>
+    </div>
+    <div class="fb-q">Championability — rate what stood out</div>
+    ${FB_DIMS.map(([k,n]) => `<div class="fb-dim"><span class="fbd-name">${n}</span><div class="fb-dots" data-dim="${k}">${[1,2,3,4,5].map(i=>`<button class="fb-dot" data-n="${i}" aria-label="${i}"></button>`).join('')}</div></div>`).join('')}
+    <div class="fb-q">Notes</div>
+    <textarea id="fbText" placeholder="What worked, what didn't, and why you would (or wouldn't) champion it…"></textarea>
+    <div class="fb-q">Or leave a voice note</div>
+    <div class="fb-rec">
+      <button class="fb-recbtn" id="fbRec"><span class="fb-recdot"></span><span id="fbRecLabel">Record</span></button>
+      <span class="fb-rectime" id="fbRecTime"></span>
+      <button class="fb-recbtn" id="fbRecClear" style="display:none">Clear</button>
+    </div>
+    <div class="fb-transcript" id="fbTranscript"></div>
+    <div class="fb-actions"><button class="fb-cancel" id="fbCancel">Cancel</button><button class="fb-submit" id="fbSubmit">Submit feedback</button></div>
+    <div class="fb-msg" id="fbMsg"></div>
+  </div>`;
+  document.body.appendChild(back);
+
+  const state = { verdict: null, dims: {}, audioBlob: null, audioExt: 'webm', transcript: '' };
+  back.querySelectorAll('.fb-vbtn').forEach(b => b.addEventListener('click', () => {
+    back.querySelectorAll('.fb-vbtn').forEach(x => x.classList.remove('on')); b.classList.add('on'); state.verdict = b.dataset.v;
+  }));
+  back.querySelectorAll('.fb-dots').forEach(dr => {
+    const dim = dr.dataset.dim;
+    dr.querySelectorAll('.fb-dot').forEach(dot => dot.addEventListener('click', () => {
+      const n = +dot.dataset.n; state.dims[dim] = n;
+      dr.querySelectorAll('.fb-dot').forEach(d => d.classList.toggle('on', +d.dataset.n <= n));
+    }));
+  });
+
+  let mediaRec = null, chunks = [], recTimer = null, recSecs = 0, speech = null;
+  const recBtn = back.querySelector('#fbRec'), recLabel = back.querySelector('#fbRecLabel'), recTime = back.querySelector('#fbRecTime'), recClear = back.querySelector('#fbRecClear'), transcriptEl = back.querySelector('#fbTranscript');
+  function stopRec() {
+    try { if (mediaRec && mediaRec.state !== 'inactive') mediaRec.stop(); } catch {}
+    try { if (mediaRec) mediaRec.stream.getTracks().forEach(t => t.stop()); } catch {}
+    try { if (speech) speech.stop(); } catch {}
+    if (recTimer) { clearInterval(recTimer); recTimer = null; }
+  }
+  recBtn.addEventListener('click', async () => {
+    if (mediaRec && mediaRec.state === 'recording') { stopRec(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+      state.audioExt = mime.includes('mp4') ? 'mp4' : 'webm';
+      mediaRec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); chunks = [];
+      mediaRec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      mediaRec.onstop = () => { state.audioBlob = new Blob(chunks, { type: mime || 'audio/webm' }); recBtn.classList.remove('rec'); recLabel.textContent = 'Re-record'; recClear.style.display = ''; if (recTimer) { clearInterval(recTimer); recTimer = null; } };
+      mediaRec.start();
+      recBtn.classList.add('rec'); recLabel.textContent = 'Stop'; recSecs = 0; recTime.textContent = '0:00';
+      recTimer = setInterval(() => { recSecs++; recTime.textContent = `0:${String(recSecs).padStart(2,'0')}`; if (recSecs >= 90) stopRec(); }, 1000);
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SR) { speech = new SR(); speech.continuous = true; speech.interimResults = true; speech.lang = 'en-US';
+        let finalT = '';
+        speech.onresult = e => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const tr = e.results[i][0].transcript; if (e.results[i].isFinal) finalT += tr + ' '; else interim += tr; } state.transcript = (finalT + interim).trim(); transcriptEl.textContent = state.transcript; transcriptEl.classList.add('show'); };
+        try { speech.start(); } catch {} }
+    } catch { back.querySelector('#fbMsg').textContent = 'Microphone unavailable — text feedback works too.'; }
+  });
+  recClear.addEventListener('click', () => { state.audioBlob = null; state.transcript = ''; transcriptEl.classList.remove('show'); transcriptEl.textContent = ''; recLabel.textContent = 'Record'; recClear.style.display = 'none'; recTime.textContent = ''; });
+
+  const close = () => { stopRec(); back.remove(); };
+  back.querySelector('#fbCancel').addEventListener('click', close);
+  back.addEventListener('click', e => { if (e.target === back) close(); });
+
+  back.querySelector('#fbSubmit').addEventListener('click', async () => {
+    const msg = back.querySelector('#fbMsg'); msg.className = 'fb-msg'; msg.textContent = '';
+    const text = back.querySelector('#fbText').value.trim();
+    if (!state.verdict && !text && !state.transcript && !state.audioBlob && !Object.keys(state.dims).length) { msg.className = 'fb-msg err'; msg.textContent = 'Add a verdict, a rating, a note, or a voice note.'; return; }
+    stopRec();
+    const submit = back.querySelector('#fbSubmit'); submit.disabled = true; submit.textContent = 'Verifying…';
+    try {
+      if (!window.ReaderAuth || !(await ReaderAuth.checkSupport())) { msg.className = 'fb-msg err'; msg.textContent = (window.ReaderAuth && ReaderAuth.UNSUPPORTED_MESSAGE) || 'Passkeys unavailable here'; submit.disabled = false; submit.textContent = 'Submit feedback'; return; }
+      await ReaderAuth.signInOrRegister();
+    } catch (e) { msg.className = 'fb-msg err'; msg.textContent = (e && e.code === 'passkey_cancelled') ? 'Dismissed — try again' : ((e && e.message) || 'Could not verify'); submit.disabled = false; submit.textContent = 'Submit feedback'; return; }
+    submit.textContent = 'Sending…';
+    const body = { championVerdict: state.verdict, dimensions: state.dims, text, transcript: state.transcript || undefined, audioExt: state.audioExt };
+    if (state.audioBlob) { try { body.audioBase64 = await blobToBase64(state.audioBlob); } catch {} }
+    try {
+      const res = await ReaderAuth.authedWrite(`/feedback/${row.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (res.ok) { msg.textContent = 'Thank you — your feedback was sent.'; submit.textContent = 'Sent ✓'; setTimeout(close, 1200); }
+      else { const b = await res.json().catch(() => ({})); msg.className = 'fb-msg err'; msg.textContent = b.error || `Could not send (${res.status})`; submit.disabled = false; submit.textContent = 'Submit feedback'; }
+    } catch (e) { msg.className = 'fb-msg err'; msg.textContent = (e && e.message) || 'Could not send'; submit.disabled = false; submit.textContent = 'Submit feedback'; }
   });
 }
 

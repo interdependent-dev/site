@@ -78,6 +78,17 @@
   .tl .te { display:flex; gap:8px; padding:5px 0; border-bottom:1px solid #141414; }
   .tl .tt { color:#666; width:90px; flex-shrink:0; }
   .empty { color:#555; font-size:12px; padding:8px 0; }
+  .fb-i { padding:11px 0; border-bottom:1px solid #161616; }
+  .fb-h { display:flex; align-items:center; gap:8px; }
+  .fb-h .rn { flex:1; font-size:13px; color:#ddd; }
+  .fb-d { font-size:11px; color:var(--muted); margin:5px 0; letter-spacing:.02em; }
+  .fb-n { font-size:12.5px; color:#cfcfcf; line-height:1.6; margin-top:5px; }
+  .cal { background:#0e0e0e; border:1px solid var(--line); border-radius:4px; padding:14px 16px; }
+  .cal-rates { display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .cal-rates b { color:#ddd; font-weight:700; } .cal-rates b.hi { color:var(--red); }
+  .cal-lbl { font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin:12px 0 4px; }
+  .btn-recal { width:100%; background:#161616; border:1px solid var(--red); color:#fff; padding:12px; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; }
+  .btn-recal:hover:not(:disabled) { background:#1a0606; } .btn-recal:disabled { opacity:.5; cursor:default; }
   @media (max-width:560px){ .dh-title{font-size:16px;} }
 </style>
 </head>
@@ -211,15 +222,67 @@ async function openScript(id, title) {
   document.getElementById('dx').addEventListener('click', closeDrawer);
   try {
     const t = token(); if (!t) return;
-    const res = await fetch(`${API}/analytics/script/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${t}` } });
-    if (!res.ok) throw new Error('load');
-    renderDetail(await res.json(), id);
+    const H = { Authorization: `Bearer ${t}` };
+    const [det, fb] = await Promise.all([
+      fetch(`${API}/analytics/script/${encodeURIComponent(id)}`, { headers: H }).then(r => r.ok ? r.json() : null),
+      fetch(`${API}/feedback/${encodeURIComponent(id)}`, { headers: H }).then(r => r.ok ? r.json() : { feedback: [], calibration: null }),
+    ]);
+    if (!det) throw new Error('load');
+    renderDetail(det, id, fb);
   } catch {
     document.querySelector('#drawerBody .dbody').innerHTML = '<div class="empty">Couldn’t load details.</div>';
   }
 }
+const DIMNAME = { distinctiveness:'Distinctiveness', writers_voice:"Voice", memorability:'Memorability', genre_competence:'Genre' };
+const VLABEL = { would_champion:['Would champion','g'], maybe:['Maybe','m'], would_not:['Would not','r'] };
 
-function renderDetail(d, id) {
+function feedbackHtml(fb, id) {
+  const items = fb.feedback.map(f => {
+    const v = VLABEL[f.championVerdict];
+    const dims = f.dimensions && Object.keys(f.dimensions).length ? `<div class="fb-d">${Object.entries(f.dimensions).map(([k,val])=>`${DIMNAME[k]||k} ${val}/5`).join(' · ')}</div>` : '';
+    return `<div class="fb-i">
+      <div class="fb-h"><span class="rn">${esc(f.reader)}</span>${v?`<span class="pill ${v[1]}">${v[0]}</span>`:''}<span class="rd">${ago(f.createdAt)}</span></div>
+      ${dims}
+      ${f.text?`<div class="fb-n">${esc(f.text)}</div>`:''}
+      ${f.transcript && f.transcript!==f.text?`<div class="fb-n muted">🎙 "${esc(f.transcript)}"</div>`:''}
+      ${f.audioUrl?`<audio controls preload="none" src="${esc(f.audioUrl)}" style="width:100%;height:34px;margin-top:6px"></audio>`:''}
+    </div>`;
+  }).join('') || '<div class="empty">No reader feedback yet.</div>';
+  const c = fb.calibration;
+  let cal;
+  if (c) {
+    const ch = c.championability || {};
+    cal = `<div class="cal">
+      <div class="cal-rates"><span>AI <b class="muted">${esc(ch.ai_rating||'—')}</b></span><span class="arrow">→</span><span>Readers <b>${esc(ch.reader_rating||'—')}</b></span><span class="arrow">→</span><span>Calibrated <b class="hi">${esc(ch.calibrated_rating||'—')}</b></span></div>
+      ${ch.justification?`<div class="fb-n">${esc(ch.justification)}</div>`:''}
+      ${c.divergence?`<div class="cal-lbl">Where AI & readers diverged</div><div class="fb-n">${esc(c.divergence)}</div>`:''}
+      ${c.summary?`<div class="fb-n" style="color:#cfcfcf">${esc(c.summary)}</div>`:''}
+      <div class="muted" style="font-size:10px;margin-top:8px">From ${c.readerCount||fb.feedback.length} reader${(c.readerCount||fb.feedback.length)===1?'':'s'} · ${ago(c.calibratedAt)} · <a href="#" id="recalAgain">re-run</a></div>
+    </div>`;
+  } else if (fb.feedback.length) {
+    cal = `<button class="btn-recal" id="recalBtn">⟳ Re-calibrate evaluation with this feedback</button>`;
+  } else {
+    cal = '<div class="empty">A calibration appears here once readers leave feedback.</div>';
+  }
+  return `<div class="dh3">Reader feedback (${fb.feedback.length})</div>${items}
+    <div class="dh3">AI ↔ reader calibration <span class="muted" style="text-transform:none;letter-spacing:0">— championability</span></div>${cal}`;
+}
+function wireRecal(id) {
+  const run = async (btnId) => {
+    const btn = document.getElementById(btnId); if (btn) { btn.textContent = 'Re-calibrating…'; if (btn.tagName==='BUTTON') btn.disabled = true; }
+    try {
+      const t = token();
+      const res = await fetch(`${API}/feedback/${encodeURIComponent(id)}/recalibrate`, { method:'POST', headers:{ Authorization:`Bearer ${t}` } });
+      if (!res.ok) throw new Error();
+      openScript(id, document.querySelector('.dh-title')?.textContent || ''); // reload drawer with new calibration
+    } catch { const b = document.getElementById(btnId); if (b) { b.textContent = '⟳ Re-calibrate evaluation with this feedback'; b.disabled = false; } }
+  };
+  const rb = document.getElementById('recalBtn'); if (rb) rb.addEventListener('click', () => run('recalBtn'));
+  const ra = document.getElementById('recalAgain'); if (ra) ra.addEventListener('click', (e) => { e.preventDefault(); run('recalAgain'); });
+}
+
+function renderDetail(d, id, fb) {
+  fb = fb || { feedback: [], calibration: null };
   const s = d.summary;
   const readers = d.readers.length ? d.readers.map(r => `<div class="rrow">
       <span class="rn">${esc(r.name)}${r.recommender ? ` <span class="muted">· via ${esc(r.recommender)}</span>` : ''}</span>
@@ -244,7 +307,9 @@ function renderDetail(d, id) {
     <div class="dh3">Who read it</div>${readers}
     <div class="dh3">Champions</div>${champs}
     <div class="dh3">Recommended through the platform</div>${recs}
+    ${feedbackHtml(fb, id)}
     <div class="dh3">Recent activity</div>${timeline}`;
+  wireRecal(id);
 }
 
 async function load() {
