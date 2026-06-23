@@ -296,6 +296,23 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .share-btn:hover{border-color:#fff;color:#fff}
 .share-btn.done{border-color:#16a34a;color:#16a34a}
 .share-btn .share-ico{font-size:12px;line-height:1}
+
+/* recommendation banner + guest lock */
+#recBanner{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:#140000;border-bottom:1px solid #3a0a0a;border-top:3px solid red;padding:12px 22px;
+  font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:12px;letter-spacing:.06em}
+#recBanner .rb-star{color:red;font-size:14px}
+#recBanner .rb-text{color:#ddd;text-transform:uppercase;letter-spacing:.12em;font-size:11px}
+#recBanner .rb-text b{color:#fff}
+#recBanner .rb-open{margin-left:auto;background:red;border:none;color:#fff;padding:8px 16px;
+  font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+#recBanner .rb-open:hover{background:#d40000}
+.guest-lock{text-align:center;padding:40px 18px}
+.guest-lock .gl-title{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#fff;margin-bottom:8px}
+.guest-lock .gl-sub{color:#888;font-size:13px;margin-bottom:18px}
+.guest-lock .gl-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.guest-lock #guestPass{background:#0c0c0c;border:1px solid #333;color:#fff;padding:12px 16px;font-size:15px;letter-spacing:.3em;text-align:center;width:160px}
+.guest-lock .gl-err{color:#e0726a;font-size:12px;margin-top:12px;min-height:1em}
 .champion-msg a{color:red;text-decoration:none}
 .champion-msg a:hover{text-decoration:underline}
 
@@ -427,6 +444,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     <span class="logo-name">Interdependent</span>
   </a>
   <div style="display:flex;align-items:center;gap:10px">
+    <a class="btn-ghost" id="analyticsLink" href="/analytics.html" style="text-decoration:none">Analytics</a>
     <a class="btn-ghost" id="lbLink" href="/leaderboard.html" style="text-decoration:none">Leaderboard</a>
     <button class="btn-ghost" id="signOutBtn">EXIT</button>
   </div>
@@ -579,6 +597,8 @@ if (window.pdfjsLib) {
 
 <!-- Reader passkey auth — powers the Champion button (add to a reader's leaderboard). -->
 <script src="/reader-auth.js"></script>
+<!-- Reader analytics (best-effort, anonymous device id). -->
+<script src="/analytics.js"></script>
 
 <script>
 const API = 'https://interdependent-api.onrender.com';
@@ -601,6 +621,7 @@ const SCORE_NAMES = {
 // ── auth ────────────────────────────────────────────────────────────────────
 
 function getValidToken() {
+  if (window.GUEST_REC) return null; // guest recommendation view — never redirect to passcode
   const token   = localStorage.getItem('session_token');
   const expires = parseInt(localStorage.getItem('session_expires') || '0', 10);
   if (!token || Date.now() > expires) {
@@ -612,8 +633,22 @@ function getValidToken() {
   return token;
 }
 
-const token = getValidToken();
-if (!token) throw new Error('unauthenticated');
+// Recommendation deep-link: ?rec=<scriptId>&by=<name>. A recipient without the
+// passcode views JUST the recommended script (open, via /share) inside the real
+// portal — same UI, no separate page — while the rest of the table stays locked
+// behind the passcode. Everything guest-specific is gated on window.GUEST_REC,
+// so the normal authed portal path is unchanged.
+const _q = new URLSearchParams(location.search);
+const REC_ID = _q.get('rec');
+const REC_BY = _q.get('by') || '';
+const _tk = localStorage.getItem('session_token');
+const _ex = parseInt(localStorage.getItem('session_expires') || '0', 10);
+const HAS_TOKEN = !!_tk && Date.now() < _ex;
+window.GUEST_REC = !!REC_ID && !HAS_TOKEN;
+let _guestPdfUrl = null; // stash the /share signed URL for the guest reader
+
+const token = window.GUEST_REC ? null : getValidToken();
+if (!token && !window.GUEST_REC) throw new Error('unauthenticated');
 
 document.getElementById('signOutBtn').addEventListener('click', () => {
   localStorage.removeItem('session_token');
@@ -1178,6 +1213,7 @@ function subRowHtml(row) {
 }
 
 async function loadSubmissions({ reset = true } = {}) {
+  if (window.GUEST_REC) return; // guest mode shows only the recommended script
   if (subFetching) return;
   if (!reset && subDone) return;
   if (!reset && searchActive) return;                 // search owns the table while active
@@ -1371,6 +1407,69 @@ document.querySelectorAll('.dec-chip').forEach(chip =>
 
 // ── modal ────────────────────────────────────────────────────────────────────
 
+// ── recommendation guest mode ───────────────────────────────────────────────
+// Map the public /share payload to the row shape the modal + reader expect (no PII).
+function shareToRow(d, id) {
+  return {
+    id, title: d.title, page_count: d.pageCount, status: 'evaluated',
+    submitted_at: null, submitter_name: null, submitter_email: null, users: null,
+    storage_path: d.pdfUrl ? 'shared' : null, _sharePdfUrl: d.pdfUrl || null,
+    evaluation_json: {
+      decision: d.decision, genre: d.genre, country: null, budget: d.budget,
+      logline: d.logline, read_verified: d.readVerified, evaluation: d.evaluation,
+      scores: d.scores, weighted_score: d.weightedScore, comparable_films: d.comparableFilms,
+    },
+  };
+}
+
+// A sticky "Recommended to you by [name]" bar — stays visible after the recipient
+// unlocks and browses, so the recommended script's thread is never lost.
+function showRecBanner(id, by) {
+  if (document.getElementById('recBanner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'recBanner';
+  bar.innerHTML = `<span class="rb-star">★</span>
+    <span class="rb-text">Recommended to you${by ? ` by <b>${esc(by)}</b>` : ''}</span>
+    <button class="rb-open" id="rbOpen">View the recommendation →</button>`;
+  document.body.insertBefore(bar, document.body.firstChild);
+  document.getElementById('rbOpen').addEventListener('click', () => openModal(id));
+}
+
+function enterGuestRec(id, by) {
+  showRecBanner(id, by);
+  // a recipient isn't a portal user — hide the authed header actions
+  ['analyticsLink', 'lbLink', 'signOutBtn'].forEach((x) => { const el = document.getElementById(x); if (el) el.style.display = 'none'; });
+  const tbody = document.getElementById('subBody');
+  if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="guest-lock">
+      <div class="gl-title">Browse the full slate</div>
+      <div class="gl-sub">Enter the access passcode${by ? ` (ask ${esc(by)})` : ''} to see every script and evaluation.</div>
+      <div class="gl-row"><input id="guestPass" inputmode="numeric" autocomplete="off" placeholder="Passcode" maxlength="12">
+      <button id="guestUnlock" class="btn-submit" style="margin:0;width:auto;padding:12px 22px">Unlock</button></div>
+      <div class="gl-err" id="guestPassErr"></div></td></tr>`;
+  const inp = document.getElementById('guestPass');
+  document.getElementById('guestUnlock').addEventListener('click', guestUnlock);
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') guestUnlock(); });
+  const sf = document.getElementById('subFoot'); if (sf) sf.style.display = 'none';
+  openModal(id);
+  if (window.Analytics) Analytics.track('recommend_open', { script_id: id, recommender: by || undefined, source: 'recommend' });
+}
+
+async function guestUnlock() {
+  const pass = (document.getElementById('guestPass').value || '').trim();
+  const errEl = document.getElementById('guestPassErr');
+  errEl.textContent = '';
+  if (!pass) return;
+  try {
+    const res = await fetch(`${API}/auth/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passcode: pass }) });
+    if (!res.ok) { errEl.textContent = 'Incorrect passcode'; return; }
+    const { token, expiresIn } = await res.json();
+    localStorage.setItem('session_token', token);
+    localStorage.setItem('session_expires', String(Date.now() + (expiresIn || 86400) * 1000));
+    if (window.Analytics) Analytics.track('browse_unlock', { script_id: REC_ID, recommender: REC_BY || undefined });
+    location.reload(); // re-init authenticated; ?rec is preserved so the banner + script stay
+  } catch { errEl.textContent = 'Could not verify — try again'; }
+}
+
 async function openModal(id) {
   const back    = document.getElementById('modalBack');
   const content = document.getElementById('modalContent');
@@ -1378,21 +1477,23 @@ async function openModal(id) {
   back.classList.add('open');
   content.innerHTML = '<div class="modal-spinner"><div class="spinner"></div></div>';
 
-  const t = getValidToken();
-  if (!t) return;
-
   try {
-    const res = await apiFetch(`/scripts/${id}`, {
-      headers: { Authorization: `Bearer ${t}` },
-    });
-    if (res.status === 401) { window.location.href = '/passcode'; return; }
-
-    if (!res.ok) {
-      content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
-      return;
+    let row;
+    if (window.GUEST_REC) {
+      // recipient without the passcode — the one recommended script is open via /share
+      const res = await fetch(`${API}/share/${id}`);
+      if (!res.ok) { content.innerHTML = '<div class="td-empty" style="padding:24px 0">This recommendation isn’t available</div>'; return; }
+      row = shareToRow(await res.json(), id);
+      _guestPdfUrl = row._sharePdfUrl || null;
+    } else {
+      const t = getValidToken();
+      if (!t) return;
+      const res = await apiFetch(`/scripts/${id}`, { headers: { Authorization: `Bearer ${t}` } });
+      if (res.status === 401) { window.location.href = '/passcode'; return; }
+      if (!res.ok) { content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>'; return; }
+      row = await res.json();
     }
-
-    const row  = await res.json();
+    if (window.Analytics) Analytics.track('script_view', { script_id: id, recommender: REC_BY || undefined, source: window.GUEST_REC ? 'recommend' : 'portal', total_pages: row.page_count || undefined });
     const ev   = parseEval(row);
     const n    = normalizeEval(ev);
     const date = fmtDate(row, 'long');
@@ -1511,8 +1612,10 @@ function wireShare(row) {
   if (!btn || !row.id) return;
   const textEl = btn.querySelector('.share-text');
   const makeUrl = (name) => {
-    const u = new URL(`${location.origin}/share.html`);
-    u.searchParams.set('id', row.id);
+    // Recommendations open inside the portal itself (same UI, with a sticky
+    // "Recommended to you" banner) — not a separate page.
+    const u = new URL(`${location.origin}/submissions.html`);
+    u.searchParams.set('rec', row.id);
     if (name) u.searchParams.set('by', name);
     return u.toString();
   };
@@ -1603,6 +1706,7 @@ async function championScript(row, btn, msgEl) {
     });
 
     if (res.ok || res.status === 409) {
+      if (res.ok && window.Analytics) Analytics.track('champion', { script_id: row.id, source: window.GUEST_REC ? 'recommend' : 'portal', recommender: REC_BY || undefined });
       setText(res.status === 409 ? 'Already added' : 'Championed');
       btn.classList.add('done');
       const star = btn.querySelector('.star'); if (star) star.textContent = '✓';
@@ -1644,6 +1748,8 @@ const SVG_DL   = '<svg viewBox="0 0 24 24"><path d="M12 3v10.6l3.3-3.3 1.4 1.4L1
 
 // Ask the API for a short-lived signed URL to the stored PDF.
 async function signedPdfUrl(id, dl = false) {
+  // Guests reading a recommended script use the open signed URL from /share.
+  if (window.GUEST_REC && _guestPdfUrl) return _guestPdfUrl;
   const t = getValidToken();
   if (!t) throw new Error('Session expired — sign in again.');
   const res = await apiFetch(`/scripts/${id}/pdf-url${dl ? '?dl=1' : ''}`, {
@@ -1711,6 +1817,7 @@ function wireReadActions(row) {
   if (aPreview) aPreview.addEventListener('click', async () => {
     if (pane.classList.contains('open')) { pane.classList.remove('open'); pscroll.innerHTML = ''; return; }
     fail('');
+    if (window.Analytics) Analytics.track('quick_preview', { script_id: row.id, source: window.GUEST_REC ? 'recommend' : 'portal', recommender: REC_BY || undefined });
     pane.classList.add('open');
     pscroll.innerHTML = '<div class="pdf-loading">Loading —</div>';
     try {
@@ -1725,6 +1832,7 @@ function wireReadActions(row) {
   const aNewTab = document.getElementById('aNewTab');
   if (aNewTab) aNewTab.addEventListener('click', async () => {
     fail(''); aNewTab.disabled = true;
+    if (window.Analytics) Analytics.track('new_tab', { script_id: row.id, source: window.GUEST_REC ? 'recommend' : 'portal', recommender: REC_BY || undefined });
     const w = window.open('', '_blank'); // open synchronously to dodge popup blockers
     try { const url = await signedPdfUrl(row.id); if (w) w.location = url; else window.location = url; }
     catch (e) { if (w) w.close(); fail(e.message || 'Could not open the file'); }
@@ -1734,6 +1842,7 @@ function wireReadActions(row) {
   const aDownload = document.getElementById('aDownload');
   if (aDownload) aDownload.addEventListener('click', async () => {
     fail(''); aDownload.disabled = true;
+    if (window.Analytics) Analytics.track('download', { script_id: row.id, source: window.GUEST_REC ? 'recommend' : 'portal', recommender: REC_BY || undefined });
     try { const url = await signedPdfUrl(row.id, true); window.location = url; }
     catch (e) { fail(e.message || 'Could not download the file'); }
     finally { aDownload.disabled = false; }
@@ -1742,6 +1851,7 @@ function wireReadActions(row) {
 
 // ── full-screen reader ────────────────────────────────────────────────────────
 let readerCurrentId = null;
+let _readerAnalytics = null, _readerProgressFn = null; // read-depth analytics state
 
 // The reader renders pages LAZILY: a full screenplay can be 120 pages, and
 // rendering every page to a full-res canvas up front would exhaust memory.
@@ -1948,6 +2058,22 @@ function openReader(row) {
 
   const r = document.getElementById('reader');
   r.classList.add('open');
+
+  // analytics: reader opened + scroll-based read-depth tracking
+  const _rdoc = document.getElementById('readerDoc');
+  _readerAnalytics = { id: row.id, maxDepth: 0, completed: false, source: window.GUEST_REC ? 'recommend' : 'portal' };
+  if (window.Analytics) Analytics.track('reader_open', { script_id: row.id, total_pages: row.page_count || undefined, source: _readerAnalytics.source, recommender: REC_BY || undefined });
+  _readerProgressFn = () => {
+    const sh = _rdoc.scrollHeight - _rdoc.clientHeight;
+    const pct = sh > 0 ? Math.min(100, Math.round((_rdoc.scrollTop / sh) * 100)) : 0;
+    if (pct > _readerAnalytics.maxDepth) _readerAnalytics.maxDepth = pct;
+    if (!_readerAnalytics.completed && _readerAnalytics.maxDepth >= 90) {
+      _readerAnalytics.completed = true;
+      if (window.Analytics) Analytics.track('read_complete', { script_id: _readerAnalytics.id, depth_pct: _readerAnalytics.maxDepth, source: _readerAnalytics.source, recommender: REC_BY || undefined });
+    }
+  };
+  _rdoc.addEventListener('scroll', _readerProgressFn, { passive: true });
+
   // On phones there's only room for one panel, so open to the SCRIPT and keep
   // Scenes/Coverage as overlays you tap to bring up. On wider screens show both.
   const compact = window.matchMedia('(max-width: 820px)').matches;
@@ -1964,10 +2090,18 @@ function openReader(row) {
 
 function closeReader() {
   document.getElementById('reader').classList.remove('open');
+  if (_readerAnalytics) {
+    if (window.Analytics) Analytics.track('read_progress', { script_id: _readerAnalytics.id, depth_pct: _readerAnalytics.maxDepth, source: _readerAnalytics.source, recommender: REC_BY || undefined });
+    const d = document.getElementById('readerDoc');
+    if (_readerProgressFn) { d.removeEventListener('scroll', _readerProgressFn); _readerProgressFn = null; }
+    _readerAnalytics = null;
+  }
   teardownReader();
 }
 
 document.getElementById('readerBack').addEventListener('click', closeReader);
+// flush read depth if the reader leaves the tab mid-read
+window.addEventListener('pagehide', () => { if (_readerAnalytics && window.Analytics) Analytics.track('read_progress', { script_id: _readerAnalytics.id, depth_pct: _readerAnalytics.maxDepth, source: _readerAnalytics.source }); });
 
 const navToggleEl  = document.getElementById('navToggle');
 const railToggleEl = document.getElementById('railToggle');
@@ -2022,7 +2156,12 @@ if (window.ReaderAuth) ReaderAuth.checkSupport();
   }
 }());
 
-loadSubmissions();
+if (window.GUEST_REC) {
+  enterGuestRec(REC_ID, REC_BY);           // recipient without the passcode
+} else {
+  loadSubmissions();
+  if (REC_ID) { showRecBanner(REC_ID, REC_BY); openModal(REC_ID); } // signed-in, following a rec link
+}
 </script>
 </body>
 </html>

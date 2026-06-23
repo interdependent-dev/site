@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reader Analytics — INTERDEPENDENT</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --red:#ff0000; --bg:#0a0a0a; --card:#101010; --line:#222; --muted:#888; --txt:#e8e8e8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:'Helvetica Neue',Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#bbb; text-decoration:none; }
+  .top { border-bottom:1px solid var(--line); }
+  .top-in { max-width:1080px; margin:0 auto; padding:20px 24px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .brand { font-size:13px; letter-spacing:.34em; text-transform:uppercase; font-weight:700; }
+  .brand .dot { color:var(--red); }
+  .eyebrow { font-size:10px; letter-spacing:.26em; text-transform:uppercase; color:var(--muted); }
+  .top-in .sp { margin-left:auto; display:flex; gap:8px; align-items:center; }
+  select, .lnk { background:#161616; border:1px solid var(--line); color:#ccc; padding:7px 12px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; border-radius:3px; cursor:pointer; }
+  .wrap { max-width:1080px; margin:0 auto; padding:26px 24px 90px; }
+  .state { text-align:center; color:var(--muted); padding:80px 0; font-size:14px; }
+  h2 { font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin:38px 0 14px; font-weight:600; }
+
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:4px; padding:16px 18px; }
+  .card .n { font-size:30px; font-weight:700; line-height:1; }
+  .card .l { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:8px; }
+
+  .funnel { display:grid; gap:8px; max-width:680px; }
+  .frow { display:grid; grid-template-columns:130px 1fr 54px; align-items:center; gap:12px; }
+  .frow .fl { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#bbb; }
+  .ftrack { height:24px; background:#161616; border-radius:3px; overflow:hidden; }
+  .ffill { height:100%; background:var(--red); }
+  .frow .fv { font-size:13px; text-align:right; color:#ddd; }
+
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:9px 10px; font-size:13px; border-bottom:1px solid #181818; }
+  th { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); cursor:pointer; user-select:none; white-space:nowrap; }
+  th:hover { color:#fff; }
+  td.num, th.num { text-align:right; }
+  tbody tr:hover { background:#121212; }
+  .depthbar { display:inline-block; width:46px; height:6px; background:#1c1c1c; border-radius:3px; overflow:hidden; vertical-align:middle; margin-left:8px; }
+  .depthbar span { display:block; height:100%; background:var(--red); }
+  .muted { color:var(--muted); }
+
+  .chart { display:flex; align-items:flex-end; gap:3px; height:140px; border-bottom:1px solid var(--line); padding-bottom:2px; overflow-x:auto; }
+  .bar { flex:1; min-width:6px; background:#1e1e1e; position:relative; }
+  .bar .r { position:absolute; bottom:0; left:0; right:0; background:var(--red); }
+  .bar .c { position:absolute; bottom:0; left:0; right:0; background:#16a34a; opacity:.85; }
+  .chart-x { display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-top:6px; }
+  .legend { display:flex; gap:16px; font-size:11px; color:var(--muted); margin-top:10px; }
+  .legend i { display:inline-block; width:10px; height:10px; margin-right:5px; vertical-align:middle; }
+</style>
+</head>
+<body>
+  <div class="top"><div class="top-in">
+    <span class="brand">INTERDEPENDENT<span class="dot">.</span></span>
+    <span class="eyebrow">Reader Analytics</span>
+    <span class="sp">
+      <select id="days">
+        <option value="30">Last 30 days</option>
+        <option value="90" selected>Last 90 days</option>
+        <option value="365">Last year</option>
+      </select>
+      <a class="lnk" href="/submissions.html">← Portal</a>
+    </span>
+  </div></div>
+  <div class="wrap"><div id="content"><div class="state">Loading analytics…</div></div></div>
+
+<script>
+const API = 'https://interdependent-api.onrender.com';
+function token() {
+  const t = localStorage.getItem('session_token');
+  const e = parseInt(localStorage.getItem('session_expires') || '0', 10);
+  if (!t || Date.now() > e) { window.location.href = '/passcode'; return null; }
+  return t;
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct = (a, b) => (b ? Math.round(100 * a / b) : 0);
+
+let DATA = null, sortKey = 'opens', sortDir = -1;
+
+function card(n, l) { return `<div class="card"><div class="n">${n}</div><div class="l">${l}</div></div>`; }
+
+function funnelRow(label, val, total) {
+  const p = pct(val, total);
+  return `<div class="frow"><span class="fl">${label}</span><div class="ftrack"><div class="ffill" style="width:${p}%"></div></div><span class="fv">${val} <span class="muted">${total ? p + '%' : ''}</span></span></div>`;
+}
+
+function scoreboard(rows) {
+  const cols = [
+    ['title', 'Script', false], ['opens', 'Opens', true], ['uniqueReaders', 'Readers', true],
+    ['avgDepth', 'Avg read', true], ['completionRate', 'Finished', true], ['champions', 'Champions', true], ['recommends', 'Rec’d', true],
+  ];
+  const sorted = rows.slice().sort((a, b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (typeof x === 'string') return sortDir * String(x).localeCompare(String(y));
+    return sortDir * ((x || 0) - (y || 0));
+  }).slice(0, 60);
+  const head = cols.map(([k, l, num]) => `<th class="${num ? 'num' : ''}" data-k="${k}">${l}${sortKey === k ? (sortDir < 0 ? ' ▾' : ' ▴') : ''}</th>`).join('');
+  const body = sorted.map(r => `<tr>
+    <td>${esc(r.title)}</td>
+    <td class="num">${r.opens}</td>
+    <td class="num">${r.uniqueReaders}</td>
+    <td class="num">${r.avgDepth}%<span class="depthbar"><span style="width:${r.avgDepth}%"></span></span></td>
+    <td class="num">${r.completionRate}%</td>
+    <td class="num">${r.champions || '<span class="muted">0</span>'}</td>
+    <td class="num">${r.recommends || '<span class="muted">0</span>'}</td>
+  </tr>`).join('');
+  return `<table><thead><tr>${head}</tr></thead><tbody>${body || '<tr><td colspan="7" class="muted" style="padding:24px 0">No reads recorded yet.</td></tr>'}</tbody></table>`;
+}
+
+function chart(days) {
+  if (!days.length) return '<div class="muted" style="padding:20px 0">No activity yet.</div>';
+  const max = Math.max(1, ...days.map(d => d.reads + d.champions));
+  const bars = days.map(d => `<div class="bar" title="${d.day}: ${d.reads} reads, ${d.champions} champions, ${d.recommends} rec-opens" style="height:${Math.max(3, ((d.reads + d.champions) / max) * 130)}px">
+      <div class="r" style="height:${(d.reads / max) * 130}px"></div>
+      <div class="c" style="height:${(d.champions / max) * 130}px"></div></div>`).join('');
+  const first = days[0].day, last = days[days.length - 1].day;
+  return `<div class="chart">${bars}</div><div class="chart-x"><span>${first}</span><span>${last}</span></div>
+    <div class="legend"><span><i style="background:#ff0000"></i>Reads</span><span><i style="background:#16a34a"></i>Champions</span></div>`;
+}
+
+function render(d) {
+  DATA = d;
+  const t = d.totals, f = d.recommendFunnel;
+  const recTable = d.byRecommender.length ? `<table><thead><tr><th>Recommender</th><th class="num">Sent</th><th class="num">Opened</th><th class="num">Finished</th><th class="num">Championed</th></tr></thead><tbody>${
+    d.byRecommender.map(r => `<tr><td>${esc(r.recommender)}</td><td class="num">${r.sent}</td><td class="num">${r.opened} <span class="muted">${pct(r.opened, r.sent)}%</span></td><td class="num">${r.completed}</td><td class="num">${r.championed}</td></tr>`).join('')
+  }</tbody></table>` : '<div class="muted" style="padding:12px 0">No recommendation links opened yet.</div>';
+
+  document.getElementById('content').innerHTML = `
+    <h2>Overview</h2>
+    <div class="cards">
+      ${card(t.uniqueReaders, 'Unique readers')}
+      ${card(t.scriptViews, 'Script views')}
+      ${card(t.readerOpens, 'Reader opens')}
+      ${card(t.completions, 'Finished reads')}
+      ${card(t.champions, 'Champions')}
+      ${card(t.recommendOpens, 'Recommend opens')}
+    </div>
+
+    <h2>Recommendation funnel — did recommendations land?</h2>
+    <div class="funnel">
+      ${funnelRow('Recommended', f.total, f.total)}
+      ${funnelRow('Opened', f.opened, f.total)}
+      ${funnelRow('Read 25%+', f.read25, f.total)}
+      ${funnelRow('Read 75%+', f.read75, f.total)}
+      ${funnelRow('Finished', f.completed, f.total)}
+      ${funnelRow('Championed', f.championed, f.total)}
+    </div>
+
+    <h2>By recommender</h2>
+    ${recTable}
+
+    <h2>Per-script engagement</h2>
+    <div id="board">${scoreboard(d.perScript)}</div>
+
+    <h2>Activity over time</h2>
+    ${chart(d.overTime)}`;
+}
+function bindSort() {
+  document.querySelectorAll('#board th[data-k]').forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.k;
+    if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = -1; }
+    document.getElementById('board').innerHTML = scoreboard(DATA.perScript);
+    bindSort();
+  }));
+}
+
+async function load() {
+  const t = token(); if (!t) return;
+  const days = document.getElementById('days').value;
+  document.getElementById('content').innerHTML = '<div class="state">Loading analytics…</div>';
+  try {
+    const res = await fetch(`${API}/analytics/summary?days=${days}`, { headers: { Authorization: `Bearer ${t}` } });
+    if (res.status === 401) { window.location.href = '/passcode'; return; }
+    if (!res.ok) throw new Error('load');
+    render(await res.json());
+    bindSort();
+  } catch {
+    document.getElementById('content').innerHTML = '<div class="state">Couldn’t load analytics — try again.</div>';
+  }
+}
+document.getElementById('days').addEventListener('change', load);
+load();
+</script>
+</body>
+</html>
