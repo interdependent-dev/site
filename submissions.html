@@ -183,7 +183,7 @@ input:-webkit-autofill:focus{
 .weighted-denom{font-size:13px;color:#666}
 
 .summary-key{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase;margin-bottom:8px}
-.summary-body{font-size:13.5px;color:#bbb;line-height:1.75;max-width:660px}
+.summary-body{font-size:13.5px;color:#bbb;line-height:1.75;max-width:660px;margin-bottom:24px}
 
 /* ── championability (BARAKA second axis) ── */
 .champ-block{margin-bottom:22px}
@@ -831,7 +831,14 @@ function championabilityHtml(champ) {
 }
 
 // Shared coverage body: comparable films + score breakdown + championability + summary.
-function coverageBodyHtml(n) {
+function summaryHtml(n) {
+  return n.summary
+    ? `<div class="summary-key">Summary</div><div class="summary-body">${esc(n.summary)}</div>` : '';
+}
+
+// opts.skipSummary lets the modal render the Summary higher up (above the reader
+// options) and omit it here so it isn't shown twice.
+function coverageBodyHtml(n, opts = {}) {
   const compsHtml = n.comps
     ? `<div class="comps-row"><div class="comps-key">Comparable Films</div><div class="comps-val">${esc(n.comps)}</div></div>` : '';
   const bars = barsFromCategories(n.categories);
@@ -844,8 +851,7 @@ function coverageBodyHtml(n) {
   const readHtml = n.readVerified === false
     ? `<div class="read-status warn">⚠ Partial read — the model could not be confirmed to have read the ending. Treat the scores and summary with caution.</div>`
     : (n.readVerified === true ? `<div class="read-status ok">✓ Full read verified</div>` : '');
-  const sumHtml = n.summary
-    ? `<div class="summary-key">Summary</div><div class="summary-body">${esc(n.summary)}</div>` : '';
+  const sumHtml = opts.skipSummary ? '' : summaryHtml(n);
   const craftHtml = (n.craftAssessment && n.craftAssessment !== n.summary)
     ? `<div class="summary-key">Craft Assessment</div><div class="summary-body">${esc(n.craftAssessment)}</div>` : '';
   return compsHtml + barsHtml + scoreHtml + readHtml + championabilityHtml(n.championship) + sumHtml + craftHtml;
@@ -1418,8 +1424,9 @@ async function openModal(id) {
         ['Budget',       n.budget],
         ['Pages',        row.page_count ?? row.pageCount],
       ])}</div>
+      ${summaryHtml(n)}
       ${readBarHtml}
-      ${coverageBodyHtml(n)}
+      ${coverageBodyHtml(n, { skipSummary: true })}
       ${row.status === 'error' && row.evaluation_result ? `<div class="summary-key">Error</div><div class="summary-body">${esc(row.evaluation_result)}</div>` : ''}
       ${row.status === 'error' || (row.status === 'evaluated' && !n.categories.length) ? `<button class="btn-submit" id="retryBtn" style="margin-top:28px">Retry Evaluation</button>` : ''}
     `;
