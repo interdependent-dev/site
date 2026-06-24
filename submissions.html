@@ -507,6 +507,13 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 #readerActivity .btn-recal:hover:not(:disabled){background:#1a0606}
 #readerActivity .btn-recal:disabled{opacity:.5;cursor:default}
 #readerActivity .ra-err{font-size:11.5px;color:#666;padding-top:18px;border-top:1px solid #1e1e1e}
+
+/* Reader gate — the locked state for actions + activity until a finished read. */
+.hr-gate{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.gate-lock{font-size:12px;color:#9a9a9a;background:#0e0e0e;border:1px solid #1e1e1e;border-radius:4px;padding:10px 13px;line-height:1.55;max-width:380px;text-align:right}
+.gate-hint{font-size:11px;color:#777}
+.gate-link{background:none;border:none;color:#FF0000;font:inherit;font-size:12px;padding:0;cursor:pointer;text-decoration:underline}
+#readerActivity .gate-lock{max-width:none;text-align:left;margin-top:8px}
 </style>
 </head>
 <body>
@@ -1615,18 +1622,7 @@ async function openModal(id) {
         </div>
         <div class="header-right">
           <div class="badge-slot">${decisionBadge(row, ev).replace('<span', '<span class="badge"')}</div>
-          <div class="hr-btns">
-            <button class="champion-btn" id="championBtn" title="Add to your leaderboard">
-              <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
-            </button>
-            <button class="share-btn" id="shareBtn" title="Copy a link to recommend this screenplay">
-              <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Recommend</span>
-            </button>
-            <button class="share-btn" id="feedbackBtn" title="Leave reader feedback">
-              <span class="share-ico" aria-hidden="true">✎</span><span>Feedback</span>
-            </button>
-          </div>
-          <div class="champion-msg" id="championMsg" aria-live="polite"></div>
+          <div class="hr-gate" id="hrGate"></div>
         </div>
       </div>
       <div class="meta-grid" style="margin-bottom:20px">${buildMeta([
@@ -1647,10 +1643,9 @@ async function openModal(id) {
 
     const retryBtn = content.querySelector('#retryBtn');
     if (retryBtn) retryBtn.addEventListener('click', () => retryEvaluation(row.id, retryBtn));
+    _modalRow = row;
     wireReadActions(row);
-    wireChampion(row);
-    wireShare(row);
-    wireFeedback(row);
+    renderModalActions(row);   // gated: Feedback / Recommend / Champion unlock only after a finished read
     updateRecBanner();
     loadReaderActivity(row.id);
   } catch {
@@ -1707,6 +1702,92 @@ async function retryEvaluation(id, btn) {
 // the same way as Champion (name + passkey); the link carries their name so the
 // recipient sees "Recommended to you by [name]". Returning recommenders keep the
 // native share sheet; first-timers identify, then the link is copied.
+// ── Reader gate ───────────────────────────────────────────────────────────────
+// Reading is the price of admission. A reader must (1) have a WebAuthn account and
+// (2) have FINISHED this screenplay before they can see reader activity, leave a
+// PASS / CONSIDER / RECOMMEND decision, recommend it, or champion it. Completion is
+// recorded per (reader, script) when an in-app read crosses the same depth+time bar
+// the server uses for "finished". NOTE: this is a UX gate, not yet server-enforced —
+// the proper enforcement (the API verifying completion from authenticated read
+// events) is the P1 hardening in the handoff doc. Champion is a deliberate last
+// step — it only unlocks after the reader has left their decision.
+let _modalRow = null;
+
+function readerKey() {
+  const r = window.ReaderAuth ? ReaderAuth.getReader() : null;
+  return r && (r.readerId || r.handle) ? (r.readerId || r.handle) : null;
+}
+function isRegisteredReader() { return !!(window.ReaderAuth && ReaderAuth.isRegistered() && readerKey()); }
+function hasCompletedRead(scriptId) {
+  const k = readerKey(); if (!k) return false;
+  return localStorage.getItem(`idp_read_done:${k}:${scriptId}`) === '1';
+}
+function hasLeftFeedback(scriptId) {
+  const k = readerKey(); if (!k) return false;
+  return localStorage.getItem(`idp_feedback_done:${k}:${scriptId}`) === '1';
+}
+function markFeedbackLeft(scriptId) {
+  const k = readerKey(); if (k) localStorage.setItem(`idp_feedback_done:${k}:${scriptId}`, '1');
+}
+// Mirrors the server "finished" verdict: deep enough AND enough real time AND a human
+// reading pace (>=6s per page reached). Only a signed-in reader can earn completion.
+function maybeMarkRead(scriptId, depth, seconds, pages) {
+  const k = readerKey(); if (!k || !scriptId) return false;
+  const reached  = Math.max(1, (pages || 100) * ((depth || 0) / 100));
+  const finished = (depth || 0) >= 90 && (seconds || 0) >= 90 && (seconds / reached) >= 6;
+  if (finished) { localStorage.setItem(`idp_read_done:${k}:${scriptId}`, '1'); return true; }
+  return false;
+}
+
+// Build the gated action area (Leave decision / Recommend / Champion) for the open modal.
+function renderModalActions(row) {
+  const gate = document.getElementById('hrGate');
+  if (!gate || !row) return;
+  if (window.GUEST_REC) { gate.innerHTML = ''; return; } // recipients of a rec aren't curators
+
+  const reg = isRegisteredReader(), done = hasCompletedRead(row.id), fed = hasLeftFeedback(row.id);
+
+  if (!reg) {
+    gate.innerHTML = `<div class="gate-lock">🔒 Reading is how you earn a voice here. <button class="gate-link" id="gateReg">Create your reader account</button>, then finish the screenplay to leave your decision, recommend, or champion.</div>`;
+    const rb = document.getElementById('gateReg');
+    if (rb) rb.addEventListener('click', async () => {
+      try { if (window.ReaderAuth && await ReaderAuth.checkSupport()) { await ReaderAuth.signInOrRegister(); refreshModalGates(); } } catch {}
+    });
+    return;
+  }
+  if (!done) {
+    gate.innerHTML = `<div class="gate-lock">🔒 Finish the screenplay to leave your decision, recommend, or champion — open the reader and read to the end.</div>`;
+    return;
+  }
+  // Unlocked: decision + recommend always; champion only after the decision is left.
+  gate.innerHTML = `
+    <div class="hr-btns">
+      <button class="share-btn" id="feedbackBtn" title="Leave your PASS / CONSIDER / RECOMMEND decision">
+        <span class="share-ico" aria-hidden="true">✎</span><span>${fed ? 'Edit decision' : 'Leave decision'}</span>
+      </button>
+      <button class="share-btn" id="shareBtn" title="Recommend this screenplay — you've read it">
+        <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Recommend</span>
+      </button>
+      <button class="champion-btn" id="championBtn" title="${fed ? 'Champion this screenplay' : 'Leave your decision first'}"${fed ? '' : ' disabled'}>
+        <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
+      </button>
+    </div>
+    <div class="champion-msg" id="championMsg" aria-live="polite"></div>
+    ${fed ? '' : '<div class="gate-hint">Champion unlocks once you’ve left your decision.</div>'}`;
+
+  wireFeedback(row);
+  wireShare(row);
+  if (fed) wireChampion(row);
+}
+
+// Re-evaluate the gate after a read completes or feedback is submitted.
+function refreshModalGates() {
+  const open = document.getElementById('modalBack') && document.getElementById('modalBack').classList.contains('open');
+  if (!open || !_modalRow || window.GUEST_REC) return;
+  renderModalActions(_modalRow);
+  loadReaderActivity(_modalRow.id);
+}
+
 function wireShare(row) {
   const btn = document.getElementById('shareBtn');
   if (!btn || !row.id) return;
@@ -1766,16 +1847,16 @@ function openFeedback(row) {
   back.className = 'fb-back';
   back.innerHTML = `<div class="fb-card">
     <h3>Reader Feedback</h3>
-    <div class="fb-sub">${esc(row.title || 'this screenplay')} — your read informs the writer and re-calibrates the evaluation, especially championability.</div>
-    <div class="fb-q">Would you champion this?</div>
+    <div class="fb-sub">${esc(row.title || 'this screenplay')} — now that you've read it, your decision informs the writer and re-calibrates the evaluation.</div>
+    <div class="fb-q">Your decision <span class="fb-opt">required</span></div>
     <div class="fb-verdicts">
-      <button class="fb-vbtn" data-v="would_champion">Would champion</button>
-      <button class="fb-vbtn" data-v="maybe">Maybe</button>
-      <button class="fb-vbtn" data-v="would_not">Would not</button>
+      <button class="fb-vbtn" data-v="recommend">Recommend</button>
+      <button class="fb-vbtn" data-v="consider">Consider</button>
+      <button class="fb-vbtn" data-v="pass">Pass</button>
     </div>
     ${FB_GROUPS.map(([label, dims]) => `<div class="fb-q">${label} — rate what stood out <span class="fb-opt">optional</span></div>${dims.map(([k,n]) => `<div class="fb-dim"><span class="fbd-name">${n}</span><div class="fb-dots" data-dim="${k}">${[1,2,3,4,5].map(i=>`<button class="fb-dot" data-n="${i}" aria-label="${i}"></button>`).join('')}</div></div>`).join('')}`).join('')}
     <div class="fb-q">Notes</div>
-    <textarea id="fbText" placeholder="What worked, what didn't, and why you would (or wouldn't) champion it…"></textarea>
+    <textarea id="fbText" placeholder="What worked, what didn't, and why you landed on that decision…"></textarea>
     <div class="fb-q">Or leave a voice note</div>
     <div class="fb-rec">
       <button class="fb-recbtn" id="fbRec"><span class="fb-recdot"></span><span id="fbRecLabel">Record</span></button>
@@ -1836,7 +1917,7 @@ function openFeedback(row) {
   back.querySelector('#fbSubmit').addEventListener('click', async () => {
     const msg = back.querySelector('#fbMsg'); msg.className = 'fb-msg'; msg.textContent = '';
     const text = back.querySelector('#fbText').value.trim();
-    if (!state.verdict && !text && !state.transcript && !state.audioBlob && !Object.keys(state.dims).length) { msg.className = 'fb-msg err'; msg.textContent = 'Add a verdict, a rating, a note, or a voice note.'; return; }
+    if (!state.verdict) { msg.className = 'fb-msg err'; msg.textContent = 'Choose your decision — Recommend, Consider, or Pass.'; return; }
     stopRec();
     const submit = back.querySelector('#fbSubmit'); submit.disabled = true; submit.textContent = 'Verifying…';
     try {
@@ -1848,7 +1929,7 @@ function openFeedback(row) {
     if (state.audioBlob) { try { body.audioBase64 = await blobToBase64(state.audioBlob); } catch {} }
     try {
       const res = await ReaderAuth.authedWrite(`/feedback/${row.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (res.ok) { msg.textContent = 'Thank you — your feedback was sent.'; submit.textContent = 'Sent ✓'; setTimeout(close, 1200); }
+      if (res.ok) { markFeedbackLeft(row.id); msg.textContent = 'Thank you — your decision was recorded.'; submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); }, 1200); }
       else { const b = await res.json().catch(() => ({})); msg.className = 'fb-msg err'; msg.textContent = b.error || `Could not send (${res.status})`; submit.disabled = false; submit.textContent = 'Submit feedback'; }
     } catch (e) { msg.className = 'fb-msg err'; msg.textContent = (e && e.message) || 'Could not send'; submit.disabled = false; submit.textContent = 'Submit feedback'; }
   });
@@ -1949,7 +2030,10 @@ function raAgo(iso) {
 const raFmtTime = (s) => { s = Math.round(s||0); if (s < 60) return s + 's'; const m = Math.floor(s/60), r = s%60; return r ? `${m}m ${r}s` : `${m}m`; };
 const RA_VERDICT = { finished:'<span class="pill g">Read</span>', engaged:'<span class="pill g">Engaged</span>', skimmed:'<span class="pill r">Skimmed</span>', opened:'<span class="pill m">Opened</span>' };
 const RA_DIMNAME = { story_architecture:'Story', character_construction:'Character', scene_craft:'Scene', screenplay_execution:'Execution', dialogue_effectiveness:'Dialogue', thematic_cohesion:'Theme', emotional_engagement:'Emotion', distinctiveness:'Distinctiveness', writers_voice:'Voice', memorability:'Memorability', genre_competence:'Genre' };
-const RA_VLABEL = { would_champion:['Would champion','g'], maybe:['Maybe','m'], would_not:['Would not','r'] };
+const RA_VLABEL = {
+  recommend:['Recommend','g'], consider:['Consider','m'], pass:['Pass','r'],
+  would_champion:['Would champion','g'], maybe:['Maybe','m'], would_not:['Would not','r'], // legacy values
+};
 
 function raFeedbackHtml(fb, id) {
   const items = fb.feedback.map(f => {
@@ -2004,6 +2088,12 @@ async function loadReaderActivity(id) {
   if (window.GUEST_REC) return;
   const box = document.getElementById('readerActivity');
   if (!box) return;
+  // Reader activity is only visible to a named reader who has finished THIS
+  // screenplay. No completed read → don't even fetch others' activity.
+  if (!isRegisteredReader() || !hasCompletedRead(id)) {
+    box.innerHTML = `<div class="ra-top"><div class="ra-eyebrow">Reader activity</div><div class="gate-lock">🔒 Reader activity unlocks once you've created a reader account and finished this screenplay.</div></div>`;
+    return;
+  }
   const t = getValidToken();
   if (!t) return;
   try {
@@ -2174,7 +2264,10 @@ let _readerAnalytics = null, _readerProgressFn = null, _readerTick = null, _read
 
 // Report read DEPTH + ACTIVE TIME for the current reader session (best-effort).
 function sendReadProgress() {
-  if (!_readerAnalytics || !window.Analytics) return;
+  if (!_readerAnalytics) return;
+  // Record completion for the reader gate (independent of best-effort analytics).
+  maybeMarkRead(_readerAnalytics.id, _readerAnalytics.maxDepth, _readerAnalytics.activeSec, _readerAnalytics.pages);
+  if (!window.Analytics) return;
   Analytics.track('read_progress', {
     script_id: _readerAnalytics.id,
     depth_pct: _readerAnalytics.maxDepth,
@@ -2395,7 +2488,7 @@ function openReader(row) {
   // spent with the reader visible and recently active (idle/hidden time excluded).
   // "Read" / "finished" is derived from depth AND time downstream — never scroll.
   const _rdoc = document.getElementById('readerDoc');
-  _readerAnalytics = { id: row.id, maxDepth: 0, activeSec: 0, lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal' };
+  _readerAnalytics = { id: row.id, maxDepth: 0, activeSec: 0, lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal', pages: row.page_count || row.pageCount || null };
   if (window.Analytics) Analytics.track('reader_open', { script_id: row.id, total_pages: row.page_count || undefined, source: _readerAnalytics.source, recommender: REC_BY || undefined });
   const _bump = () => { if (_readerAnalytics) _readerAnalytics.lastActive = Date.now(); };
   _readerProgressFn = () => {
@@ -2439,6 +2532,7 @@ function closeReader() {
     _readerAnalytics = null;
   }
   teardownReader();
+  refreshModalGates(); // finishing the read may have just unlocked the actions + activity
 }
 
 document.getElementById('readerBack').addEventListener('click', closeReader);
