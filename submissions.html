@@ -303,6 +303,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .fb-card h3{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px;color:#fff}
 .fb-card .fb-sub{color:#888;font-size:12px;margin-bottom:18px;line-height:1.55}
 .fb-card .fb-q{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin:20px 0 8px}
+.fb-card .fb-opt{color:#555;letter-spacing:.04em;text-transform:none;font-size:10px;margin-left:4px}
 .fb-verdicts{display:flex;gap:8px}
 .fb-vbtn{flex:1;background:#141414;border:1px solid #2a2a2a;color:#ccc;padding:11px 6px;font-size:10.5px;letter-spacing:.04em;cursor:pointer;text-transform:uppercase}
 .fb-vbtn.on{border-color:red;color:#fff;background:#1a0606}
@@ -1707,8 +1708,11 @@ function wireShare(row) {
   });
 }
 
-// ── reader feedback (text + Championability ratings + voice note) ──────────────
-const FB_DIMS = [['distinctiveness','Distinctiveness'],['writers_voice',"Writer's Voice"],['memorability','Memorability'],['genre_competence','Genre Competence']];
+// ── reader feedback (mirrors the AI evaluation: Craft + Championability) ───────
+const FB_GROUPS = [
+  ['Craft', [['story_architecture','Story Architecture'],['character_construction','Character'],['scene_craft','Scene Craft'],['screenplay_execution','Execution'],['dialogue_effectiveness','Dialogue'],['thematic_cohesion','Theme'],['emotional_engagement','Emotional Impact']]],
+  ['Championability', [['distinctiveness','Distinctiveness'],['writers_voice',"Writer's Voice"],['memorability','Memorability'],['genre_competence','Genre Command']]],
+];
 const blobToBase64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
 
 function wireFeedback(row) {
@@ -1728,8 +1732,7 @@ function openFeedback(row) {
       <button class="fb-vbtn" data-v="maybe">Maybe</button>
       <button class="fb-vbtn" data-v="would_not">Would not</button>
     </div>
-    <div class="fb-q">Championability — rate what stood out</div>
-    ${FB_DIMS.map(([k,n]) => `<div class="fb-dim"><span class="fbd-name">${n}</span><div class="fb-dots" data-dim="${k}">${[1,2,3,4,5].map(i=>`<button class="fb-dot" data-n="${i}" aria-label="${i}"></button>`).join('')}</div></div>`).join('')}
+    ${FB_GROUPS.map(([label, dims]) => `<div class="fb-q">${label} — rate what stood out <span class="fb-opt">optional</span></div>${dims.map(([k,n]) => `<div class="fb-dim"><span class="fbd-name">${n}</span><div class="fb-dots" data-dim="${k}">${[1,2,3,4,5].map(i=>`<button class="fb-dot" data-n="${i}" aria-label="${i}"></button>`).join('')}</div></div>`).join('')}`).join('')}
     <div class="fb-q">Notes</div>
     <textarea id="fbText" placeholder="What worked, what didn't, and why you would (or wouldn't) champion it…"></textarea>
     <div class="fb-q">Or leave a voice note</div>

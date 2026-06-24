@@ -233,7 +233,7 @@ async function openScript(id, title) {
     document.querySelector('#drawerBody .dbody').innerHTML = '<div class="empty">Couldn’t load details.</div>';
   }
 }
-const DIMNAME = { distinctiveness:'Distinctiveness', writers_voice:"Voice", memorability:'Memorability', genre_competence:'Genre' };
+const DIMNAME = { story_architecture:'Story', character_construction:'Character', scene_craft:'Scene', screenplay_execution:'Execution', dialogue_effectiveness:'Dialogue', thematic_cohesion:'Theme', emotional_engagement:'Emotion', distinctiveness:'Distinctiveness', writers_voice:'Voice', memorability:'Memorability', genre_competence:'Genre' };
 const VLABEL = { would_champion:['Would champion','g'], maybe:['Maybe','m'], would_not:['Would not','r'] };
 
 function feedbackHtml(fb, id) {
@@ -252,9 +252,12 @@ function feedbackHtml(fb, id) {
   let cal;
   if (c) {
     const ch = c.championability || {};
+    const cr = c.craft || {};
     cal = `<div class="cal">
+      <div class="cal-lbl" style="margin-top:0">Championability</div>
       <div class="cal-rates"><span>AI <b class="muted">${esc(ch.ai_rating||'—')}</b></span><span class="arrow">→</span><span>Readers <b>${esc(ch.reader_rating||'—')}</b></span><span class="arrow">→</span><span>Calibrated <b class="hi">${esc(ch.calibrated_rating||'—')}</b></span></div>
       ${ch.justification?`<div class="fb-n">${esc(ch.justification)}</div>`:''}
+      ${(cr.reader_signal||cr.notes)?`<div class="cal-lbl">Craft — readers read it ${esc(cr.reader_signal||'—')}</div>${cr.notes?`<div class="fb-n">${esc(cr.notes)}</div>`:''}`:''}
       ${c.divergence?`<div class="cal-lbl">Where AI & readers diverged</div><div class="fb-n">${esc(c.divergence)}</div>`:''}
       ${c.summary?`<div class="fb-n" style="color:#cfcfcf">${esc(c.summary)}</div>`:''}
       <div class="muted" style="font-size:10px;margin-top:8px">From ${c.readerCount||fb.feedback.length} reader${(c.readerCount||fb.feedback.length)===1?'':'s'} · ${ago(c.calibratedAt)} · <a href="#" id="recalAgain">re-run</a></div>
