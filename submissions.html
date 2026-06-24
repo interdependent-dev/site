@@ -466,6 +466,47 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .dec-chip[data-dec="PASS"].on{border-color:#dc2626;color:#dc2626}
 .search-count{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.16em;color:#777;text-transform:uppercase;margin-bottom:14px}
 @media(max-width:580px){ .dec-filters{width:100%} .dec-chip{flex:1} }
+
+/* ── Reader activity (relocated from the former Analytics drawer; scoped so it
+      can't collide with portal styles). Shows who read a script — by real depth
+      AND time, not scroll — who championed it, and reader feedback + the
+      AI↔reader calibration, all on the script's own detail. ── */
+#readerActivity{margin-top:30px}
+#readerActivity .ra-top{border-top:1px solid #1e1e1e;padding-top:22px}
+#readerActivity .ra-eyebrow{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#777;margin-bottom:2px}
+#readerActivity .ra-note{font-size:11.5px;color:#666;margin-bottom:6px}
+#readerActivity .dstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(82px,1fr));gap:8px;margin:14px 0 6px}
+#readerActivity .dstat{background:#131313;border:1px solid #1e1e1e;border-radius:4px;padding:11px 12px}
+#readerActivity .dstat .n{font-size:20px;font-weight:700;color:#fff}
+#readerActivity .dstat .l{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#777;margin-top:4px}
+#readerActivity .dh3{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#777;margin:24px 0 10px}
+#readerActivity .rrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #161616;font-size:13px;color:#ddd}
+#readerActivity .rrow .rn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#readerActivity .rrow .rd{width:70px;color:#777;font-size:12px;text-align:right}
+#readerActivity .muted{color:#777}
+#readerActivity .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+#readerActivity .pill.g{background:#0f2a17;color:#3ec46a}
+#readerActivity .pill.r{background:#2a0f0f;color:#ff6b6b}
+#readerActivity .pill.m{background:#191919;color:#999}
+#readerActivity .depthbar{display:inline-block;width:46px;height:6px;background:#1c1c1c;border-radius:3px;overflow:hidden;vertical-align:middle;margin-left:8px}
+#readerActivity .depthbar span{display:block;height:100%;background:#FF0000}
+#readerActivity .empty{color:#555;font-size:12px;padding:8px 0}
+#readerActivity .fb-i{padding:11px 0;border-bottom:1px solid #161616}
+#readerActivity .fb-h{display:flex;align-items:center;gap:8px}
+#readerActivity .fb-h .rn{flex:1;font-size:13px;color:#ddd}
+#readerActivity .fb-h .rd{font-size:12px;color:#777}
+#readerActivity .fb-d{font-size:11px;color:#777;margin:5px 0;letter-spacing:.02em}
+#readerActivity .fb-n{font-size:12.5px;color:#cfcfcf;line-height:1.6;margin-top:5px}
+#readerActivity .cal{background:#0e0e0e;border:1px solid #1e1e1e;border-radius:4px;padding:14px 16px}
+#readerActivity .cal-rates{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#777;margin-bottom:8px}
+#readerActivity .cal-rates b{color:#ddd;font-weight:700}
+#readerActivity .cal-rates b.hi{color:#FF0000}
+#readerActivity .cal-rates .arrow{color:#444}
+#readerActivity .cal-lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#777;margin:12px 0 4px}
+#readerActivity .btn-recal{width:100%;background:#161616;border:1px solid #FF0000;color:#fff;padding:12px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;margin-top:6px}
+#readerActivity .btn-recal:hover:not(:disabled){background:#1a0606}
+#readerActivity .btn-recal:disabled{opacity:.5;cursor:default}
+#readerActivity .ra-err{font-size:11.5px;color:#666;padding-top:18px;border-top:1px solid #1e1e1e}
 </style>
 </head>
 <body>
@@ -478,9 +519,6 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     <span class="logo-name">Interdependent</span>
   </a>
   <div style="display:flex;align-items:center;gap:10px">
-    <a class="btn-ghost" id="spotlightLink" href="/readers.html" style="text-decoration:none">Spotlight</a>
-    <a class="btn-ghost" id="analyticsLink" href="/analytics.html" style="text-decoration:none">Analytics</a>
-    <a class="btn-ghost" id="lbLink" href="/leaderboard.html" style="text-decoration:none">Leaderboard</a>
     <button class="btn-ghost" id="signOutBtn">EXIT</button>
   </div>
 </header>
@@ -1493,7 +1531,7 @@ function updateRecBanner() {
 function enterGuestRec(id, by) {
   showRecBanner(id, by);
   // a recipient isn't a portal user — hide the authed header actions
-  ['analyticsLink', 'lbLink', 'signOutBtn'].forEach((x) => { const el = document.getElementById(x); if (el) el.style.display = 'none'; });
+  ['signOutBtn'].forEach((x) => { const el = document.getElementById(x); if (el) el.style.display = 'none'; });
   const tbody = document.getElementById('subBody');
   if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="guest-lock">
       <div class="gl-title">Browse the full slate</div>
@@ -1604,6 +1642,7 @@ async function openModal(id) {
       ${coverageBodyHtml(n, { skipSummary: true })}
       ${row.status === 'error' && row.evaluation_result ? `<div class="summary-key">Error</div><div class="summary-body">${esc(row.evaluation_result)}</div>` : ''}
       ${row.status === 'error' || (row.status === 'evaluated' && !n.categories.length) ? `<button class="btn-submit" id="retryBtn" style="margin-top:28px">Retry Evaluation</button>` : ''}
+      <div id="readerActivity"></div>
     `;
 
     const retryBtn = content.querySelector('#retryBtn');
@@ -1613,6 +1652,7 @@ async function openModal(id) {
     wireShare(row);
     wireFeedback(row);
     updateRecBanner();
+    loadReaderActivity(row.id);
   } catch {
     content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
   }
@@ -1875,7 +1915,7 @@ async function championScript(row, btn, msgEl) {
       setText(res.status === 409 ? 'Already added' : 'Championed');
       btn.classList.add('done');
       const star = btn.querySelector('.star'); if (star) star.textContent = '✓';
-      msgEl.innerHTML = `<a href="/leaderboard.html?h=${encodeURIComponent(reader.handle)}">View leaderboard →</a>`;
+      msgEl.textContent = 'Added to your champions ✓';
       return;
     }
 
@@ -1891,6 +1931,119 @@ async function championScript(row, btn, msgEl) {
 function closeModal() {
   document.getElementById('modalBack').classList.remove('open');
   updateRecBanner();
+}
+
+// ── Reader activity ───────────────────────────────────────────────────────────
+// Relocated from the former standalone Analytics drawer onto the script's own
+// detail. Shows, for the open script: who read it (verdict derived from depth
+// AND active time — never scroll alone), who championed it, and reader feedback
+// + the AI↔reader calibration. Fully additive and guarded: if anything fails it
+// leaves the section empty and never disturbs the rest of the modal.
+function raAgo(iso) {
+  if (!iso) return '';
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago'; if (s < 2592000) return Math.floor(s/86400) + 'd ago';
+  return new Date(iso).toLocaleDateString();
+}
+const raFmtTime = (s) => { s = Math.round(s||0); if (s < 60) return s + 's'; const m = Math.floor(s/60), r = s%60; return r ? `${m}m ${r}s` : `${m}m`; };
+const RA_VERDICT = { finished:'<span class="pill g">Read</span>', engaged:'<span class="pill g">Engaged</span>', skimmed:'<span class="pill r">Skimmed</span>', opened:'<span class="pill m">Opened</span>' };
+const RA_DIMNAME = { story_architecture:'Story', character_construction:'Character', scene_craft:'Scene', screenplay_execution:'Execution', dialogue_effectiveness:'Dialogue', thematic_cohesion:'Theme', emotional_engagement:'Emotion', distinctiveness:'Distinctiveness', writers_voice:'Voice', memorability:'Memorability', genre_competence:'Genre' };
+const RA_VLABEL = { would_champion:['Would champion','g'], maybe:['Maybe','m'], would_not:['Would not','r'] };
+
+function raFeedbackHtml(fb, id) {
+  const items = fb.feedback.map(f => {
+    const v = RA_VLABEL[f.championVerdict];
+    const dims = f.dimensions && Object.keys(f.dimensions).length ? `<div class="fb-d">${Object.entries(f.dimensions).map(([k,val])=>`${RA_DIMNAME[k]||k} ${val}/5`).join(' · ')}</div>` : '';
+    return `<div class="fb-i">
+      <div class="fb-h"><span class="rn">${esc(f.reader)}</span>${v?`<span class="pill ${v[1]}">${v[0]}</span>`:''}<span class="rd">${raAgo(f.createdAt)}</span></div>
+      ${dims}
+      ${f.text?`<div class="fb-n">${esc(f.text)}</div>`:''}
+      ${f.transcript && f.transcript!==f.text?`<div class="fb-n muted">🎙 "${esc(f.transcript)}"</div>`:''}
+      ${f.audioUrl?`<audio controls preload="none" src="${esc(f.audioUrl)}" style="width:100%;height:34px;margin-top:6px"></audio>`:''}
+    </div>`;
+  }).join('') || '<div class="empty">No reader feedback yet.</div>';
+  const c = fb.calibration;
+  let cal;
+  if (c) {
+    const ch = c.championability || {}, cr = c.craft || {};
+    cal = `<div class="cal">
+      <div class="cal-lbl" style="margin-top:0">Championability</div>
+      <div class="cal-rates"><span>AI <b class="muted">${esc(ch.ai_rating||'—')}</b></span><span class="arrow">→</span><span>Readers <b>${esc(ch.reader_rating||'—')}</b></span><span class="arrow">→</span><span>Calibrated <b class="hi">${esc(ch.calibrated_rating||'—')}</b></span></div>
+      ${ch.justification?`<div class="fb-n">${esc(ch.justification)}</div>`:''}
+      ${(cr.reader_signal||cr.notes)?`<div class="cal-lbl">Craft — readers read it ${esc(cr.reader_signal||'—')}</div>${cr.notes?`<div class="fb-n">${esc(cr.notes)}</div>`:''}`:''}
+      ${c.divergence?`<div class="cal-lbl">Where AI &amp; readers diverged</div><div class="fb-n">${esc(c.divergence)}</div>`:''}
+      ${c.summary?`<div class="fb-n" style="color:#cfcfcf">${esc(c.summary)}</div>`:''}
+      <div class="muted" style="font-size:10px;margin-top:8px">From ${c.readerCount||fb.feedback.length} reader${(c.readerCount||fb.feedback.length)===1?'':'s'} · ${raAgo(c.calibratedAt)} · <a href="#" id="raRecalAgain" style="color:#FF0000">re-run</a></div>
+    </div>`;
+  } else if (fb.feedback.length) {
+    cal = `<button class="btn-recal" id="raRecalBtn">⟳ Re-calibrate evaluation with this feedback</button>`;
+  } else {
+    cal = '<div class="empty">A calibration appears here once readers leave feedback.</div>';
+  }
+  return `<div class="dh3">Reader feedback (${fb.feedback.length})</div>${items}
+    <div class="dh3">AI ↔ reader calibration <span class="muted" style="text-transform:none;letter-spacing:0">— championability</span></div>${cal}`;
+}
+
+function raWireRecal(id) {
+  const run = async (btnId) => {
+    const btn = document.getElementById(btnId); if (btn) { btn.textContent = 'Re-calibrating…'; if (btn.tagName==='BUTTON') btn.disabled = true; }
+    try {
+      const t = getValidToken();
+      const res = await fetch(`${API}/feedback/${encodeURIComponent(id)}/recalibrate`, { method:'POST', headers:{ Authorization:`Bearer ${t}` } });
+      if (!res.ok) throw new Error();
+      loadReaderActivity(id); // reload the section with the fresh calibration
+    } catch { const b = document.getElementById(btnId); if (b) { b.textContent = '⟳ Re-calibrate evaluation with this feedback'; b.disabled = false; } }
+  };
+  const rb = document.getElementById('raRecalBtn'); if (rb) rb.addEventListener('click', () => run('raRecalBtn'));
+  const ra = document.getElementById('raRecalAgain'); if (ra) ra.addEventListener('click', (e) => { e.preventDefault(); run('raRecalAgain'); });
+}
+
+async function loadReaderActivity(id) {
+  // Recipients of a recommendation aren't portal users — no activity panel for them.
+  if (window.GUEST_REC) return;
+  const box = document.getElementById('readerActivity');
+  if (!box) return;
+  const t = getValidToken();
+  if (!t) return;
+  try {
+    const H = { Authorization: `Bearer ${t}` };
+    const [det, fb] = await Promise.all([
+      fetch(`${API}/analytics/script/${encodeURIComponent(id)}`, { headers: H }).then(r => r.ok ? r.json() : null),
+      fetch(`${API}/feedback/${encodeURIComponent(id)}`, { headers: H }).then(r => r.ok ? r.json() : { feedback: [], calibration: null }),
+    ]);
+    if (!det) return; // leave the section empty rather than show an error
+    const s = det.summary || {};
+    const reads = det.readers || [], champs = det.champions || [], feedback = (fb && fb.feedback) || [];
+    // Nothing to show yet → keep the detail clean.
+    if (!(s.sessions > 0) && !champs.length && !feedback.length) return;
+
+    const readersHtml = reads.length ? reads.map(r => `<div class="rrow">
+        <span class="rn">${esc(r.name)}${r.recommender ? ` <span class="muted">· via ${esc(r.recommender)}</span>` : ''}</span>
+        ${RA_VERDICT[r.verdict] || ''}
+        <span class="muted" style="font-size:11px;width:78px;text-align:right">${r.depth}% · ${raFmtTime(r.seconds)}</span>
+        <span class="depthbar"><span style="width:${Math.max(0, Math.min(100, r.depth))}%"></span></span>
+        <span class="rd">${raAgo(r.last)}</span></div>`).join('') : '<div class="empty">No reads recorded yet.</div>';
+    const champsHtml = champs.length ? champs.map(c => `<div class="rrow"><span class="rn">${esc(c.reader)}</span><span class="rd">${raAgo(c.addedAt)}</span></div>`).join('') : '<div class="empty">Not championed yet.</div>';
+
+    box.innerHTML = `<div class="ra-top">
+      <div class="ra-eyebrow">Reader activity</div>
+      <div class="ra-note">Reads are counted by depth <em>and</em> active time — never scrolling alone.</div>
+      <div class="dstats">
+        <div class="dstat"><div class="n">${s.sessions||0}</div><div class="l">Readers</div></div>
+        <div class="dstat"><div class="n">${s.avgDepth||0}%</div><div class="l">Avg reached</div></div>
+        <div class="dstat"><div class="n">${raFmtTime(s.avgSeconds)}</div><div class="l">Avg time</div></div>
+        <div class="dstat"><div class="n">${s.engaged||0}</div><div class="l">Engaged</div></div>
+        <div class="dstat"><div class="n">${s.finished||0}</div><div class="l">Read</div></div>
+      </div>
+      <div class="dh3">Who read it</div>${readersHtml}
+      <div class="dh3">Champions</div>${champsHtml}
+      ${raFeedbackHtml({ feedback, calibration: (fb && fb.calibration) || null }, id)}
+    </div>`;
+    raWireRecal(id);
+  } catch {
+    /* never let the activity panel disturb the modal */
+  }
 }
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
@@ -2335,16 +2488,6 @@ document.getElementById('readerNewTab').addEventListener('click', async () => {
 // STEP 0: probe passkey capability once on load (cached) so Champion can reflect
 // it immediately when a detail modal opens.
 if (window.ReaderAuth) ReaderAuth.checkSupport();
-
-// Point the header link at this reader's own leaderboard once we know who they
-// are; otherwise it lands on the bare page (which prompts for / explains).
-(function () {
-  const link = document.getElementById('lbLink');
-  if (link && window.ReaderAuth && ReaderAuth.isRegistered()) {
-    const r = ReaderAuth.getReader();
-    if (r && r.handle) link.href = `/leaderboard.html?h=${encodeURIComponent(r.handle)}`;
-  }
-}());
 
 if (window.GUEST_REC) {
   enterGuestRec(REC_ID, REC_BY);           // recipient without the passcode
