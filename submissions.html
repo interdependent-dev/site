@@ -1721,21 +1721,25 @@ function markFeedbackLeft(scriptId) {
 // Record completion (per DEVICE, so a read finished before signing in still
 // counts). The "finished" test lives in /lib/read-gate.js — shared verbatim with
 // the API's /reads/status so client and server never drift on what "read" means.
+// Honest "how much did you actually read" % — min(scroll depth, time spent).
+// Uses the shared module; the inline copy is only a fail-safe if it didn't load.
+function readingPctOf(depth, seconds, pages) {
+  if (window.ReadGate) return ReadGate.readingPct(depth, seconds, pages);
+  const d = Math.max(0, Math.min(100, depth || 0));
+  const timePct = Math.min(100, Math.round(((seconds || 0) / ((pages > 0 ? pages : 100) * 20)) * 100));
+  return Math.min(d, timePct);
+}
 function isFinishedRead(depth, seconds, pages) {
-  // Fail safe if the shared module somehow didn't load: an inline copy keeps the
-  // gate working rather than locking every genuine reader out.
   if (window.ReadGate) return ReadGate.isFinishedRead(depth, seconds, pages);
-  const d = depth || 0, s = seconds || 0;
-  const reached = pages ? Math.max(1, Math.round(pages * (d / 100))) : 0;
-  return d >= 85 && s >= Math.max(90, reached * 3);
+  return readingPctOf(depth, seconds, pages) >= 85;
 }
 function maybeMarkRead(scriptId, depth, seconds, pages) {
   if (!scriptId) return false;
   if (isFinishedRead(depth, seconds, pages)) { localStorage.setItem(`idp_read_done:${scriptId}`, '1'); return true; }
   return false;
 }
-// How far this device has read a given script (0–100). Reading is shown, not gated:
-// this travels with anything the reader recommends or champions.
+// How much of a script this device has actually read (0–100, depth + time). Reading
+// is shown, not gated: this travels with anything the reader recommends or champions.
 function myReadPct(scriptId) {
   const v = parseInt(localStorage.getItem(`idp_read_pct:${scriptId}`) || '0', 10);
   return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
@@ -2145,16 +2149,22 @@ function updateReaderProgress() {
   if (!_readerAnalytics) return;
   const el = document.getElementById('readerProgress');
   if (!el) return;
-  const m = Math.floor((_readerAnalytics.activeSec || 0) / 60);
-  el.textContent = `Read ${_readerAnalytics.maxDepth || 0}%` + (m ? ` · ${m}m` : '');
+  const a = _readerAnalytics;
+  const pct = readingPctOf(a.maxDepth, a.activeSec, a.pages);
+  const m = Math.floor((a.activeSec || 0) / 60);
+  el.textContent = `Read ${pct}%` + (m ? ` · ${m}m` : '');
 }
 
 function sendReadProgress() {
   if (!_readerAnalytics) return;
-  // Persist how far this device has read — shown openly on the reader's actions.
-  localStorage.setItem(`idp_read_pct:${_readerAnalytics.id}`, String(Math.round(_readerAnalytics.maxDepth || 0)));
+  const a = _readerAnalytics;
+  // Persist this device's reading (depth, time, and the honest read %) — shown
+  // openly on the reader's actions and restored when they reopen the script.
+  localStorage.setItem(`idp_read_depth:${a.id}`, String(Math.round(a.maxDepth || 0)));
+  localStorage.setItem(`idp_read_sec:${a.id}`, String(Math.round(a.activeSec || 0)));
+  localStorage.setItem(`idp_read_pct:${a.id}`, String(readingPctOf(a.maxDepth, a.activeSec, a.pages)));
   // Record a verified read (a reputation signal — no longer a gate).
-  maybeMarkRead(_readerAnalytics.id, _readerAnalytics.maxDepth, _readerAnalytics.activeSec, _readerAnalytics.pages);
+  maybeMarkRead(a.id, a.maxDepth, a.activeSec, a.pages);
   if (!window.Analytics) return;
   Analytics.track('read_progress', {
     script_id: _readerAnalytics.id,
@@ -2381,7 +2391,13 @@ function openReader(row) {
   // spent with the reader visible and recently active (idle/hidden time excluded).
   // "Read" / "finished" is derived from depth AND time downstream — never scroll.
   const _rdoc = document.getElementById('readerDoc');
-  _readerAnalytics = { id: row.id, maxDepth: myReadPct(row.id), activeSec: 0, lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal', pages: row.page_count || row.pageCount || null };
+  _readerAnalytics = {
+    id: row.id,
+    maxDepth: parseInt(localStorage.getItem(`idp_read_depth:${row.id}`) || '0', 10) || 0,
+    activeSec: parseInt(localStorage.getItem(`idp_read_sec:${row.id}`) || '0', 10) || 0,
+    lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal',
+    pages: row.page_count || row.pageCount || null,
+  };
   updateReaderProgress();
   if (window.Analytics) Analytics.track('reader_open', { script_id: row.id, total_pages: row.page_count || undefined, source: _readerAnalytics.source, recommender: REC_BY || undefined });
   _readerBumpFn = () => { if (_readerAnalytics) _readerAnalytics.lastActive = Date.now(); };

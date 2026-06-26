@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#000000">
 <meta name="format-detection" content="telephone=no">
 <meta name="robots" content="noindex">
-<title>INTERDEPENDENT — READERS</title>
+<title>INTERDEPENDENT — TOP READERS</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -47,6 +47,13 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .read .pct{width:42px;text-align:right;color:#bbb;font-family:'Courier New',monospace;font-size:12px;flex-shrink:0}
 .read.done .pct{color:#3ec46a}
 .empty{color:#777;font-size:12.5px;padding:6px 0}
+.fb{padding:9px 0;border-top:1px solid #161616}
+.fb-top{display:flex;align-items:center;gap:10px}
+.fb-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ddd}
+.dec{font-family:"Eurostile",sans-serif;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:10px;flex-shrink:0}
+.dec.g{background:#0f2a17;color:#3ec46a}.dec.m{background:#191919;color:#aaa}.dec.r{background:#2a0f0f;color:#ff6b6b}
+.fb-n{font-size:12.5px;color:#cfcfcf;line-height:1.55;margin-top:5px}
+.fb-n.muted{color:#999}
 @media(max-width:560px){header{padding:14px 20px}main{padding:32px 20px}.read .bar{width:72px}.r-handle{display:block;margin-left:0}}
 </style>
 </head>
@@ -63,8 +70,8 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 </header>
 
 <main>
-  <h1>Readers</h1>
-  <p class="sub">The people reading the slate — and exactly what they've read. Open to everyone: reading is shown, never hidden.</p>
+  <h1>Top Readers</h1>
+  <p class="sub">The readers who've earned a place — they've finished real reads. What they've read (depth <em>and</em> time, never scroll alone) and what they thought is open to everyone.</p>
   <div class="count" id="count"></div>
   <div id="list"><div class="state">Loading readers —</div></div>
 </main>
@@ -91,12 +98,22 @@ document.getElementById('exitBtn').addEventListener('click', () => {
   window.location.href = '/passcode';
 });
 
+const DECISIONS = { recommend:['Recommend','g'], consider:['Consider','m'], pass:['Pass','r'] };
+
 function readRow(r) {
-  const done = r.pct >= 85;
-  return `<div class="read${done ? ' done' : ''}">
+  return `<div class="read${r.finished ? ' done' : ''}">
     <span class="t">${esc(r.title)}</span>
     <span class="bar"><span style="width:${Math.max(0, Math.min(100, r.pct))}%"></span></span>
     <span class="pct">${r.pct}%</span>
+  </div>`;
+}
+
+function fbRow(f) {
+  const d = DECISIONS[f.decision];
+  return `<div class="fb">
+    <div class="fb-top"><span class="fb-t">${esc(f.title)}</span>${d ? `<span class="dec ${d[1]}">${d[0]}</span>` : ''}</div>
+    ${f.text ? `<div class="fb-n">${esc(f.text)}</div>` : ''}
+    ${f.transcript ? `<div class="fb-n muted">🎙 "${esc(f.transcript)}"</div>` : ''}
   </div>`;
 }
 
@@ -105,6 +122,10 @@ function readerCard(rd) {
   const readsHtml = reads.length
     ? reads.map(readRow).join('')
     : `<div class="empty">Hasn't opened a screenplay yet.</div>`;
+  const fb = (rd.feedback || []);
+  const fbHtml = fb.length
+    ? fb.map(fbRow).join('')
+    : `<div class="empty">No feedback yet.</div>`;
   return `<section class="reader">
     <div class="r-head">
       <div class="r-name">${esc(rd.name)}<span class="r-handle">@${esc(rd.handle)}</span></div>
@@ -113,9 +134,12 @@ function readerCard(rd) {
     <div class="r-stats">
       <div class="r-stat"><div class="n">${rd.scriptsRead || 0}</div><div class="l">Opened</div></div>
       <div class="r-stat"><div class="n">${rd.finished || 0}</div><div class="l">Finished</div></div>
+      <div class="r-stat"><div class="n">${fb.length}</div><div class="l">Feedback</div></div>
     </div>
     <div class="reads-h">What they've read</div>
     ${readsHtml}
+    <div class="reads-h">Feedback</div>
+    ${fbHtml}
   </section>`;
 }
 
@@ -129,10 +153,10 @@ async function load() {
     const list = document.getElementById('list');
     if (!readers || !readers.length) {
       document.getElementById('count').textContent = '';
-      list.innerHTML = `<div class="state">No readers yet — be the first to join from a screenplay.</div>`;
+      list.innerHTML = `<div class="state">No top readers yet — finish reading a screenplay to earn your place.</div>`;
       return;
     }
-    document.getElementById('count').textContent = `${readers.length} reader${readers.length === 1 ? '' : 's'}`;
+    document.getElementById('count').textContent = `${readers.length} top reader${readers.length === 1 ? '' : 's'}`;
     list.innerHTML = readers.map(readerCard).join('');
   } catch {
     document.getElementById('list').innerHTML = `<div class="state">Couldn't load readers — reload to try again.</div>`;
