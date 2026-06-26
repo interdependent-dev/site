@@ -1656,6 +1656,7 @@ async function openModal(id) {
     renderModalActions(row);   // gated: Feedback / Recommend / Champion unlock only after a finished read
     updateRecBanner();
     loadReaderActivity(row.id);
+    verifyServerCompletion(row.id); // cross-device: unlock if finished on another device
   } catch {
     content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
   }
@@ -1764,7 +1765,7 @@ function renderModalActions(row) {
     gate.innerHTML = `<div class="gate-lock">${SVG_LOCK}<span>Reading is how you earn a voice here. <button class="gate-link" id="gateReg">Create your reader account</button>, then finish the screenplay to leave your feedback.</span></div>`;
     const rb = document.getElementById('gateReg');
     if (rb) rb.addEventListener('click', async () => {
-      try { if (window.ReaderAuth && await ReaderAuth.checkSupport()) { await ReaderAuth.signInOrRegister(); refreshModalGates(); } } catch {}
+      try { if (window.ReaderAuth && await ReaderAuth.checkSupport()) { await ReaderAuth.signInOrRegister(); refreshModalGates(); verifyServerCompletion(row.id); } } catch {}
     });
     return;
   }
@@ -1799,6 +1800,30 @@ function refreshModalGates() {
   if (!open || !_modalRow || window.GUEST_REC) return;
   renderModalActions(_modalRow);
   loadReaderActivity(_modalRow.id);
+}
+
+// Cross-device: a finished read recorded on another device lives in read_events
+// (tagged with this reader's id). Ask the server whether this reader has finished
+// this script; if so, cache it locally and unlock. Best-effort and guarded — never
+// disturbs the modal, and only runs for a registered reader not already unlocked.
+async function verifyServerCompletion(scriptId) {
+  if (window.GUEST_REC || !scriptId) return;
+  if (hasCompletedRead(scriptId)) return;          // already unlocked on this device
+  if (!isRegisteredReader()) return;               // need a reader id to match server events
+  const reader = ReaderAuth.getReader();
+  const rid = reader && reader.readerId;
+  if (!rid) return;
+  const t = getValidToken(); if (!t) return;
+  try {
+    const res = await apiFetch(`/reads/status?script=${encodeURIComponent(scriptId)}&reader=${encodeURIComponent(rid)}`,
+                               { headers: { Authorization: `Bearer ${t}` } });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && data.finished) {
+      localStorage.setItem(`idp_read_done:${scriptId}`, '1');
+      refreshModalGates();
+    }
+  } catch { /* leave the gate as-is */ }
 }
 
 function wireShare(row) {
