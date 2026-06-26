@@ -389,6 +389,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .reader-title{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .reader-chip{font-family:"Eurostile",'Helvetica Neue',sans-serif;padding:3px 9px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;flex-shrink:0}
 .reader-chip.score{background:#161616;color:#ccc;font-family:'Courier New',monospace}
+.reader-chip.reader-progress{background:#161616;color:#bbb;font-family:'Courier New',monospace}
 .reader-tools{margin-left:auto;display:flex;gap:8px;flex-shrink:0}
 .rtool{display:inline-flex;align-items:center;gap:7px;background:#111;border:1px solid #2c2c2c;padding:9px 13px;color:#bbb;cursor:pointer;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:border-color .15s,color .15s}
 .rtool:hover{border-color:#666;color:#fff}
@@ -504,6 +505,8 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .gate-lock{display:inline-flex;align-items:flex-start;gap:9px;box-sizing:border-box;font-size:12px;color:#9a9a9a;background:#0e0e0e;border:1px solid #1e1e1e;border-radius:4px;padding:11px 14px;line-height:1.55;max-width:min(400px,100%);text-align:left}
 .gate-lock svg{width:13px;height:13px;fill:#fff;flex-shrink:0;margin-top:1px}
 .gate-hint{font-size:11px;color:#777}
+.hr-read{font-size:11px;color:#888;line-height:1.5;max-width:300px;text-align:right;margin-top:3px}
+.hr-read b{color:#fff;font-weight:700}
 .gate-link{background:none;border:none;color:#FF0000;font:inherit;font-size:12px;padding:0;cursor:pointer;text-decoration:underline}
 #readerActivity .gate-lock{max-width:none;margin-top:8px}
 /* Mobile: stack the detail-modal header so the gate/buttons never force sideways scroll. */
@@ -514,6 +517,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   .hr-btns{flex-wrap:wrap}
   .gate-lock{max-width:100%}
   .champion-msg{text-align:left;max-width:none}
+  .hr-read{text-align:left;max-width:none}
 }
 /* Long unbroken titles/emails/comps must wrap, not force horizontal scroll. */
 .meta-val,.summary-body,.comps-val,.td-title,.score-just{overflow-wrap:break-word}
@@ -653,6 +657,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
       <span class="reader-title" id="readerTitle">—</span>
       <span class="reader-chip" id="readerDec">—</span>
       <span class="reader-chip score" id="readerScore">—</span>
+      <span class="reader-chip reader-progress" id="readerProgress" aria-live="polite">Read 0%</span>
     </div>
     <div class="reader-tools">
       <button class="rtool on" id="navToggle" aria-label="Toggle scene list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h4v14H4zm6 0h10v4H10zm0 6h10v4H10zm0 6h10v2H10z"/></svg><span>Scenes</span></button>
@@ -1758,46 +1763,46 @@ function maybeMarkRead(scriptId, depth, seconds, pages) {
   if (isFinishedRead(depth, seconds, pages)) { localStorage.setItem(`idp_read_done:${scriptId}`, '1'); return true; }
   return false;
 }
+// How far this device has read a given script (0–100). Reading is shown, not gated:
+// this travels with anything the reader recommends or champions.
+function myReadPct(scriptId) {
+  const v = parseInt(localStorage.getItem(`idp_read_pct:${scriptId}`) || '0', 10);
+  return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
+}
 
-// Build the gated action area (Feedback / Recommend / Champion) for the open modal.
+// OPEN model (no gate): anyone can leave feedback, recommend, or champion — read or
+// not. Reading is shown, never required: how much you've read travels with anything
+// you recommend or champion, so credibility is earned in the open. The action buttons
+// sign you in if you're not a reader yet (one passkey tap).
 function renderModalActions(row) {
   const gate = document.getElementById('hrGate');
   if (!gate || !row) return;
   if (window.GUEST_REC) { gate.innerHTML = ''; return; } // recipients of a rec aren't curators
 
-  const reg = isRegisteredReader(), done = hasCompletedRead(row.id), fed = hasLeftFeedback(row.id);
+  const fed = hasLeftFeedback(row.id);
+  const pct = myReadPct(row.id);
+  const readLine = pct > 0
+    ? `<div class="hr-read">You've read <b>${pct}%</b> of this — your reading is shown on anything you recommend or champion.</div>`
+    : `<div class="hr-read">You can recommend or champion this freely — others will see how much of it you've actually read.</div>`;
 
-  if (!reg) {
-    gate.innerHTML = `<div class="gate-lock">${SVG_LOCK}<span>Reading is how you earn a voice here. <button class="gate-link" id="gateReg">Create your reader account</button>, then finish the screenplay to leave your feedback.</span></div>`;
-    const rb = document.getElementById('gateReg');
-    if (rb) rb.addEventListener('click', async () => {
-      try { if (window.ReaderAuth && await ReaderAuth.checkSupport()) { await ReaderAuth.signInOrRegister(); refreshModalGates(); verifyServerCompletion(row.id); } } catch {}
-    });
-    return;
-  }
-  if (!done) {
-    gate.innerHTML = `<div class="gate-lock">${SVG_LOCK}<span>Finish the screenplay to leave your feedback, recommend, or champion this screenplay — open the reader and read to the end.</span></div>`;
-    return;
-  }
-  // Unlocked: decision + recommend always; champion only after the decision is left.
   gate.innerHTML = `
     <div class="hr-btns">
       <button class="share-btn" id="feedbackBtn" title="Leave your feedback — your PASS / CONSIDER / RECOMMEND decision and notes">
         <span class="share-ico" aria-hidden="true">✎</span><span>${fed ? 'Edit feedback' : 'Feedback'}</span>
       </button>
-      <button class="share-btn" id="shareBtn" title="Recommend this screenplay — you've read it">
+      <button class="share-btn" id="shareBtn" title="Recommend this screenplay">
         <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Recommend</span>
       </button>
-      <button class="champion-btn" id="championBtn" title="${fed ? 'Champion this screenplay' : 'Leave your feedback first'}"${fed ? '' : ' disabled'}>
+      <button class="champion-btn" id="championBtn" title="Champion this screenplay">
         <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
       </button>
     </div>
     <div class="champion-msg" id="championMsg" aria-live="polite"></div>
-    ${fed ? '' : '<div class="gate-hint">Champion unlocks once you’ve left your feedback.</div>'}`;
+    ${readLine}`;
 
   wireFeedback(row);
   wireShare(row);
-  if (fed) wireChampion(row);
+  wireChampion(row);
 }
 
 // Re-evaluate the gate after a read completes or feedback is submitted.
@@ -2101,12 +2106,9 @@ async function loadReaderActivity(id) {
   if (window.GUEST_REC) return;
   const box = document.getElementById('readerActivity');
   if (!box) return;
-  // Reader activity is only visible to a named reader who has finished THIS
-  // screenplay. No completed read → don't even fetch others' activity.
-  if (!isRegisteredReader() || !hasCompletedRead(id)) {
-    box.innerHTML = `<div class="ra-top"><div class="ra-eyebrow">Reader activity</div><div class="gate-lock">${SVG_LOCK}<span>Reader activity unlocks once you've created a reader account and finished this screenplay.</span></div></div>`;
-    return;
-  }
+  // Open model: reader activity (who read it, how far, who championed/recommended,
+  // feedback) is visible to everyone — that visibility is what keeps the open
+  // recommend/champion honest.
   const t = getValidToken();
   if (!t) return;
   try {
@@ -2255,9 +2257,20 @@ let readerCurrentId = null;
 let _readerAnalytics = null, _readerProgressFn = null, _readerBumpFn = null, _readerTick = null, _readerHeartbeat = null; // read analytics state
 
 // Report read DEPTH + ACTIVE TIME for the current reader session (best-effort).
+// Live reading readout in the reader top bar (visible to the reader as they read).
+function updateReaderProgress() {
+  if (!_readerAnalytics) return;
+  const el = document.getElementById('readerProgress');
+  if (!el) return;
+  const m = Math.floor((_readerAnalytics.activeSec || 0) / 60);
+  el.textContent = `Read ${_readerAnalytics.maxDepth || 0}%` + (m ? ` · ${m}m` : '');
+}
+
 function sendReadProgress() {
   if (!_readerAnalytics) return;
-  // Record completion for the reader gate (independent of best-effort analytics).
+  // Persist how far this device has read — shown openly on the reader's actions.
+  localStorage.setItem(`idp_read_pct:${_readerAnalytics.id}`, String(Math.round(_readerAnalytics.maxDepth || 0)));
+  // Record a verified read (a reputation signal — no longer a gate).
   maybeMarkRead(_readerAnalytics.id, _readerAnalytics.maxDepth, _readerAnalytics.activeSec, _readerAnalytics.pages);
   if (!window.Analytics) return;
   Analytics.track('read_progress', {
@@ -2485,7 +2498,8 @@ function openReader(row) {
   // spent with the reader visible and recently active (idle/hidden time excluded).
   // "Read" / "finished" is derived from depth AND time downstream — never scroll.
   const _rdoc = document.getElementById('readerDoc');
-  _readerAnalytics = { id: row.id, maxDepth: 0, activeSec: 0, lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal', pages: row.page_count || row.pageCount || null };
+  _readerAnalytics = { id: row.id, maxDepth: myReadPct(row.id), activeSec: 0, lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal', pages: row.page_count || row.pageCount || null };
+  updateReaderProgress();
   if (window.Analytics) Analytics.track('reader_open', { script_id: row.id, total_pages: row.page_count || undefined, source: _readerAnalytics.source, recommender: REC_BY || undefined });
   _readerBumpFn = () => { if (_readerAnalytics) _readerAnalytics.lastActive = Date.now(); };
   _readerProgressFn = () => {
@@ -2494,6 +2508,7 @@ function openReader(row) {
     const pct = sh > 0 ? Math.min(100, Math.round((_rdoc.scrollTop / sh) * 100)) : 0;
     if (pct > _readerAnalytics.maxDepth) _readerAnalytics.maxDepth = pct;
     _readerBumpFn();
+    updateReaderProgress();
   };
   _rdoc.addEventListener('scroll', _readerProgressFn, { passive: true });
   ['pointermove', 'pointerdown', 'touchstart'].forEach((ev) => _rdoc.addEventListener(ev, _readerBumpFn, { passive: true }));
@@ -2502,7 +2517,7 @@ function openReader(row) {
   // so the idle window is generous — it exists only to exclude a tab left open and
   // walked away from, not to penalise someone who's actually reading.
   _readerTick = setInterval(() => {
-    if (_readerAnalytics && document.visibilityState === 'visible' && (Date.now() - _readerAnalytics.lastActive) < 180000) _readerAnalytics.activeSec += 1;
+    if (_readerAnalytics && document.visibilityState === 'visible' && (Date.now() - _readerAnalytics.lastActive) < 180000) { _readerAnalytics.activeSec += 1; updateReaderProgress(); }
   }, 1000);
   // heartbeat so long reads record progress even without a clean close
   _readerHeartbeat = setInterval(sendReadProgress, 60000);
