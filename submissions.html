@@ -497,15 +497,6 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 #readerActivity .fb-h .rd{font-size:12px;color:#777}
 #readerActivity .fb-d{font-size:11px;color:#777;margin:5px 0;letter-spacing:.02em}
 #readerActivity .fb-n{font-size:12.5px;color:#cfcfcf;line-height:1.6;margin-top:5px}
-#readerActivity .cal{background:#0e0e0e;border:1px solid #1e1e1e;border-radius:4px;padding:14px 16px}
-#readerActivity .cal-rates{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#777;margin-bottom:8px}
-#readerActivity .cal-rates b{color:#ddd;font-weight:700}
-#readerActivity .cal-rates b.hi{color:#FF0000}
-#readerActivity .cal-rates .arrow{color:#444}
-#readerActivity .cal-lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#777;margin:12px 0 4px}
-#readerActivity .btn-recal{width:100%;background:#161616;border:1px solid #FF0000;color:#fff;padding:12px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;margin-top:6px}
-#readerActivity .btn-recal:hover:not(:disabled){background:#1a0606}
-#readerActivity .btn-recal:disabled{opacity:.5;cursor:default}
 #readerActivity .ra-err{font-size:11.5px;color:#666;padding-top:18px;border-top:1px solid #1e1e1e}
 
 /* Reader gate — the locked state for actions + activity until a finished read. */
@@ -525,7 +516,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   .champion-msg{text-align:left;max-width:none}
 }
 /* Long unbroken titles/emails/comps must wrap, not force horizontal scroll. */
-.meta-val,.summary-body,.comps-val,.td-title,.score-just,.result-title{overflow-wrap:break-word;word-break:break-word}
+.meta-val,.summary-body,.comps-val,.td-title,.score-just{overflow-wrap:break-word}
 </style>
 </head>
 <body>
@@ -2100,40 +2091,9 @@ function raFeedbackHtml(fb, id) {
       ${f.audioUrl?`<audio controls preload="none" src="${esc(f.audioUrl)}" style="width:100%;height:34px;margin-top:6px"></audio>`:''}
     </div>`;
   }).join('') || '<div class="empty">No reader feedback yet.</div>';
-  const c = fb.calibration;
-  let cal;
-  if (c) {
-    const ch = c.championability || {}, cr = c.craft || {};
-    cal = `<div class="cal">
-      <div class="cal-lbl" style="margin-top:0">Championability</div>
-      <div class="cal-rates"><span>AI <b class="muted">${esc(ch.ai_rating||'—')}</b></span><span class="arrow">→</span><span>Readers <b>${esc(ch.reader_rating||'—')}</b></span><span class="arrow">→</span><span>Calibrated <b class="hi">${esc(ch.calibrated_rating||'—')}</b></span></div>
-      ${ch.justification?`<div class="fb-n">${esc(ch.justification)}</div>`:''}
-      ${(cr.reader_signal||cr.notes)?`<div class="cal-lbl">Craft — readers read it ${esc(cr.reader_signal||'—')}</div>${cr.notes?`<div class="fb-n">${esc(cr.notes)}</div>`:''}`:''}
-      ${c.divergence?`<div class="cal-lbl">Where AI &amp; readers diverged</div><div class="fb-n">${esc(c.divergence)}</div>`:''}
-      ${c.summary?`<div class="fb-n" style="color:#cfcfcf">${esc(c.summary)}</div>`:''}
-      <div class="muted" style="font-size:10px;margin-top:8px">From ${c.readerCount||fb.feedback.length} reader${(c.readerCount||fb.feedback.length)===1?'':'s'} · ${raAgo(c.calibratedAt)} · <a href="#" id="raRecalAgain" style="color:#FF0000">re-run</a></div>
-    </div>`;
-  } else if (fb.feedback.length) {
-    cal = `<button class="btn-recal" id="raRecalBtn">⟳ Re-calibrate evaluation with this feedback</button>`;
-  } else {
-    cal = '<div class="empty">A calibration appears here once readers leave feedback.</div>';
-  }
-  return `<div class="dh3">Reader feedback (${fb.feedback.length})</div>${items}
-    <div class="dh3">AI ↔ reader calibration <span class="muted" style="text-transform:none;letter-spacing:0">— championability</span></div>${cal}`;
-}
-
-function raWireRecal(id) {
-  const run = async (btnId) => {
-    const btn = document.getElementById(btnId); if (btn) { btn.textContent = 'Re-calibrating…'; if (btn.tagName==='BUTTON') btn.disabled = true; }
-    try {
-      const t = getValidToken();
-      const res = await fetch(`${API}/feedback/${encodeURIComponent(id)}/recalibrate`, { method:'POST', headers:{ Authorization:`Bearer ${t}` } });
-      if (!res.ok) throw new Error();
-      loadReaderActivity(id); // reload the section with the fresh calibration
-    } catch { const b = document.getElementById(btnId); if (b) { b.textContent = '⟳ Re-calibrate evaluation with this feedback'; b.disabled = false; } }
-  };
-  const rb = document.getElementById('raRecalBtn'); if (rb) rb.addEventListener('click', () => run('raRecalBtn'));
-  const ra = document.getElementById('raRecalAgain'); if (ra) ra.addEventListener('click', (e) => { e.preventDefault(); run('raRecalAgain'); });
+  // The AI<->reader calibration is computed silently server-side and is NOT shown
+  // to users (deliberately not advertised). We surface only the reader feedback.
+  return `<div class="dh3">Reader feedback (${fb.feedback.length})</div>${items}`;
 }
 
 async function loadReaderActivity(id) {
@@ -2181,9 +2141,8 @@ async function loadReaderActivity(id) {
       </div>
       <div class="dh3">Who read it</div>${readersHtml}
       <div class="dh3">Champions</div>${champsHtml}
-      ${raFeedbackHtml({ feedback, calibration: (fb && fb.calibration) || null }, id)}
+      ${raFeedbackHtml({ feedback }, id)}
     </div>`;
-    raWireRecal(id);
   } catch {
     /* never let the activity panel disturb the modal */
   }
