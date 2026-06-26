@@ -558,7 +558,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   <div class="form-row">
     <div class="field">
       <label for="iName">Name</label>
-      <input type="text" id="iName" placeholder="Full name" autocomplete="name">
+      <input type="text" id="iName" placeholder="First and last name" autocomplete="name">
     </div>
     <div class="field">
       <label for="iEmail">Email</label>
@@ -1013,9 +1013,12 @@ const MAX_PDF_BYTES = 20 * 1024 * 1024;
 iName.value  = localStorage.getItem('writer_name')  || '';
 iEmail.value = localStorage.getItem('writer_email') || '';
 
+// Require a real first AND last name (>=2 words) — single-name entries like
+// "Heather" aren't accepted for a screenplay submission.
+const isFullName = (s) => String(s).trim().split(/\s+/).filter(Boolean).length >= 2;
 function checkReady() {
   submitBtn.disabled = !(
-    iName.value.trim() &&
+    isFullName(iName.value) &&
     iEmail.value.trim() &&
     iTitle.value.trim() &&
     iFile.files.length
@@ -1163,6 +1166,7 @@ async function handleEvaluateResponse(res) {
 
 submitBtn.addEventListener('click', async () => {
   formError.textContent = '';
+  if (!isFullName(iName.value)) { formError.textContent = 'Please enter your first and last name.'; return; }
   setLoading(true);
   document.getElementById('resultPanel').style.display = 'none';
 
@@ -1781,7 +1785,7 @@ function renderModalActions(row) {
     return;
   }
   if (!done) {
-    gate.innerHTML = `<div class="gate-lock">${SVG_LOCK}<span>Finish the screenplay to leave your feedback.</span></div>`;
+    gate.innerHTML = `<div class="gate-lock">${SVG_LOCK}<span>Finish the screenplay to leave your feedback, recommend, or champion this screenplay — open the reader and read to the end.</span></div>`;
     return;
   }
   // Unlocked: decision + recommend always; champion only after the decision is left.
