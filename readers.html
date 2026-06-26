@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
+<title>INTERDEPENDENT — READERS</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Bold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Eurostile Wide";src:url("fonts/EurostileNextPro-WideBold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap}
+*{margin:0;box-sizing:border-box}
+html{background:#000;color:#fff;color-scheme:dark;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;display:flex;flex-direction:column;animation:f .5s ease-out both}
+@keyframes f{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){body{animation:none}}
+a{color:inherit}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid #181818;position:sticky;top:0;background:#000;z-index:10}
+.logo{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo svg{width:30px;height:auto}
+.logo-name{font-family:"Eurostile Wide","Eurostile",sans-serif;font-weight:700;font-size:11px;letter-spacing:.28em;color:#999;text-transform:uppercase}
+.nav{display:flex;align-items:center;gap:10px}
+.btn-ghost{background:none;border:1px solid #333;padding:8px 16px;color:#aaa;font-size:10px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:border-color .15s,color .15s;font-family:"Eurostile",sans-serif}
+.btn-ghost:hover{border-color:#777;color:#fff}
+main{flex:1;padding:44px 32px;max-width:900px;margin:0 auto;width:100%}
+h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.sub{color:#999;font-size:13px;margin-bottom:34px;max-width:560px}
+.state{color:#999;padding:40px 0;text-align:center}
+.count{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#777;margin-bottom:18px}
+.reader{border:1px solid #1c1c1c;background:#0a0a0a;border-radius:6px;padding:20px 22px;margin-bottom:14px}
+.r-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.r-name{font-family:"Eurostile",sans-serif;font-weight:700;font-size:16px;letter-spacing:.04em;color:#fff}
+.r-handle{color:#888;font-size:12px;margin-left:8px;font-weight:400;letter-spacing:0;text-transform:none}
+.r-meta{font-size:11px;color:#888;letter-spacing:.04em;white-space:nowrap}
+.r-stats{display:flex;gap:22px;margin:14px 0 4px}
+.r-stat .n{font-family:"Eurostile",sans-serif;font-size:18px;font-weight:700;color:#fff}
+.r-stat .l{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-top:2px}
+.reads-h{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#777;margin:18px 0 8px}
+.read{display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1px solid #161616;font-size:13px}
+.read .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ddd}
+.read .bar{width:120px;height:6px;background:#1c1c1c;border-radius:3px;overflow:hidden;flex-shrink:0}
+.read .bar span{display:block;height:100%;background:#FF0000}
+.read .pct{width:42px;text-align:right;color:#bbb;font-family:'Courier New',monospace;font-size:12px;flex-shrink:0}
+.read.done .pct{color:#3ec46a}
+.empty{color:#777;font-size:12.5px;padding:6px 0}
+@media(max-width:560px){header{padding:14px 20px}main{padding:32px 20px}.read .bar{width:72px}.r-handle{display:block;margin-left:0}}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo" aria-label="INTERDEPENDENT home">
+    <svg viewBox="0 0 74.6 89.4" fill-rule="evenodd" aria-hidden="true"><path fill="red" d="M9.3 28a28 28 0 1 0 56 0 28 28 0 1 0-56 0M20 64.9a7.5 7.3 0 1 0 15 0 7.5 7.3 0 1 0-15 0M23.2 64.7a4.1 4.1 0 1 0 8.2 0 4.1 4.1 0 1 0-8.2 0M43.9 60a4 4 0 1 0 8 0 4 4 0 1 0-8 0M45.5 60a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0M37.3 72.7a3.3 3.3 0 1 0 6.6 0 3.3 3.3 0 1 0-6.6 0M29.3 85.4a4 4 0 1 0 8 0 4 4 0 1 0-8 0M0 50.7a6.7 6.7 0 1 0 13.4 0 6.7 6.7 0 1 0-13.4 0M61.3 49.3a6.7 6.7 0 1 0 13.3 0 6.7 6.7 0 1 0-13.3 0"/></svg>
+    <span class="logo-name">Interdependent</span>
+  </a>
+  <nav class="nav">
+    <a class="btn-ghost" href="/submissions.html">Submissions</a>
+    <button class="btn-ghost" id="exitBtn">Exit</button>
+  </nav>
+</header>
+
+<main>
+  <h1>Readers</h1>
+  <p class="sub">The people reading the slate — and exactly what they've read. Open to everyone: reading is shown, never hidden.</p>
+  <div class="count" id="count"></div>
+  <div id="list"><div class="state">Loading readers —</div></div>
+</main>
+
+<script>
+const API = 'https://interdependent-api.onrender.com';
+function token() {
+  const t = localStorage.getItem('session_token');
+  const e = parseInt(localStorage.getItem('session_expires') || '0', 10);
+  if (!t || Date.now() > e) { window.location.href = '/passcode'; return null; }
+  return t;
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+function ago(iso) {
+  if (!iso) return '';
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 86400) return 'today';
+  if (s < 2592000) return Math.floor(s / 86400) + 'd ago';
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+}
+
+document.getElementById('exitBtn').addEventListener('click', () => {
+  localStorage.removeItem('session_token'); localStorage.removeItem('session_expires');
+  window.location.href = '/passcode';
+});
+
+function readRow(r) {
+  const done = r.pct >= 85;
+  return `<div class="read${done ? ' done' : ''}">
+    <span class="t">${esc(r.title)}</span>
+    <span class="bar"><span style="width:${Math.max(0, Math.min(100, r.pct))}%"></span></span>
+    <span class="pct">${r.pct}%</span>
+  </div>`;
+}
+
+function readerCard(rd) {
+  const reads = (rd.reads || []);
+  const readsHtml = reads.length
+    ? reads.map(readRow).join('')
+    : `<div class="empty">Hasn't opened a screenplay yet.</div>`;
+  return `<section class="reader">
+    <div class="r-head">
+      <div class="r-name">${esc(rd.name)}<span class="r-handle">@${esc(rd.handle)}</span></div>
+      <div class="r-meta">${rd.joinedAt ? 'Joined ' + ago(rd.joinedAt) : ''}</div>
+    </div>
+    <div class="r-stats">
+      <div class="r-stat"><div class="n">${rd.scriptsRead || 0}</div><div class="l">Opened</div></div>
+      <div class="r-stat"><div class="n">${rd.finished || 0}</div><div class="l">Finished</div></div>
+    </div>
+    <div class="reads-h">What they've read</div>
+    ${readsHtml}
+  </section>`;
+}
+
+async function load() {
+  const t = token(); if (!t) return;
+  try {
+    const res = await fetch(`${API}/readers/list`, { headers: { Authorization: `Bearer ${t}` } });
+    if (res.status === 401) { window.location.href = '/passcode'; return; }
+    if (!res.ok) throw new Error('load');
+    const { readers } = await res.json();
+    const list = document.getElementById('list');
+    if (!readers || !readers.length) {
+      document.getElementById('count').textContent = '';
+      list.innerHTML = `<div class="state">No readers yet — be the first to join from a screenplay.</div>`;
+      return;
+    }
+    document.getElementById('count').textContent = `${readers.length} reader${readers.length === 1 ? '' : 's'}`;
+    list.innerHTML = readers.map(readerCard).join('');
+  } catch {
+    document.getElementById('list').innerHTML = `<div class="state">Couldn't load readers — reload to try again.</div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>
