@@ -1,0 +1,9 @@
+{
+  "name": "interdependent-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "interdependent.studio static site (GitHub Pages). Node is used only for tests.",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}
