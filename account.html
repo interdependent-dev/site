@@ -28,11 +28,15 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 main{flex:1;padding:44px 24px;max-width:480px;margin:0 auto;width:100%}
 h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
 .sub{color:#999;font-size:13px;margin-bottom:28px}
-.who{border:1px solid #1c1c1c;background:#0a0a0a;border-radius:6px;padding:16px 18px;margin-bottom:22px;font-size:13.5px}
+.who{border:1px solid #1c1c1c;background:#0a0a0a;border-radius:6px;padding:16px 18px;font-size:13.5px}
 .who .name{font-family:"Eurostile",sans-serif;font-weight:700;font-size:16px;letter-spacing:.03em}
 .who .handle{color:#888;font-size:12.5px;margin-top:2px}
+.who .caveat{color:#d2a829;font-size:12px;margin-top:8px;line-height:1.5}
+.who .verified{color:#3ec46a;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-family:"Eurostile",sans-serif;margin-top:6px}
 .who.out{color:#bbb}
-.block{border:1px solid #1c1c1c;background:#070707;border-radius:6px;padding:20px;margin-bottom:16px}
+.who-actions{display:flex;gap:10px;margin:12px 0 24px;flex-wrap:wrap}
+.block{border:1px solid #1c1c1c;background:#070707;border-radius:6px;padding:20px;margin-bottom:16px;transition:opacity .15s}
+.block.locked{opacity:.4}
 .block h2{font-family:"Eurostile",sans-serif;font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#fff;margin-bottom:6px}
 .block p{color:#9a9a9a;font-size:12.5px;line-height:1.6;margin-bottom:14px}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
@@ -43,6 +47,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .btn{width:100%;height:46px;border:none;background:#FF0000;color:#fff;font-family:"Eurostile",sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .15s}
 .btn.ghost{background:none;border:1px solid #333;color:#bbb}
 .btn.ghost:hover:not(:disabled){border-color:#777;color:#fff}
+.btn.sm{width:auto;height:40px;padding:0 18px;font-size:10px;letter-spacing:.14em}
 .btn:hover:not(:disabled){opacity:.85}
 .btn:disabled{opacity:.4;cursor:default}
 .btn.busy{cursor:wait}
@@ -71,9 +76,10 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   <p class="sub">Manage the passkeys and recovery email for your reader account.</p>
 
   <div class="who" id="who"></div>
+  <div class="who-actions" id="who-actions"></div>
 
   <!-- Add a device -->
-  <div class="block" id="block-add">
+  <div class="block locked" id="block-add">
     <h2>Add this device</h2>
     <p>Register an additional passkey — for a new phone or laptop, or a backup. You'll confirm with a passkey you already have, then create the new one.</p>
     <button class="btn" id="add-go"><span class="spin" aria-hidden="true"></span><span id="add-go-text">Add a passkey on this device</span></button>
@@ -81,7 +87,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   </div>
 
   <!-- Recovery email -->
-  <div class="block" id="block-email">
+  <div class="block locked" id="block-email">
     <h2>Recovery email</h2>
     <p>The address we use if you ever lose every device. Keep it current so you're never locked out.</p>
     <div class="field">
@@ -99,43 +105,113 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 <script>
 (function () {
   'use strict';
-  var whoEl = document.getElementById('who');
+  // Identity on this page is established by an ACTUAL passkey sign-in, never by
+  // the localStorage cache alone — the cache can hold a different/stale reader
+  // (e.g. another account registered on this device), and acting on it would
+  // change the wrong account. `verified` is null until a passkey proves who's here.
+  var verified = null;
 
-  function renderWho() {
-    var r = window.ReaderAuth ? ReaderAuth.getReader() : null;
-    if (r && r.handle) {
-      whoEl.className = 'who';
-      whoEl.innerHTML = '<div class="name">' + esc(r.displayName || r.handle) + '</div><div class="handle">@' + esc(r.handle) + '</div>';
-    } else {
-      whoEl.className = 'who out';
-      whoEl.textContent = "This browser isn't signed in. Adding a device or saving an email will prompt you to sign in with a passkey first.";
-    }
-  }
+  var whoEl = document.getElementById('who');
+  var whoActions = document.getElementById('who-actions');
+  var blockAdd = document.getElementById('block-add');
+  var blockEmail = document.getElementById('block-email');
+  var supported = true;
+
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function setBusy(btn, on, busyText, idleText, textEl){btn.classList.toggle('busy',on);btn.disabled=on;if(textEl)textEl.textContent=on?busyText:idleText;}
 
-  renderWho();
+  function lockActions(locked) {
+    [blockAdd, blockEmail].forEach(function (b) { b.classList.toggle('locked', locked); });
+    ['add-go','em-go','em'].forEach(function (id) { document.getElementById(id).disabled = locked || !supported; });
+  }
 
-  // Disable actions on unsupported devices.
+  function render() {
+    var cached = window.ReaderAuth ? ReaderAuth.getReader() : null;
+    whoActions.innerHTML = '';
+
+    if (verified) {
+      whoEl.className = 'who';
+      whoEl.innerHTML = '<div class="name">' + esc(verified.displayName || verified.handle) + '</div>'
+        + '<div class="handle">@' + esc(verified.handle) + '</div>'
+        + '<div class="verified">✓ Signed in on this device</div>';
+      addBtn('Switch account', 'ghost', signIn);
+      addBtn('Sign out', 'ghost', signOut);
+      lockActions(false);
+      return;
+    }
+
+    if (cached && cached.handle) {
+      whoEl.className = 'who';
+      whoEl.innerHTML = '<div class="name">' + esc(cached.displayName || cached.handle) + '</div>'
+        + '<div class="handle">@' + esc(cached.handle) + '</div>'
+        + '<div class="caveat">This is just what this browser last used — not confirmed. Sign in to manage this account, or switch to a different one before making changes.</div>';
+      addBtn('Sign in to confirm', 'primary', signIn);
+      addBtn('Not you? Switch / sign out', 'ghost', signOut);
+    } else {
+      whoEl.className = 'who out';
+      whoEl.textContent = 'Not signed in on this browser. Sign in with your passkey to manage your account.';
+      addBtn('Sign in with a passkey', 'primary', signIn);
+    }
+    lockActions(true);
+  }
+
+  function addBtn(label, kind, fn) {
+    var b = document.createElement('button');
+    b.className = 'btn sm' + (kind === 'ghost' ? ' ghost' : '');
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    whoActions.appendChild(b);
+  }
+
+  // Discoverable sign-in — clears the stale cache first so the browser shows the
+  // passkey PICKER (you choose which account), instead of silently re-using the
+  // cached handle.
+  async function signIn() {
+    if (!supported) return;
+    whoActions.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    try {
+      ReaderAuth.clearReader();
+      var r = await ReaderAuth.signInWithPasskey();
+      verified = r;
+      render();
+    } catch (e) {
+      verified = null;
+      render();
+      var m = document.getElementById('add-msg');
+      m.className = 'msg err';
+      m.textContent = (e && e.message) || 'Sign-in was cancelled.';
+    }
+  }
+
+  function signOut() {
+    ReaderAuth.clearReader();
+    verified = null;
+    render();
+  }
+
+  // Initial paint, then capability gate.
+  render();
   if (window.ReaderAuth) ReaderAuth.checkSupport().then(function (ok) {
+    supported = ok;
     if (!ok) {
-      ['add-go','em-go'].forEach(function (id) { document.getElementById(id).disabled = true; });
-      document.getElementById('add-msg').className = 'msg err';
-      document.getElementById('add-msg').textContent = ReaderAuth.UNSUPPORTED_MESSAGE;
+      lockActions(true);
+      var m = document.getElementById('add-msg');
+      m.className = 'msg err';
+      m.textContent = ReaderAuth.UNSUPPORTED_MESSAGE;
+      whoActions.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
     }
   });
 
   // ── Add a device ──────────────────────────────────────────────────────────
   var addGo = document.getElementById('add-go'), addGoText = document.getElementById('add-go-text'), addMsg = document.getElementById('add-msg');
   addGo.addEventListener('click', async function () {
-    if (addGo.disabled) return;
+    if (addGo.disabled || !verified) return;
     addMsg.className = 'msg'; addMsg.textContent = '';
     setBusy(addGo, true, 'Follow the prompts', 'Add a passkey on this device', addGoText);
     try {
       var done = await ReaderAuth.addDevice();
-      renderWho();
       addMsg.className = 'msg ok';
-      addMsg.textContent = 'New passkey added to @' + (done.handle || 'your account') + '. You can sign in with it on this device.';
+      addMsg.textContent = 'New passkey added to @' + (done.handle || verified.handle) + '. You can sign in with it on this device.';
       setBusy(addGo, false, '', 'Add another passkey', addGoText);
     } catch (e) {
       setBusy(addGo, false, '', 'Add a passkey on this device', addGoText);
@@ -147,13 +223,13 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   // ── Recovery email ────────────────────────────────────────────────────────
   var emEl = document.getElementById('em'), emGo = document.getElementById('em-go'), emGoText = document.getElementById('em-go-text'), emMsg = document.getElementById('em-msg');
   emGo.addEventListener('click', async function () {
-    if (emGo.disabled) return;
+    if (emGo.disabled || !verified) return;
     emMsg.className = 'msg'; emMsg.textContent = '';
     setBusy(emGo, true, 'Saving', 'Save recovery email', emGoText);
     try {
       await ReaderAuth.setRecoveryEmail(emEl.value);
       emMsg.className = 'msg ok';
-      emMsg.textContent = 'Recovery email saved.';
+      emMsg.textContent = 'Recovery email saved for @' + verified.handle + '.';
       setBusy(emGo, false, '', 'Update recovery email', emGoText);
     } catch (e) {
       setBusy(emGo, false, '', 'Save recovery email', emGoText);
