@@ -56,6 +56,11 @@
     passkey_verify_failed: 'Could not verify your passkey — please try again.',
     reader_not_found:      'No reader account found — please register first.',
     already_on_leaderboard:'This script is already on the leaderboard.',
+    email_required:        'Please enter a valid email address.',
+    // Account recovery
+    recovery_invalid:      'This recovery link isn’t valid. Request a new one.',
+    recovery_expired:      'This recovery link has expired. Request a new one.',
+    recovery_used:         'This recovery link has already been used. Request a new one.',
   };
 
   // Shown when the device can't do passkeys at all (STEP 0 fails).
@@ -68,11 +73,18 @@
     insecure_context:   'Passkeys require a secure (https) connection.',
     not_registered:     'This device is not registered yet — please register first.',
     missing_name:       'Please enter your first and last name.',
+    missing_email:      'Please enter a valid email address.',
     passkey_cancelled:  'Passkey prompt was dismissed — please try again.',
     already_registered: 'A passkey already exists for this account on this device — try signing in instead.',
     network:            'Could not reach the server — please try again.',
     bad_response:       'Unexpected response from the server — please try again.',
   };
+
+  // Minimal email sanity check — the server is authoritative (zod .email()),
+  // this just catches obvious typos before a round-trip.
+  function looksLikeEmail(s) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
+  }
 
   function err(code, status) {
     return new ReaderAuthError(code, CODE_MESSAGES[code] || LOCAL_MESSAGES[code] || code, status);
@@ -171,10 +183,10 @@
     return fetch(url, opts);
   }
 
-  async function postJSON(path, body, { retries = 0, timeout = 30000 } = {}) {
+  async function postJSON(path, body, { retries = 0, timeout = 30000, headers = null } = {}) {
     const opts = {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: Object.assign({ 'Content-Type': 'application/json' }, headers || {}),
       body: JSON.stringify(body || {}),
     };
 
@@ -333,16 +345,20 @@
   }
 
   // ── Flow 1: registration ──────────────────────────────────────────────────
-  // Pure primitive: takes two strings, performs the WebAuthn create ceremony,
-  // persists the new reader. The UI (or promptRegister below) owns the inputs.
-  async function register(firstName, lastName) {
+  // Pure primitive: takes the name + recovery email, performs the WebAuthn
+  // create ceremony, persists the new reader. The UI (or promptRegister below)
+  // owns the inputs. Email is collected here so a reader who later loses every
+  // passkey can recover via an emailed link.
+  async function register(firstName, lastName, email) {
     await ensureCapable();
     const first = String(firstName || '').trim();
     const last  = String(lastName || '').trim();
+    const mail  = String(email || '').trim();
     if (!first || !last) throw err('missing_name');
+    if (!looksLikeEmail(mail)) throw err('missing_email');
 
     const begin = await postJSON('/readers/register/begin',
-      { firstName: first, lastName: last }, { retries: 1, timeout: 45000 });
+      { firstName: first, lastName: last, email: mail }, { retries: 1, timeout: 45000 });
     if (!begin || !begin.challengeId || !begin.options) throw err('bad_response');
 
     let cred;
@@ -463,6 +479,81 @@
     return fetchWithTimeout(`${API}${path}`, Object.assign({}, opts, { headers }), opts.timeout || 30000);
   }
 
+  // ── Flow 4: add a device (register an extra passkey while signed in) ────────
+  // Prove an existing passkey (fresh action token), then run a create() ceremony
+  // bound to the same account. Two prompts: existing passkey, then the new one.
+  async function addDevice() {
+    await ensureCapable();
+    const token = await ensureActionToken({ forceFresh: true });
+    const begin = await postJSON('/readers/credentials/add/begin', {},
+      { retries: 1, timeout: 45000, headers: { Authorization: `Bearer ${token}` } });
+    if (!begin || !begin.challengeId || !begin.options) throw err('bad_response');
+
+    let cred;
+    try {
+      cred = await navigator.credentials.create({ publicKey: prepCreationOptions(begin.options) });
+    } catch (e) { throw mapCeremonyError(e, 'register'); }
+    if (!cred) throw err('passkey_cancelled');
+
+    const token2 = await ensureActionToken(); // reuse the in-memory token, no re-prompt
+    const done = await postJSON('/readers/credentials/add/complete',
+      { challengeId: begin.challengeId, credential: encodeAttestation(cred) },
+      { retries: 0, timeout: 30000, headers: { Authorization: `Bearer ${token2}` } });
+    if (!done || !done.credentialAdded) throw err('bad_response');
+    if (done.actionToken) setToken(done.actionToken);
+    storeReader(done);
+    return done;
+  }
+
+  // ── Recovery email: set / update on a signed-in account ────────────────────
+  // Used to add a recovery email to an account that predates the feature, or to
+  // change it. Prompts the passkey (ensureActionToken) if no fresh token.
+  async function setRecoveryEmail(email) {
+    const mail = String(email || '').trim();
+    if (!looksLikeEmail(mail)) throw err('missing_email');
+    const token = await ensureActionToken();
+    const done = await postJSON('/readers/email', { email: mail },
+      { retries: 0, timeout: 30000, headers: { Authorization: `Bearer ${token}` } });
+    if (!done || !done.ok) throw err('bad_response');
+    return done;
+  }
+
+  // ── Flow 5: account recovery (lost every passkey) ──────────────────────────
+  // Step 1 (any device): email a one-time link. Always resolves with a generic
+  // ok — it never reveals whether the handle/email matched.
+  async function requestRecovery(handle, email) {
+    const h = String(handle || '').trim().toLowerCase();
+    const mail = String(email || '').trim();
+    if (!h) throw err('not_registered');
+    if (!looksLikeEmail(mail)) throw err('missing_email');
+    const done = await postJSON('/readers/recover/request', { handle: h, email: mail },
+      { retries: 1, timeout: 45000 });
+    return done || { ok: true };
+  }
+
+  // Step 2 (on the link's device): validate the token, then create a new passkey
+  // for the account. Called by recover.html with the rid + token from the URL.
+  async function completeRecovery({ readerId, token } = {}) {
+    await ensureCapable();
+    const begin = await postJSON('/readers/recover/begin', { readerId, token },
+      { retries: 1, timeout: 45000 });
+    if (!begin || !begin.challengeId || !begin.options) throw err('bad_response');
+
+    let cred;
+    try {
+      cred = await navigator.credentials.create({ publicKey: prepCreationOptions(begin.options) });
+    } catch (e) { throw mapCeremonyError(e, 'register'); }
+    if (!cred) throw err('passkey_cancelled');
+
+    const done = await postJSON('/readers/recover/complete',
+      { challengeId: begin.challengeId, credential: encodeAttestation(cred) },
+      { retries: 0, timeout: 30000 });
+    if (!done || !done.actionToken) throw err('bad_response');
+    setToken(done.actionToken);
+    storeReader(done);
+    return done;
+  }
+
   // ── built-in registration modal (brand-styled, injected on demand) ─────────
   // The only DOM this module touches. Collects first/last name in a black/red/
   // Eurostile card matching the rest of the site, then runs register(). Resolves
@@ -542,6 +633,10 @@
             <label for="ra-last">Last name</label>
             <input id="ra-last" type="text" autocomplete="family-name" placeholder="Last name">
           </div>
+          <div class="ra-field">
+            <label for="ra-email">Email <span style="color:#555;text-transform:none;letter-spacing:0;">— to recover your account</span></label>
+            <input id="ra-email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
+          </div>
           <div class="ra-err" id="ra-err" aria-live="polite"></div>
           <div class="ra-actions">
             <button class="ra-btn ghost" id="ra-cancel" type="button">Cancel</button>
@@ -554,6 +649,7 @@
 
       const first  = back.querySelector('#ra-first');
       const last   = back.querySelector('#ra-last');
+      const emailEl = back.querySelector('#ra-email');
       const errEl  = back.querySelector('#ra-err');
       const goBtn  = back.querySelector('#ra-go');
       const goText = back.querySelector('.ra-go-text');
@@ -574,22 +670,23 @@
       async function go() {
         if (busy) return;
         errEl.textContent = '';
-        const f = first.value.trim(), l = last.value.trim();
+        const f = first.value.trim(), l = last.value.trim(), m = emailEl.value.trim();
         if (!f || !l) { errEl.textContent = LOCAL_MESSAGES.missing_name; (f ? last : first).focus(); return; }
+        if (!looksLikeEmail(m)) { errEl.textContent = LOCAL_MESSAGES.missing_email; emailEl.focus(); return; }
         if (condAC) { try { condAC.abort(); } catch {} } // stop autofill before creating
 
         busy = true;
         goBtn.classList.add('busy'); goBtn.disabled = true; cancel.disabled = true;
         goText.textContent = 'Creating passkey';
-        first.disabled = last.disabled = true;
+        first.disabled = last.disabled = emailEl.disabled = true;
         try {
-          const reader = await register(f, l);
+          const reader = await register(f, l, m);
           close(reader, null);
         } catch (e) {
           busy = false;
           goBtn.classList.remove('busy'); goBtn.disabled = false; cancel.disabled = false;
           goText.textContent = 'Create passkey';
-          first.disabled = last.disabled = false;
+          first.disabled = last.disabled = emailEl.disabled = false;
           errEl.textContent = (e && e.message) || LOCAL_MESSAGES.passkey_verify_failed;
         }
       }
@@ -670,6 +767,12 @@
     signIn,            // smart: reauth if registered, else discoverable (never registers)
     signInOrRegister,  // reauth if known browser, else register form — no discoverable, no QR
     signInAs,          // reauth against a specific handle (leaderboard owner) — no QR
+
+    // device + recovery management
+    addDevice,         // register an additional passkey on this account (signed in)
+    setRecoveryEmail,  // add/update the recovery email (signed in)
+    requestRecovery,   // email a one-time recovery link (handle + email)
+    completeRecovery,  // consume a recovery link → new passkey (used by recover.html)
 
     // protected writes (leaderboard)
     authedWrite,

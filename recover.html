@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
+<title>INTERDEPENDENT — Recover account</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Bold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Eurostile Wide";src:url("fonts/EurostileNextPro-WideBold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap}
+*{margin:0;box-sizing:border-box}
+html{background:#000;color:#fff;color-scheme:dark;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;display:flex;flex-direction:column;animation:f .5s ease-out both}
+@keyframes f{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){body{animation:none}.spin{animation-duration:1.4s}}
+a{color:inherit}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid #181818;background:#000}
+.logo{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo svg{width:30px;height:auto}
+.logo-name{font-family:"Eurostile Wide","Eurostile",sans-serif;font-weight:700;font-size:11px;letter-spacing:.28em;color:#999;text-transform:uppercase}
+.btn-ghost{background:none;border:1px solid #333;padding:8px 16px;color:#aaa;font-size:10px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:border-color .15s,color .15s;font-family:"Eurostile",sans-serif}
+.btn-ghost:hover{border-color:#777;color:#fff}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px}
+.card{width:100%;max-width:400px;background:#070707;border:1px solid #1c1c1c;border-radius:8px;padding:34px 30px 30px}
+.kicker{font-family:"Eurostile Wide","Eurostile",sans-serif;font-weight:700;font-size:11px;letter-spacing:.24em;color:#FF0000;text-transform:uppercase;margin-bottom:10px}
+h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:21px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px}
+p.lead{color:#9a9a9a;font-size:13.5px;line-height:1.65;margin-bottom:22px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
+.field label{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.18em;color:#888;text-transform:uppercase}
+.field input{background:#0a0a0a;border:1px solid #2a2a2a;padding:12px 14px;color:#fff;font-size:14px;outline:none;border-radius:0;-webkit-appearance:none;transition:border-color .15s;font-family:inherit}
+.field input::placeholder{color:#555}
+.field input:focus{border-color:#FF0000}
+.err{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.08em;color:#FF0000;text-transform:uppercase;min-height:1.2em;margin:2px 0 10px}
+.btn{width:100%;height:50px;border:none;background:#FF0000;color:#fff;font-family:"Eurostile",sans-serif;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .15s}
+.btn:hover:not(:disabled){opacity:.85}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.busy{cursor:wait}
+.spin{display:none;width:14px;height:14px;border:1.6px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.btn.busy .spin{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.note{margin-top:18px;color:#777;font-size:12px;line-height:1.6}
+.note a{color:#bbb;text-decoration:underline}
+.ok{background:#0f2a17;border:1px solid #1c4a2c;border-radius:6px;padding:14px 16px;color:#7fe0a0;font-size:13px;line-height:1.6;margin-bottom:20px}
+.muted-link{display:inline-block;margin-top:16px;color:#888;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-family:"Eurostile",sans-serif;text-decoration:underline;cursor:pointer;background:none;border:none;padding:0}
+.muted-link:hover{color:#fff}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo" aria-label="INTERDEPENDENT home">
+    <svg viewBox="0 0 74.6 89.4" fill-rule="evenodd" aria-hidden="true"><path fill="red" d="M9.3 28a28 28 0 1 0 56 0 28 28 0 1 0-56 0M20 64.9a7.5 7.3 0 1 0 15 0 7.5 7.3 0 1 0-15 0M23.2 64.7a4.1 4.1 0 1 0 8.2 0 4.1 4.1 0 1 0-8.2 0M43.9 60a4 4 0 1 0 8 0 4 4 0 1 0-8 0M45.5 60a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0M37.3 72.7a3.3 3.3 0 1 0 6.6 0 3.3 3.3 0 1 0-6.6 0M29.3 85.4a4 4 0 1 0 8 0 4 4 0 1 0-8 0M0 50.7a6.7 6.7 0 1 0 13.4 0 6.7 6.7 0 1 0-13.4 0M61.3 49.3a6.7 6.7 0 1 0 13.3 0 6.7 6.7 0 1 0-13.3 0"/></svg>
+    <span class="logo-name">Interdependent</span>
+  </a>
+  <a class="btn-ghost" href="/submissions.html">Submissions</a>
+</header>
+
+<main>
+  <!-- COMPLETE: opened from an email link (rid + token in the URL) -->
+  <div class="card hide" id="complete-card">
+    <div class="kicker">Account recovery</div>
+    <h1 id="c-title">Welcome back</h1>
+    <p class="lead" id="c-lead">Create a new passkey on this device to get back into your account. You'll use Touch&nbsp;ID, Face&nbsp;ID, Windows&nbsp;Hello, or your screen lock — no password.</p>
+    <div class="ok hide" id="c-ok"></div>
+    <div class="err" id="c-err" aria-live="polite"></div>
+    <button class="btn" id="c-go"><span class="spin" aria-hidden="true"></span><span id="c-go-text">Create a new passkey</span></button>
+    <button class="muted-link hide" id="c-request">This link expired — email me a new one</button>
+    <div class="note hide" id="c-done-note">You're signed in on this device. <a href="/submissions.html">Go to submissions →</a></div>
+  </div>
+
+  <!-- REQUEST: no token, or an expired one — ask for a fresh link -->
+  <div class="card hide" id="request-card">
+    <div class="kicker">Account recovery</div>
+    <h1>Lost your device?</h1>
+    <p class="lead">Enter your reader handle and the email on your account. If they match, we'll send a one-time link to set up a new passkey.</p>
+    <div class="ok hide" id="r-ok"></div>
+    <div class="field">
+      <label for="r-handle">Reader handle</label>
+      <input id="r-handle" type="text" autocomplete="username" placeholder="first-last">
+    </div>
+    <div class="field">
+      <label for="r-email">Email on file</label>
+      <input id="r-email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
+    </div>
+    <div class="err" id="r-err" aria-live="polite"></div>
+    <button class="btn" id="r-go"><span class="spin" aria-hidden="true"></span><span id="r-go-text">Email me a recovery link</span></button>
+    <div class="note">Registered before recovery emails existed and don't have one on file? Email <a href="mailto:mailroom@interdependent.studio">mailroom@interdependent.studio</a>.</div>
+  </div>
+</main>
+
+<script src="/reader-auth.js?v=2026-06-28-recovery"></script>
+<script>
+(function () {
+  'use strict';
+  var params = new URLSearchParams(location.search);
+  var rid = params.get('rid');
+  var token = params.get('token');
+
+  var completeCard = document.getElementById('complete-card');
+  var requestCard  = document.getElementById('request-card');
+
+  function show(el) { el.classList.remove('hide'); }
+  function hide(el) { el.classList.add('hide'); }
+  function setBusy(btn, on, busyText, idleText, textEl) {
+    btn.classList.toggle('busy', on); btn.disabled = on;
+    if (textEl) textEl.textContent = on ? busyText : idleText;
+  }
+
+  // ── Complete path: rid + token present ────────────────────────────────────
+  if (rid && token) {
+    show(completeCard);
+    var cGo = document.getElementById('c-go');
+    var cGoText = document.getElementById('c-go-text');
+    var cErr = document.getElementById('c-err');
+    var cOk = document.getElementById('c-ok');
+    var cRequest = document.getElementById('c-request');
+    var cDoneNote = document.getElementById('c-done-note');
+
+    // Surface an unsupported device early.
+    ReaderAuth.checkSupport().then(function (ok) {
+      if (!ok) { cErr.textContent = ''; cErr.style.textTransform = 'none';
+        cErr.textContent = ReaderAuth.UNSUPPORTED_MESSAGE; cGo.disabled = true; }
+    });
+
+    cGo.addEventListener('click', async function () {
+      if (cGo.disabled) return;
+      cErr.textContent = '';
+      setBusy(cGo, true, 'Creating passkey', 'Create a new passkey', cGoText);
+      try {
+        var done = await ReaderAuth.completeRecovery({ readerId: rid, token: token });
+        cGo.classList.add('hide');
+        cRequest.classList.add('hide');
+        cOk.textContent = 'New passkey created for @' + (done.handle || 'your account') + '. You can use this device from now on.';
+        show(cOk); show(cDoneNote);
+        document.getElementById('c-title').textContent = "You're back in";
+        document.getElementById('c-lead').classList.add('hide');
+      } catch (e) {
+        setBusy(cGo, false, 'Creating passkey', 'Create a new passkey', cGoText);
+        var code = e && e.code;
+        cErr.textContent = (e && e.message) || 'Something went wrong — please try again.';
+        // A dead link → offer to request a fresh one.
+        if (code === 'recovery_invalid' || code === 'recovery_expired' || code === 'recovery_used') {
+          show(cRequest);
+        }
+      }
+    });
+
+    cRequest.addEventListener('click', function () {
+      hide(completeCard); show(requestCard);
+      document.getElementById('r-handle').focus();
+    });
+  } else {
+    // ── Request path: no token ──────────────────────────────────────────────
+    show(requestCard);
+  }
+
+  // ── Request form (shared) ─────────────────────────────────────────────────
+  var rGo = document.getElementById('r-go');
+  var rGoText = document.getElementById('r-go-text');
+  var rErr = document.getElementById('r-err');
+  var rOk = document.getElementById('r-ok');
+  var rHandle = document.getElementById('r-handle');
+  var rEmail = document.getElementById('r-email');
+
+  async function submitRequest() {
+    if (rGo.disabled) return;
+    rErr.textContent = '';
+    setBusy(rGo, true, 'Sending', 'Email me a recovery link', rGoText);
+    try {
+      await ReaderAuth.requestRecovery(rHandle.value, rEmail.value);
+      hide(rGo);
+      rOk.textContent = 'If that account exists and the email matches the one on file, a recovery link is on its way. Check your inbox (and spam). The link expires in 30 minutes.';
+      show(rOk);
+    } catch (e) {
+      setBusy(rGo, false, 'Sending', 'Email me a recovery link', rGoText);
+      rErr.textContent = (e && e.message) || 'Could not send — please try again.';
+    }
+  }
+  rGo.addEventListener('click', submitRequest);
+  [rHandle, rEmail].forEach(function (el) {
+    el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); submitRequest(); } });
+  });
+})();
+</script>
+</body>
+</html>
