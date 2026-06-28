@@ -307,9 +307,11 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .fb-verdicts{display:flex;gap:8px}
 .fb-vbtn{flex:1;background:#141414;border:1px solid #2a2a2a;color:#ccc;padding:11px 6px;font-size:10.5px;letter-spacing:.04em;cursor:pointer;text-transform:uppercase}
 .fb-vbtn.on{border-color:red;color:#fff;background:#1a0606}
-.fb-dim{display:flex;align-items:center;gap:10px;margin:8px 0}
-.fb-dim .fbd-name{flex:1;font-size:12.5px;color:#bbb}
-.fb-dots{display:flex;gap:5px}
+.fb-dim{display:flex;align-items:center;gap:12px;margin:12px 0}
+.fb-dim .fbd-label{flex:1;min-width:0}
+.fb-dim .fbd-name{display:block;font-size:12.5px;color:#bbb}
+.fbd-guide{display:block;font-size:10.5px;color:#777;line-height:1.4;margin-top:2px}
+.fb-dots{display:flex;gap:5px;flex-shrink:0}
 .fb-dot{width:16px;height:16px;border-radius:50%;border:1px solid #3a3a3a;cursor:pointer;background:none;padding:0}
 .fb-dot.on{background:red;border-color:red}
 .fb-card textarea{width:100%;background:#0c0c0c;border:1px solid #2a2a2a;color:#fff;padding:11px;font-size:13px;font-family:inherit;resize:vertical;min-height:68px;outline:none}
@@ -332,7 +334,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .fb-msg.err{color:#e0726a}
 
 /* recommendation banner + guest lock */
-#recBanner{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+#recBanner{position:sticky;top:0;z-index:150;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   background:#140000;border-bottom:1px solid #3a0a0a;border-top:3px solid red;padding:12px 22px;
   font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:12px;letter-spacing:.06em}
 #recBanner .rb-star{color:red;font-size:14px}
@@ -832,6 +834,7 @@ function buildBars(scores, { withJustifications = false } = {}) {
 
 function decisionBadge(row, ev) {
   if (row && row.status === 'error')      return `<span style="border:1px solid #7f1d1d;color:#f87171">Error</span>`;
+  if (row && row.status === 'rejected')   return `<span style="border:1px solid #b45309;color:#f59e0b" title="Not in standard screenplay format / clumsy translation — writer asked to revise and resubmit">Needs revision</span>`;
   if (row && row.status === 'processing') return `<span style="border:1px solid #333;color:#999">Processing</span>`;
   const dec = ev?.decision;
   const bg = DECISIONS[dec];
@@ -1211,6 +1214,12 @@ async function pollEvaluation(id) {
     }
     if (row.status === 'error') {
       throw new Error(row.evaluation_result || 'Evaluation failed — please try again.');
+    }
+    if (row.status === 'rejected') {
+      // A content decision (malformed file / clumsy translation), not a server error.
+      // No score was produced; show the writer-facing reason + point to the email.
+      const m = row.evaluation_json?.rejected?.message;
+      throw new Error(`${m || row.evaluation_result || 'This submission needs revision before it can be evaluated.'} A note with the details was emailed to you.`);
     }
   }
 
@@ -1858,6 +1867,22 @@ const FB_GROUPS = [
   ['Craft', [['story_architecture','Story Architecture'],['character_construction','Character'],['scene_craft','Scene Craft'],['screenplay_execution','Execution'],['dialogue_effectiveness','Dialogue'],['thematic_cohesion','Theme'],['emotional_engagement','Emotional Impact']]],
   ['Championability', [['distinctiveness','Distinctiveness'],['writers_voice',"Writer's Voice"],['memorability','Memorability'],['genre_competence','Genre Command']]],
 ];
+
+// Plain-language guidance per criterion, drawn from the BARAKA rubric, so human
+// readers evaluate the SAME things the AI does. Shown under each dimension name.
+const FB_GUIDE = {
+  story_architecture:     'Structure, escalation, payoff — does it build through cause-and-effect and resolve, or sag and lean on coincidence?',
+  character_construction: 'Clear wants, real flaws, meaningful change — or thin, generic, inconsistent?',
+  scene_craft:            'Does each scene carry a purpose and conflict, entering late and leaving early — or drift and repeat?',
+  screenplay_execution:   'Standard screenplay format and clean, economical, cinematic writing — or amateur, hard to read, poorly formatted?',
+  dialogue_effectiveness: 'Distinct voices, subtext, authentic — or on-the-nose, interchangeable, or translated-sounding?',
+  thematic_cohesion:      'A clear idea carried through choices and images — or muddled or absent?',
+  emotional_engagement:   'Did it make you feel something and keep you turning pages — or leave you cold?',
+  distinctiveness:        'Genuinely fresh premise, angle, or voice — or familiar and safe?',
+  writers_voice:          'A recognizable authorial personality and style — or anonymous?',
+  memorability:           'Will a scene, character, or image stay with you in three days — or fade immediately?',
+  genre_competence:       'Delivers (or knowingly subverts) what its genre promises — or misunderstands it?',
+};
 const blobToBase64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
 
 function wireFeedback(row) {
@@ -1870,14 +1895,15 @@ function openFeedback(row) {
   back.className = 'fb-back';
   back.innerHTML = `<div class="fb-card">
     <h3>Reader Feedback</h3>
-    <div class="fb-sub">${esc(row.title || 'this screenplay')} — now that you've read it, your decision informs the writer and re-calibrates the evaluation.</div>
+    <div class="fb-sub">${esc(row.title || 'this screenplay')} — now that you've read it, your decision informs the writer and re-calibrates the evaluation. Score to the rubric, not to be kind: most scripts are still developing, so be honest and specific — vague praise doesn't help the writer or the slate.</div>
     <div class="fb-q">Your decision <span class="fb-opt">required</span></div>
     <div class="fb-verdicts">
       <button class="fb-vbtn" data-v="recommend">Recommend</button>
       <button class="fb-vbtn" data-v="consider">Consider</button>
       <button class="fb-vbtn" data-v="pass">Pass</button>
     </div>
-    ${FB_GROUPS.map(([label, dims]) => `<div class="fb-q">${label} — rate what stood out <span class="fb-opt">optional</span></div>${dims.map(([k,n]) => `<div class="fb-dim"><span class="fbd-name">${n}</span><div class="fb-dots" data-dim="${k}">${[1,2,3,4,5].map(i=>`<button class="fb-dot" data-n="${i}" aria-label="${i}"></button>`).join('')}</div></div>`).join('')}`).join('')}
+    <div class="fbd-guide" style="margin:8px 0 0">RECOMMEND — you'd champion it. CONSIDER — worth a look, not there yet. PASS — not ready.</div>
+    ${FB_GROUPS.map(([label, dims]) => `<div class="fb-q">${label} — score to the rubric <span class="fb-opt">optional · 1 weak · 3 competent · 5 exceptional</span></div>${dims.map(([k,n]) => `<div class="fb-dim"><div class="fbd-label"><span class="fbd-name">${n}</span><span class="fbd-guide">${FB_GUIDE[k]||''}</span></div><div class="fb-dots" data-dim="${k}">${[1,2,3,4,5].map(i=>`<button class="fb-dot" data-n="${i}" aria-label="${i}"></button>`).join('')}</div></div>`).join('')}`).join('')}
     <div class="fb-q">Notes</div>
     <textarea id="fbText" placeholder="What worked, what didn't, and why you landed on that decision…"></textarea>
     <div class="fb-q">Or leave a voice note</div>
