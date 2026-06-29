@@ -512,6 +512,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     <span class="logo-name">Interdependent</span>
   </a>
   <div style="display:flex;align-items:center;gap:10px">
+    <a class="btn-ghost" id="xpChip" href="/account.html" title="Your reader standing" style="display:none;text-decoration:none"></a>
     <a class="btn-ghost" href="/readers.html" style="text-decoration:none">Readers</a>
     <a class="btn-ghost" href="/account.html" style="text-decoration:none">LOT Pass</a>
     <button class="btn-ghost" id="signOutBtn">EXIT</button>
@@ -668,9 +669,12 @@ if (window.pdfjsLib) {
 <script src="/analytics.js"></script>
 <!-- Canonical "finished read" definition, shared verbatim with the API. -->
 <script src="/lib/read-gate.js"></script>
+<!-- Reader XP bar + gain toasts. -->
+<script src="/lib/xp-bar.js"></script>
 
 <script>
 const API = 'https://interdependent-api.onrender.com';
+window.IDP_API_BASE = API;
 
 const DECISIONS = {
   RECOMMEND: '#16a34a',
@@ -1997,7 +2001,15 @@ function openFeedback(row) {
     if (state.audioBlob) { try { body.audioBase64 = await blobToBase64(state.audioBlob); } catch {} }
     try {
       const res = await ReaderAuth.authedWrite(`/feedback/${row.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (res.ok) { markFeedbackLeft(row.id); msg.textContent = 'Thank you — your decision was recorded.'; submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); }, 1200); }
+      if (res.ok) {
+        markFeedbackLeft(row.id);
+        if (window.XpBar) {
+          const dn = state.dims ? Object.values(state.dims).filter((v) => v != null).length : 0;
+          const fx = 15 + Math.min(dn * 2, 15) + (text.length >= 120 ? 10 : 0) + (state.audioBlob ? 15 : 0);
+          XpBar.toast('+' + fx + ' XP', 'Feedback'); if (window.refreshXpChip) setTimeout(window.refreshXpChip, 1500);
+        }
+        msg.textContent = 'Thank you — your decision was recorded.'; submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); }, 1200);
+      }
       else { const b = await res.json().catch(() => ({})); msg.className = 'fb-msg err'; msg.textContent = b.error || `Could not send (${res.status})`; submit.disabled = false; submit.textContent = 'Submit feedback'; }
     } catch (e) { msg.className = 'fb-msg err'; msg.textContent = (e && e.message) || 'Could not send'; submit.disabled = false; submit.textContent = 'Submit feedback'; }
   });
@@ -2061,6 +2073,7 @@ async function championScript(row, btn, msgEl) {
 
     if (res.ok || res.status === 409) {
       if (res.ok && window.Analytics) Analytics.track('champion', { script_id: row.id, source: window.GUEST_REC ? 'recommend' : 'portal', recommender: REC_BY || undefined });
+      if (res.ok && window.XpBar) { XpBar.toast('+20 XP', 'Champion'); if (window.refreshXpChip) setTimeout(window.refreshXpChip, 1500); }
       setText(res.status === 409 ? 'Already added' : 'Championed');
       btn.classList.add('done');
       const star = btn.querySelector('.star'); if (star) star.textContent = '✓';
@@ -2630,6 +2643,24 @@ if (window.GUEST_REC) {
   if (REC_ID) { showRecBanner(REC_ID, REC_BY); openModal(REC_ID); } // signed-in, following a rec link
   else if (SCRIPT_ID) { openModal(SCRIPT_ID); } // open a script's detail directly (no rec banner)
 }
+
+// Header XP chip — the reader's level + total, linking to their full bar on the
+// LOT Pass page. Read-only (public endpoint), so it shows from the cached reader
+// without forcing a passkey prompt. Refreshed after champion/feedback actions.
+window.refreshXpChip = async function () {
+  try {
+    const chip = document.getElementById('xpChip');
+    if (!chip || !window.ReaderAuth || !window.XpBar) return;
+    const r = ReaderAuth.getReader && ReaderAuth.getReader();
+    if (!r || !r.handle) { chip.style.display = 'none'; return; }
+    const xp = await XpBar.fetch(r.handle);
+    if (!xp || !xp.level) { chip.style.display = 'none'; return; }
+    const col = XpBar.PALETTE[xp.level.key] || '#FF0000';
+    chip.innerHTML = '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + col + ';margin-right:7px;vertical-align:middle"></span>' + xp.level.name + ' · ' + xp.totalXp + ' XP';
+    chip.style.display = '';
+  } catch (e) { /* non-blocking */ }
+};
+window.refreshXpChip();
 </script>
 </body>
 </html>
