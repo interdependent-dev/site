@@ -61,6 +61,9 @@
     recovery_invalid:      'This recovery link isn’t valid. Request a new one.',
     recovery_expired:      'This recovery link has expired. Request a new one.',
     recovery_used:         'This recovery link has already been used. Request a new one.',
+    // Profile photo
+    bad_image:             'Please choose a PNG, JPEG, or WebP image under 3 MB.',
+    no_file:               'Please choose an image first.',
   };
 
   // Shown when the device can't do passkeys at all (STEP 0 fails).
@@ -505,6 +508,26 @@
     return done;
   }
 
+  // ── Profile photo: upload / replace on a signed-in account ─────────────────
+  // Sends the image as multipart (FormData) with a fresh action token. Resolves
+  // with { ok, handle, photoUrl }.
+  async function setPhoto(file) {
+    if (!file) throw err('no_file');
+    const token = await ensureActionToken();
+    const fd = new FormData();
+    fd.append('photo', file, file.name || 'photo');
+    let res;
+    try {
+      res = await fetchWithTimeout(`${API}/readers/photo`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd }, 45000);
+    } catch { throw err('network'); }
+    if (res.ok) { try { return await res.json(); } catch { throw err('bad_response', res.status); } }
+    let bj = {}; try { bj = await res.json(); } catch {}
+    const code = bj.code;
+    if (code && (CODE_MESSAGES[code] || LOCAL_MESSAGES[code])) throw err(code, res.status);
+    throw new ReaderAuthError(code || `http_${res.status}`, bj.error || `Upload failed (${res.status})`, res.status);
+  }
+
   // ── Recovery email: set / update on a signed-in account ────────────────────
   // Used to add a recovery email to an account that predates the feature, or to
   // change it. Prompts the passkey (ensureActionToken) if no fresh token.
@@ -771,6 +794,7 @@
     // device + recovery management
     addDevice,         // register an additional passkey on this account (signed in)
     setRecoveryEmail,  // add/update the recovery email (signed in)
+    setPhoto,          // upload/replace the profile photo (signed in)
     requestRecovery,   // email a one-time recovery link (handle + email)
     completeRecovery,  // consume a recovery link → new passkey (used by recover.html)
 

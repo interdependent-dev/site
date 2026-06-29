@@ -17,7 +17,7 @@
 html{background:#000;color:#fff;color-scheme:dark;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 body{min-height:100vh;display:flex;flex-direction:column;animation:f .5s ease-out both}
 @keyframes f{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){body{animation:none}}
+@media (prefers-reduced-motion:reduce){body{animation:none}.chev{transition:none}}
 a{color:inherit}
 header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid #181818;position:sticky;top:0;background:#000;z-index:10}
 .logo{display:flex;align-items:center;gap:14px;text-decoration:none}
@@ -26,25 +26,43 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .nav{display:flex;align-items:center;gap:10px}
 .btn-ghost{background:none;border:1px solid #333;padding:8px 16px;color:#aaa;font-size:10px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:border-color .15s,color .15s;font-family:"Eurostile",sans-serif}
 .btn-ghost:hover{border-color:#777;color:#fff}
-main{flex:1;padding:44px 32px;max-width:900px;margin:0 auto;width:100%}
+main{flex:1;padding:44px 32px;max-width:760px;margin:0 auto;width:100%}
 h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
-.sub{color:#999;font-size:13px;margin-bottom:34px;max-width:560px}
+.sub{color:#999;font-size:13px;margin-bottom:26px;max-width:560px}
 .state{color:#999;padding:40px 0;text-align:center}
-.count{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#777;margin-bottom:18px}
-.reader{border:1px solid #1c1c1c;background:#0a0a0a;border-radius:6px;padding:20px 22px;margin-bottom:14px}
-.r-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap}
-.r-name{font-family:"Eurostile",sans-serif;font-weight:700;font-size:16px;letter-spacing:.04em;color:#fff}
-.r-handle{color:#888;font-size:12px;margin-left:8px;font-weight:400;letter-spacing:0;text-transform:none}
-.r-meta{font-size:11px;color:#888;letter-spacing:.04em;white-space:nowrap}
-.r-stats{display:flex;gap:22px;margin:14px 0 4px}
-.r-stat .n{font-family:"Eurostile",sans-serif;font-size:18px;font-weight:700;color:#fff}
-.r-stat .l{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-top:2px}
-.reads-h{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#777;margin:18px 0 8px}
-.read{display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1px solid #161616;font-size:13px}
+.count{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#777;margin-bottom:16px}
+
+/* Card (collapsed by default) */
+.reader{border:1px solid #1c1c1c;background:#0a0a0a;border-radius:6px;margin-bottom:12px;overflow:hidden}
+.r-head{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:none;border:none;color:inherit;cursor:pointer;padding:14px 16px;font:inherit;transition:background .15s}
+.r-head:hover{background:#0f0f0f}
+.avatar{width:46px;height:46px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#161616;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar.ph{color:#6f6f6f}
+.avatar.ph svg{width:25px;height:25px}
+.r-id{flex:1;min-width:0}
+.r-name{font-family:"Eurostile",sans-serif;font-weight:700;font-size:16px;letter-spacing:.03em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-handle{color:#888;font-size:12px;margin-left:8px;font-weight:400;letter-spacing:0}
+.r-sub{color:#8a8a8a;font-size:11.5px;letter-spacing:.02em;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-sub b{color:#cfcfcf;font-weight:700}
+.chev{width:15px;height:15px;color:#777;flex-shrink:0;transition:transform .2s ease}
+.reader.open .chev{transform:rotate(180deg)}
+.reader.open .r-head{background:#0f0f0f}
+
+/* Expanded body */
+.r-body{padding:4px 18px 18px;border-top:1px solid #161616}
+.r-body[hidden]{display:none}
+.reads-h{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#777;margin:16px 0 6px}
+.read{display:flex;align-items:center;gap:12px;padding:8px 8px;margin:0 -8px;border-top:1px solid #161616;font-size:13px;text-decoration:none;border-radius:4px;transition:background .12s}
+.read:first-of-type{border-top:none}
+.read:hover{background:#141414}
+.read:hover .t{color:#fff}
 .read .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ddd}
-.read .bar{width:120px;height:6px;background:#1c1c1c;border-radius:3px;overflow:hidden;flex-shrink:0}
+.read .bar{width:110px;height:6px;background:#1c1c1c;border-radius:3px;overflow:hidden;flex-shrink:0}
 .read .bar span{display:block;height:100%;background:#FF0000}
-.read .pct{width:42px;text-align:right;color:#bbb;font-family:'Courier New',monospace;font-size:12px;flex-shrink:0}
+.read .pct{width:40px;text-align:right;color:#bbb;font-family:'Courier New',monospace;font-size:12px;flex-shrink:0}
+.read .go{width:13px;height:13px;color:#555;flex-shrink:0;transition:color .12s}
+.read:hover .go{color:#FF0000}
 .read.done .pct{color:#3ec46a}
 .empty{color:#777;font-size:12.5px;padding:6px 0}
 .fb{padding:9px 0;border-top:1px solid #161616}
@@ -54,7 +72,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .dec.g{background:#0f2a17;color:#3ec46a}.dec.m{background:#191919;color:#aaa}.dec.r{background:#2a0f0f;color:#ff6b6b}
 .fb-n{font-size:12.5px;color:#cfcfcf;line-height:1.55;margin-top:5px}
 .fb-n.muted{color:#999}
-@media(max-width:560px){header{padding:14px 20px}main{padding:32px 20px}.read .bar{width:72px}.r-handle{display:block;margin-left:0}}
+@media(max-width:560px){header{padding:14px 20px}main{padding:32px 20px}.read .bar{width:64px}.r-name{font-size:15px}}
 </style>
 </head>
 <body>
@@ -65,19 +83,31 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   </a>
   <nav class="nav">
     <a class="btn-ghost" href="/submissions.html">Submissions</a>
+    <a class="btn-ghost" href="/account.html">Account</a>
     <button class="btn-ghost" id="exitBtn">Exit</button>
   </nav>
 </header>
 
 <main>
   <h1>Top Readers</h1>
-  <p class="sub">The readers who've earned a place — they've finished real reads. What they've read (depth <em>and</em> time, never scroll alone) and what they thought is open to everyone.</p>
+  <p class="sub">The readers who've earned a place — they've finished real reads. Tap a reader to see what they've read (depth <em>and</em> time, never scroll alone) and what they thought. Tap any read to open the screenplay.</p>
   <div class="count" id="count"></div>
   <div id="list"><div class="state">Loading readers —</div></div>
 </main>
 
 <script>
 const API = 'https://interdependent-api.onrender.com';
+
+// Reader role-icon — default avatar when a reader hasn't set a photo. Themed
+// via currentColor (see .avatar.ph). Mirrors /reader-icon.svg on disk.
+const READER_SVG = `<svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+<path d="M7.019 13.7604C10.7574 13.7604 13.788 10.736 13.788 7.00518C13.788 3.2744 10.7574 0.25 7.019 0.25C3.28058 0.25 0.25 3.2744 0.25 7.00518C0.25 10.736 3.28058 13.7604 7.019 13.7604Z" stroke-width="1.2"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M5.08497 4.11011H1.45872C1.23218 4.11011 0.97522 4.37817 0.97522 4.83388V7.24644C0.97522 7.46089 1.23218 7.72895 1.45872 7.72895H5.08497C5.3115 7.72895 5.56847 7.46089 5.56847 7.24644V4.83388C5.56847 4.37817 5.3115 4.11011 5.08497 4.11011Z" stroke-width="1.0"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M12.5792 4.11011H8.95298C8.72645 4.11011 8.46948 4.37817 8.46948 4.83388V7.24644C8.46948 7.46089 8.72645 7.72895 8.95298 7.72895H12.5792C12.8058 7.72895 13.0627 7.46089 13.0627 7.24644V4.83388C13.0627 4.37817 12.8058 4.11011 12.5792 4.11011Z" stroke-width="1.0"/>
+<path d="M5.56848 4.83398H8.22773" stroke-width="0.9"/><path d="M5.56848 6.04004H8.22773" stroke-width="0.9"/></g></svg>`;
+const CHEV_SVG = `<svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>`;
+const GO_SVG = `<svg class="go" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>`;
+
 function token() {
   const t = localStorage.getItem('session_token');
   const e = parseInt(localStorage.getItem('session_expires') || '0', 10);
@@ -100,12 +130,20 @@ document.getElementById('exitBtn').addEventListener('click', () => {
 
 const DECISIONS = { recommend:['Recommend','g'], consider:['Consider','m'], pass:['Pass','r'] };
 
+function avatarHtml(rd) {
+  if (rd.photoUrl) return `<div class="avatar"><img src="${esc(rd.photoUrl)}" alt="" loading="lazy"></div>`;
+  return `<div class="avatar ph">${READER_SVG}</div>`;
+}
+
+// A read is a link to the screenplay's detail in the portal (opens via ?rec=).
 function readRow(r) {
-  return `<div class="read${r.finished ? ' done' : ''}">
+  const pct = Math.max(0, Math.min(100, r.pct));
+  return `<a class="read${r.finished ? ' done' : ''}" href="/submissions.html?rec=${encodeURIComponent(r.id)}" target="_blank" rel="noopener" title="Open “${esc(r.title)}”">
     <span class="t">${esc(r.title)}</span>
-    <span class="bar"><span style="width:${Math.max(0, Math.min(100, r.pct))}%"></span></span>
+    <span class="bar"><span style="width:${pct}%"></span></span>
     <span class="pct">${r.pct}%</span>
-  </div>`;
+    ${GO_SVG}
+  </a>`;
 }
 
 function fbRow(f) {
@@ -117,31 +155,42 @@ function fbRow(f) {
   </div>`;
 }
 
-function readerCard(rd) {
+function readerCard(rd, i) {
   const reads = (rd.reads || []);
-  const readsHtml = reads.length
-    ? reads.map(readRow).join('')
-    : `<div class="empty">Hasn't opened a screenplay yet.</div>`;
   const fb = (rd.feedback || []);
-  const fbHtml = fb.length
-    ? fb.map(fbRow).join('')
-    : `<div class="empty">No feedback yet.</div>`;
+  const readsHtml = reads.length ? reads.map(readRow).join('') : `<div class="empty">Hasn't opened a screenplay yet.</div>`;
+  const fbHtml = fb.length ? fb.map(fbRow).join('') : `<div class="empty">No feedback yet.</div>`;
+  const summary = `<b>${rd.finished || 0}</b> finished · <b>${rd.scriptsRead || 0}</b> opened · <b>${fb.length}</b> feedback${rd.joinedAt ? ' · joined ' + ago(rd.joinedAt) : ''}`;
+  const bodyId = `rb-${i}`;
   return `<section class="reader">
-    <div class="r-head">
-      <div class="r-name">${esc(rd.name)}<span class="r-handle">@${esc(rd.handle)}</span></div>
-      <div class="r-meta">${rd.joinedAt ? 'Joined ' + ago(rd.joinedAt) : ''}</div>
+    <button class="r-head" aria-expanded="false" aria-controls="${bodyId}">
+      ${avatarHtml(rd)}
+      <div class="r-id">
+        <div class="r-name">${esc(rd.name)}<span class="r-handle">@${esc(rd.handle)}</span></div>
+        <div class="r-sub">${summary}</div>
+      </div>
+      ${CHEV_SVG}
+    </button>
+    <div class="r-body" id="${bodyId}" hidden>
+      <div class="reads-h">What they've read</div>
+      ${readsHtml}
+      <div class="reads-h">Feedback</div>
+      ${fbHtml}
     </div>
-    <div class="r-stats">
-      <div class="r-stat"><div class="n">${rd.scriptsRead || 0}</div><div class="l">Opened</div></div>
-      <div class="r-stat"><div class="n">${rd.finished || 0}</div><div class="l">Finished</div></div>
-      <div class="r-stat"><div class="n">${fb.length}</div><div class="l">Feedback</div></div>
-    </div>
-    <div class="reads-h">What they've read</div>
-    ${readsHtml}
-    <div class="reads-h">Feedback</div>
-    ${fbHtml}
   </section>`;
 }
+
+// Accordion — toggle a card open/closed (event-delegated; reads links are
+// separate anchors so clicking a read doesn't collapse the card).
+document.getElementById('list').addEventListener('click', (e) => {
+  const head = e.target.closest('.r-head');
+  if (!head) return;
+  const card = head.closest('.reader');
+  const body = card.querySelector('.r-body');
+  const open = card.classList.toggle('open');
+  head.setAttribute('aria-expanded', open ? 'true' : 'false');
+  body.hidden = !open;
+});
 
 async function load() {
   const t = token(); if (!t) return;
@@ -156,7 +205,7 @@ async function load() {
       list.innerHTML = `<div class="state">No top readers yet — finish reading a screenplay to earn your place.</div>`;
       return;
     }
-    document.getElementById('count').textContent = `${readers.length} top reader${readers.length === 1 ? '' : 's'}`;
+    document.getElementById('count').textContent = `${readers.length} top reader${readers.length === 1 ? '' : 's'} · tap to expand`;
     list.innerHTML = readers.map(readerCard).join('');
   } catch {
     document.getElementById('list').innerHTML = `<div class="state">Couldn't load readers — reload to try again.</div>`;

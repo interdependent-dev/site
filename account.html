@@ -57,6 +57,12 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .msg{font-size:12px;letter-spacing:.04em;min-height:1.1em;margin-top:10px;line-height:1.5}
 .msg.err{color:#FF0000}
 .msg.ok{color:#7fe0a0}
+.photo-row{display:flex;align-items:center;gap:16px}
+.avatar{width:64px;height:64px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#161616;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar.ph{color:#6f6f6f}
+.avatar.ph svg{width:34px;height:34px}
+.photo-actions{display:flex;gap:10px;flex-wrap:wrap}
 .foot{margin-top:8px;color:#777;font-size:12px;text-align:center}
 .foot a{color:#bbb;text-decoration:underline}
 .hide{display:none}
@@ -77,6 +83,21 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 
   <div class="who" id="who"></div>
   <div class="who-actions" id="who-actions"></div>
+
+  <!-- Profile photo -->
+  <div class="block locked" id="block-photo">
+    <h2>Profile photo</h2>
+    <p>Shown next to your name on the Top Readers page. PNG, JPEG, or WebP, up to 3&nbsp;MB.</p>
+    <div class="photo-row">
+      <div class="avatar" id="pf-preview"></div>
+      <div class="photo-actions">
+        <input type="file" id="pf-file" accept="image/png,image/jpeg,image/webp" hidden>
+        <button class="btn ghost sm" id="pf-pick">Choose image</button>
+        <button class="btn sm" id="pf-go" disabled><span class="spin" aria-hidden="true"></span><span id="pf-go-text">Upload</span></button>
+      </div>
+    </div>
+    <div class="msg" id="pf-msg" aria-live="polite"></div>
+  </div>
 
   <!-- Add a device -->
   <div class="block locked" id="block-add">
@@ -101,7 +122,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   <p class="foot">Lost access to all your devices? <a href="/recover.html">Recover your account →</a></p>
 </main>
 
-<script src="/reader-auth.js?v=2026-06-28-recovery"></script>
+<script src="/reader-auth.js?v=2026-06-28-photos"></script>
 <script>
 (function () {
   'use strict';
@@ -115,14 +136,46 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   var whoActions = document.getElementById('who-actions');
   var blockAdd = document.getElementById('block-add');
   var blockEmail = document.getElementById('block-email');
+  var blockPhoto = document.getElementById('block-photo');
   var supported = true;
+  var pendingFile = null;
+
+  // Reader role-icon placeholder (mirrors /reader-icon.svg), themed via currentColor.
+  var READER_SVG = '<svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">'
+    + '<path d="M7.019 13.7604C10.7574 13.7604 13.788 10.736 13.788 7.00518C13.788 3.2744 10.7574 0.25 7.019 0.25C3.28058 0.25 0.25 3.2744 0.25 7.00518C0.25 10.736 3.28058 13.7604 7.019 13.7604Z" stroke-width="1.2"/>'
+    + '<path fill-rule="evenodd" clip-rule="evenodd" d="M5.08497 4.11011H1.45872C1.23218 4.11011 0.97522 4.37817 0.97522 4.83388V7.24644C0.97522 7.46089 1.23218 7.72895 1.45872 7.72895H5.08497C5.3115 7.72895 5.56847 7.46089 5.56847 7.24644V4.83388C5.56847 4.37817 5.3115 4.11011 5.08497 4.11011Z" stroke-width="1.0"/>'
+    + '<path fill-rule="evenodd" clip-rule="evenodd" d="M12.5792 4.11011H8.95298C8.72645 4.11011 8.46948 4.37817 8.46948 4.83388V7.24644C8.46948 7.46089 8.72645 7.72895 8.95298 7.72895H12.5792C12.8058 7.72895 13.0627 7.46089 13.0627 7.24644V4.83388C13.0627 4.37817 12.8058 4.11011 12.5792 4.11011Z" stroke-width="1.0"/>'
+    + '<path d="M5.56848 4.83398H8.22773" stroke-width="0.9"/><path d="M5.56848 6.04004H8.22773" stroke-width="0.9"/></g></svg>';
+
+  var pfPreview = document.getElementById('pf-preview');
+  var pfFile = document.getElementById('pf-file');
+  var pfPick = document.getElementById('pf-pick');
+  var pfGo = document.getElementById('pf-go');
+  var pfGoText = document.getElementById('pf-go-text');
+  var pfMsg = document.getElementById('pf-msg');
 
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function setBusy(btn, on, busyText, idleText, textEl){btn.classList.toggle('busy',on);btn.disabled=on;if(textEl)textEl.textContent=on?busyText:idleText;}
 
   function lockActions(locked) {
-    [blockAdd, blockEmail].forEach(function (b) { b.classList.toggle('locked', locked); });
-    ['add-go','em-go','em'].forEach(function (id) { document.getElementById(id).disabled = locked || !supported; });
+    [blockAdd, blockEmail, blockPhoto].forEach(function (b) { b.classList.toggle('locked', locked); });
+    ['add-go','em-go','em','pf-pick','pf-file'].forEach(function (id) { document.getElementById(id).disabled = locked || !supported; });
+    pfGo.disabled = locked || !supported || !pendingFile;
+  }
+
+  function setPreview(photoUrl) {
+    pfPreview.className = photoUrl ? 'avatar' : 'avatar ph';
+    pfPreview.innerHTML = photoUrl ? '<img src="' + esc(photoUrl) + '" alt="">' : READER_SVG;
+  }
+
+  // After a verified sign-in, fetch the current avatar (public profile endpoint).
+  async function loadPhoto() {
+    if (!verified) { setPreview(null); return; }
+    try {
+      var res = await fetch(ReaderAuth.API + '/readers/' + encodeURIComponent(verified.handle));
+      if (res.ok) { var j = await res.json(); setPreview(j.photoUrl || null); return; }
+    } catch (e) {}
+    setPreview(null);
   }
 
   function render() {
@@ -174,6 +227,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
       var r = await ReaderAuth.signInWithPasskey();
       verified = r;
       render();
+      loadPhoto();
     } catch (e) {
       verified = null;
       render();
@@ -186,11 +240,14 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   function signOut() {
     ReaderAuth.clearReader();
     verified = null;
+    pendingFile = null; pfFile.value = '';
     render();
+    setPreview(null);
   }
 
   // Initial paint, then capability gate.
   render();
+  setPreview(null);
   if (window.ReaderAuth) ReaderAuth.checkSupport().then(function (ok) {
     supported = ok;
     if (!ok) {
@@ -238,6 +295,43 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
     }
   });
   emEl.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); emGo.click(); } });
+
+  // ── Profile photo ───────────────────────────────────────────────────────────
+  pfPick.addEventListener('click', function () { if (!pfPick.disabled) pfFile.click(); });
+
+  pfFile.addEventListener('change', function () {
+    pfMsg.className = 'msg'; pfMsg.textContent = '';
+    var f = pfFile.files && pfFile.files[0];
+    if (!f) { pendingFile = null; pfGo.disabled = true; return; }
+    if (!/^image\/(png|jpeg|webp)$/.test(f.type)) {
+      pfMsg.className = 'msg err'; pfMsg.textContent = (ReaderAuth.CODES && ReaderAuth.CODES.bad_image) || 'Choose a PNG, JPEG, or WebP image.';
+      pendingFile = null; pfGo.disabled = true; pfFile.value = ''; return;
+    }
+    if (f.size > 3 * 1024 * 1024) {
+      pfMsg.className = 'msg err'; pfMsg.textContent = 'Image too large — max 3 MB.';
+      pendingFile = null; pfGo.disabled = true; pfFile.value = ''; return;
+    }
+    pendingFile = f;
+    pfPreview.className = 'avatar';
+    pfPreview.innerHTML = '<img src="' + URL.createObjectURL(f) + '" alt="">';
+    pfGo.disabled = !verified;
+  });
+
+  pfGo.addEventListener('click', async function () {
+    if (pfGo.disabled || !verified || !pendingFile) return;
+    pfMsg.className = 'msg'; pfMsg.textContent = '';
+    setBusy(pfGo, true, 'Uploading', 'Upload', pfGoText);
+    try {
+      var done = await ReaderAuth.setPhoto(pendingFile);
+      setPreview(done.photoUrl || null);
+      pendingFile = null; pfFile.value = '';
+      pfMsg.className = 'msg ok'; pfMsg.textContent = 'Photo updated — it’s live on the Top Readers page.';
+      setBusy(pfGo, false, '', 'Upload', pfGoText); pfGo.disabled = true;
+    } catch (e) {
+      setBusy(pfGo, false, '', 'Upload', pfGoText);
+      pfMsg.className = 'msg err'; pfMsg.textContent = (e && e.message) || 'Upload failed — please try again.';
+    }
+  });
 })();
 </script>
 </body>
