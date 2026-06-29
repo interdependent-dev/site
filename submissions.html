@@ -670,7 +670,7 @@ if (window.pdfjsLib) {
 <!-- Canonical "finished read" definition, shared verbatim with the API. -->
 <script src="/lib/read-gate.js"></script>
 <!-- Reader XP bar + gain toasts. -->
-<script src="/lib/xp-bar.js?v=2026-06-29c"></script>
+<script src="/lib/xp-bar.js?v=2026-06-29d"></script>
 
 <script>
 const API = 'https://interdependent-api.onrender.com';
@@ -2653,7 +2653,9 @@ window.refreshXpChip = async function () {
     if (!chip || !window.ReaderAuth || !window.XpBar) return;
     const r = ReaderAuth.getReader && ReaderAuth.getReader();
     if (!r || !r.handle) { chip.style.display = 'none'; return; }
-    const xp = await XpBar.fetch(r.handle);
+    // sync (not fetch) so crossing a perk threshold after an action auto-fires
+    // the level-up celebration. The first call just seeds the baseline.
+    const xp = await XpBar.sync(r.handle);
     if (!xp) { chip.style.display = 'none'; return; }
     const role = xp.role || 'Reader';
     const num = String(xp.totalXp || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
