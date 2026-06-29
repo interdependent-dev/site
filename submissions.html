@@ -405,12 +405,16 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .nav-h{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase;padding:0 16px 12px;border-bottom:1px solid #161616;margin-bottom:6px}
 .nav-note{padding:14px 16px;color:#666;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase}
 /* scene rows */
-.nav-sc{display:flex;gap:9px;width:100%;text-align:left;background:none;border:none;border-left:2px solid transparent;color:#9a9a9a;padding:7px 16px;font-family:'Courier New',monospace;font-size:11.5px;line-height:1.4;cursor:pointer;transition:color .12s,background .12s}
+.nav-sc{display:flex;align-items:flex-start;gap:11px;width:100%;text-align:left;background:none;border:none;border-left:2px solid transparent;color:#9a9a9a;padding:8px 16px;font-family:'Courier New',monospace;font-size:11.5px;line-height:1.4;cursor:pointer;transition:color .12s,background .12s}
 .nav-sc:hover{color:#fff;background:#141414}
 .nav-sc.cur{color:#fff;background:#141414;border-left-color:red}
-.sc-pg{flex-shrink:0;min-width:22px;color:#5e5e5e;font-size:10px;padding-top:1px;text-align:right}
+/* scene number — the prominent leading label for each scene */
+.sc-no{flex-shrink:0;min-width:26px;text-align:right;font-weight:700;font-size:13.5px;line-height:1.32;color:#ededed;font-variant-numeric:tabular-nums}
+.nav-sc:hover .sc-no{color:#fff}
+.nav-sc.cur .sc-no{color:red}
+.sc-txt{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sc-pg{flex-shrink:0;color:#5e5e5e;font-size:9.5px;line-height:1.7;text-align:right;white-space:nowrap}
 .nav-sc.cur .sc-pg{color:#999}
-.sc-txt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* page rows (fallback when no scenes detected) */
 .nav-pg{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;background:none;border:none;border-left:2px solid transparent;color:#8a8a8a;padding:7px 16px;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:11px;letter-spacing:.05em;cursor:pointer;transition:color .12s,background .12s}
 .nav-pg:hover{color:#fff;background:#141414}
@@ -2379,7 +2383,7 @@ async function buildSceneNav(pdf, base, scale, slots, token) {
 
   scenes.forEach(s => { s.scrollY = 28 + (s.page - 1) * ph18 + s.inPageY; });
   nav.innerHTML = `<div class="nav-h">${scenes.length} Scenes</div>` +
-    scenes.map((s, i) => `<button class="nav-sc" data-i="${i}"><span class="sc-pg">${s.page}</span><span class="sc-txt">${esc(s.text)}</span></button>`).join('');
+    scenes.map((s, i) => `<button class="nav-sc" data-i="${i}"><span class="sc-no">${i + 1}</span><span class="sc-txt">${esc(s.text)}</span><span class="sc-pg">p${s.page}</span></button>`).join('');
   const btns = [...nav.querySelectorAll('.nav-sc')];
   btns.forEach((b, i) => b.addEventListener('click', () => { doc.scrollTop = Math.max(0, scenes[i].scrollY - 16); closeNavOverlayIfCompact(); }));
   installNavHighlight(scenes.map((s, i) => ({ scrollY: s.scrollY, btn: btns[i] })));
