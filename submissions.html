@@ -705,6 +705,9 @@ function getValidToken() {
 const _q = new URLSearchParams(location.search);
 const REC_ID = _q.get('rec');
 const REC_BY = _q.get('by') || '';
+// ?script=<id> opens a script's detail directly (e.g. from the Top Readers
+// page) — same modal as a row click, WITHOUT the "recommended for you" framing.
+const SCRIPT_ID = _q.get('script');
 const _tk = localStorage.getItem('session_token');
 const _ex = parseInt(localStorage.getItem('session_expires') || '0', 10);
 const HAS_TOKEN = !!_tk && Date.now() < _ex;
@@ -2519,6 +2522,7 @@ if (window.GUEST_REC) {
 } else {
   loadSubmissions();
   if (REC_ID) { showRecBanner(REC_ID, REC_BY); openModal(REC_ID); } // signed-in, following a rec link
+  else if (SCRIPT_ID) { openModal(SCRIPT_ID); } // open a script's detail directly (no rec banner)
 }
 </script>
 </body>

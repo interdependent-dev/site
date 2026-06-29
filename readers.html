@@ -138,7 +138,7 @@ function avatarHtml(rd) {
 // A read is a link to the screenplay's detail in the portal (opens via ?rec=).
 function readRow(r) {
   const pct = Math.max(0, Math.min(100, r.pct));
-  return `<a class="read${r.finished ? ' done' : ''}" href="/submissions.html?rec=${encodeURIComponent(r.id)}" target="_blank" rel="noopener" title="Open “${esc(r.title)}”">
+  return `<a class="read${r.finished ? ' done' : ''}" href="/submissions.html?script=${encodeURIComponent(r.id)}" target="_blank" rel="noopener" title="Open “${esc(r.title)}”">
     <span class="t">${esc(r.title)}</span>
     <span class="bar"><span style="width:${pct}%"></span></span>
     <span class="pct">${r.pct}%</span>
