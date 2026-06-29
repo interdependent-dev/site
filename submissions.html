@@ -370,6 +370,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .preview-pane.open{display:block}
 .preview-bar{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#0a0a0a;border-bottom:1px solid #1c1c1c}
 .preview-bar span{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.16em;color:#888;text-transform:uppercase}
+.preview-bar .preview-progress{margin-left:auto;margin-right:12px;font-family:'Courier New',monospace;font-size:10px;letter-spacing:.04em;color:#cfcfcf;text-transform:none}
 .preview-bar button{background:none;border:none;color:#888;cursor:pointer;font-size:16px;line-height:1;padding:0 4px}
 .preview-bar button:hover{color:#fff}
 .preview-scroll{height:480px;overflow-y:auto;background:#1d1d1f;padding:16px 0}
@@ -1616,7 +1617,7 @@ async function openModal(id) {
         <div class="read-err" id="readErr"></div>
       </div>
       <div class="preview-pane" id="previewPane">
-        <div class="preview-bar"><span>Inline preview</span><button id="previewClose" aria-label="Close preview">×</button></div>
+        <div class="preview-bar"><span>Inline preview</span><span class="preview-progress" id="previewProgress" aria-live="polite"></span><button id="previewClose" aria-label="Close preview">×</button></div>
         <div class="preview-scroll" id="previewScroll"></div>
       </div>` : '';
 
@@ -1762,6 +1763,15 @@ function myReadPct(scriptId) {
   return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
 }
 
+// Show the read amount as "pages read / total pages" (derived from the honest
+// read % so it tracks the same depth+time metric). Falls back to a % when the
+// page count is unknown.
+function readPagesLabel(pct, pages) {
+  pct = Math.max(0, Math.min(100, Math.round(pct || 0)));
+  if (!pages || pages <= 0) return `${pct}%`;
+  return `${Math.min(pages, Math.round((pct / 100) * pages))} / ${pages} pages`;
+}
+
 // OPEN model (no gate): anyone can leave feedback, recommend, or champion — read or
 // not. Reading is shown, never required: how much you've read travels with anything
 // you recommend or champion, so credibility is earned in the open. The action buttons
@@ -1773,8 +1783,9 @@ function renderModalActions(row) {
 
   const fed = hasLeftFeedback(row.id);
   const pct = myReadPct(row.id);
+  const pages = row.page_count || row.pageCount || 0;
   const readLine = pct > 0
-    ? `<div class="hr-read">You've read <b>${pct}%</b> of this — your reading is shown on anything you recommend or champion.</div>`
+    ? `<div class="hr-read">You've read <b>${readPagesLabel(pct, pages)}</b> — your reading is shown on anything you recommend or champion.</div>`
     : `<div class="hr-read">You can recommend or champion this freely — others will see how much of it you've actually read.</div>`;
 
   gate.innerHTML = `
@@ -2067,6 +2078,7 @@ async function championScript(row, btn, msgEl) {
 }
 
 function closeModal() {
+  stopPreviewTracking(); // persist + tear down any preview read tracking
   document.getElementById('modalBack').classList.remove('open');
   updateRecBanner();
 }
@@ -2158,7 +2170,7 @@ function wireReadActions(row) {
   const pscroll = document.getElementById('previewScroll');
   const aPreview = document.getElementById('aPreview');
   if (aPreview) aPreview.addEventListener('click', async () => {
-    if (pane.classList.contains('open')) { pane.classList.remove('open'); pscroll.innerHTML = ''; return; }
+    if (pane.classList.contains('open')) { stopPreviewTracking(); pane.classList.remove('open'); pscroll.innerHTML = ''; return; }
     fail('');
     if (window.Analytics) Analytics.track('quick_preview', { script_id: row.id, source: window.GUEST_REC ? 'recommend' : 'portal', recommender: REC_BY || undefined });
     pane.classList.add('open');
@@ -2166,11 +2178,12 @@ function wireReadActions(row) {
     try {
       const url = await signedPdfUrl(row.id);
       await renderPdfInto(pscroll, url, { maxW: 560 });
+      startPreviewTracking(row); // count read depth + time in the preview too
       pane.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (e) { pane.classList.remove('open'); fail(e.message || 'Could not load preview'); }
   });
   const previewClose = document.getElementById('previewClose');
-  if (previewClose) previewClose.addEventListener('click', () => { pane.classList.remove('open'); pscroll.innerHTML = ''; });
+  if (previewClose) previewClose.addEventListener('click', () => { stopPreviewTracking(); pane.classList.remove('open'); pscroll.innerHTML = ''; });
 }
 
 // ── full-screen reader ────────────────────────────────────────────────────────
@@ -2186,7 +2199,7 @@ function updateReaderProgress() {
   const a = _readerAnalytics;
   const pct = readingPctOf(a.maxDepth, a.activeSec, a.pages);
   const m = Math.floor((a.activeSec || 0) / 60);
-  el.textContent = `Read ${pct}%` + (m ? ` · ${m}m` : '');
+  el.textContent = readPagesLabel(pct, a.pages) + (m ? ` · ${m}m` : '');
 }
 
 function sendReadProgress() {
@@ -2207,6 +2220,90 @@ function sendReadProgress() {
     source: _readerAnalytics.source,
     recommender: REC_BY || undefined,
   });
+}
+
+// Refresh the modal's "You've read …" line from the latest stored progress, so
+// it reflects reading done in the preview or reader without reopening the modal.
+function refreshDetailReadLine() {
+  if (!_modalRow) return;
+  const el = document.querySelector('#hrGate .hr-read');
+  if (!el) return;
+  const pct = myReadPct(_modalRow.id);
+  const pages = _modalRow.page_count || _modalRow.pageCount || 0;
+  el.innerHTML = pct > 0
+    ? `You've read <b>${readPagesLabel(pct, pages)}</b> — your reading is shown on anything you recommend or champion.`
+    : `You can recommend or champion this freely — others will see how much of it you've actually read.`;
+}
+
+// ── Quick-preview read tracking ───────────────────────────────────────────────
+// The inline preview tracks read depth + active time exactly like the full
+// reader, persisting to the SAME localStorage keys — so progress carries when
+// you switch between preview and reader (each restores on open). The two never
+// count at once: the preview tick pauses while the full reader is open.
+let _previewAnalytics = null, _previewScrollFn = null, _previewBumpFn = null, _previewTick = null, _previewHeartbeat = null;
+
+function updatePreviewProgress() {
+  if (!_previewAnalytics) return;
+  const el = document.getElementById('previewProgress');
+  if (!el) return;
+  const a = _previewAnalytics;
+  el.textContent = readPagesLabel(readingPctOf(a.maxDepth, a.activeSec, a.pages), a.pages);
+}
+
+function persistPreview() {
+  if (!_previewAnalytics) return;
+  const a = _previewAnalytics;
+  localStorage.setItem(`idp_read_depth:${a.id}`, String(Math.round(a.maxDepth || 0)));
+  localStorage.setItem(`idp_read_sec:${a.id}`, String(Math.round(a.activeSec || 0)));
+  localStorage.setItem(`idp_read_pct:${a.id}`, String(readingPctOf(a.maxDepth, a.activeSec, a.pages)));
+  maybeMarkRead(a.id, a.maxDepth, a.activeSec, a.pages);
+  if (window.Analytics) Analytics.track('read_progress', { script_id: a.id, depth_pct: a.maxDepth, seconds: a.activeSec, source: a.source, recommender: REC_BY || undefined });
+}
+
+function startPreviewTracking(row) {
+  stopPreviewTracking();
+  const sc = document.getElementById('previewScroll');
+  if (!sc || !row) return;
+  _previewAnalytics = {
+    id: row.id,
+    maxDepth: parseInt(localStorage.getItem(`idp_read_depth:${row.id}`) || '0', 10) || 0,
+    activeSec: parseInt(localStorage.getItem(`idp_read_sec:${row.id}`) || '0', 10) || 0,
+    pages: row.page_count || row.pageCount || null,
+    lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal',
+  };
+  updatePreviewProgress();
+  _previewBumpFn = () => { if (_previewAnalytics) _previewAnalytics.lastActive = Date.now(); };
+  _previewScrollFn = () => {
+    if (!_previewAnalytics) return;
+    const sh = sc.scrollHeight - sc.clientHeight;
+    const pct = sh > 0 ? Math.min(100, Math.round((sc.scrollTop / sh) * 100)) : 0;
+    if (pct > _previewAnalytics.maxDepth) _previewAnalytics.maxDepth = pct;
+    _previewBumpFn(); updatePreviewProgress();
+  };
+  sc.addEventListener('scroll', _previewScrollFn, { passive: true });
+  ['pointermove', 'pointerdown', 'touchstart'].forEach((e) => sc.addEventListener(e, _previewBumpFn, { passive: true }));
+  _previewTick = setInterval(() => {
+    if (_previewAnalytics && !document.getElementById('reader').classList.contains('open')
+        && document.visibilityState === 'visible' && (Date.now() - _previewAnalytics.lastActive) < 180000) {
+      _previewAnalytics.activeSec += 1; updatePreviewProgress();
+    }
+  }, 1000);
+  _previewHeartbeat = setInterval(persistPreview, 60000);
+}
+
+function stopPreviewTracking() {
+  if (!_previewAnalytics) return;
+  persistPreview();
+  const sc = document.getElementById('previewScroll');
+  if (sc) {
+    if (_previewScrollFn) sc.removeEventListener('scroll', _previewScrollFn);
+    if (_previewBumpFn) ['pointermove', 'pointerdown', 'touchstart'].forEach((e) => sc.removeEventListener(e, _previewBumpFn));
+  }
+  if (_previewTick) clearInterval(_previewTick);
+  if (_previewHeartbeat) clearInterval(_previewHeartbeat);
+  _previewScrollFn = _previewBumpFn = _previewTick = _previewHeartbeat = null;
+  _previewAnalytics = null;
+  refreshDetailReadLine();
 }
 
 // The reader renders pages LAZILY: a full screenplay can be 120 pages, and
@@ -2391,6 +2488,7 @@ async function buildSceneNav(pdf, base, scale, slots, token) {
 
 function openReader(row) {
   if (_readerAnalytics) closeReader(); // defensive: never stack two reader sessions
+  stopPreviewTracking(); // hand off from the preview — its progress is persisted, the reader restores it below
   const ev = parseEval(row);
   const n  = normalizeEval(ev);
   readerCurrentId = row.id;
@@ -2482,12 +2580,16 @@ function closeReader() {
   }
   teardownReader();
   refreshModalGates(); // finishing the read may have just unlocked the actions + activity
+  // If the preview pane is still open behind the reader, resume its tracking so
+  // its readout reflects the reading just done in the reader (restored from localStorage).
+  const _pp = document.getElementById('previewPane');
+  if (_pp && _pp.classList.contains('open') && _modalRow) startPreviewTracking(_modalRow);
 }
 
 document.getElementById('readerBack').addEventListener('click', closeReader);
 // flush read depth + time when the tab is hidden or the page is left mid-read
-window.addEventListener('pagehide', sendReadProgress);
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') sendReadProgress(); });
+window.addEventListener('pagehide', () => { sendReadProgress(); persistPreview(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { sendReadProgress(); persistPreview(); } });
 
 const navToggleEl  = document.getElementById('navToggle');
 const railToggleEl = document.getElementById('railToggle');

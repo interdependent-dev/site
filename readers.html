@@ -60,7 +60,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .read .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ddd}
 .read .bar{width:110px;height:6px;background:#1c1c1c;border-radius:3px;overflow:hidden;flex-shrink:0}
 .read .bar span{display:block;height:100%;background:#FF0000}
-.read .pct{width:40px;text-align:right;color:#bbb;font-family:'Courier New',monospace;font-size:12px;flex-shrink:0}
+.read .pct{min-width:48px;text-align:right;color:#bbb;font-family:'Courier New',monospace;font-size:12px;flex-shrink:0;white-space:nowrap}
 .read .go{width:13px;height:13px;color:#555;flex-shrink:0;transition:color .12s}
 .read:hover .go{color:#FF0000}
 .read.done .pct{color:#3ec46a}
@@ -138,10 +138,12 @@ function avatarHtml(rd) {
 // A read is a link to the screenplay's detail in the portal (opens via ?rec=).
 function readRow(r) {
   const pct = Math.max(0, Math.min(100, r.pct));
-  return `<a class="read${r.finished ? ' done' : ''}" href="/submissions.html?script=${encodeURIComponent(r.id)}" target="_blank" rel="noopener" title="Open “${esc(r.title)}”">
+  // Show pages read / total when we know the page count; fall back to % otherwise.
+  const label = r.pages ? `${Math.min(r.pages, Math.round((pct / 100) * r.pages))}/${r.pages}` : `${r.pct}%`;
+  return `<a class="read${r.finished ? ' done' : ''}" href="/submissions.html?script=${encodeURIComponent(r.id)}" target="_blank" rel="noopener" title="Open “${esc(r.title)}” · ${r.pages ? label + ' pages read' : label + ' read'}">
     <span class="t">${esc(r.title)}</span>
     <span class="bar"><span style="width:${pct}%"></span></span>
-    <span class="pct">${r.pct}%</span>
+    <span class="pct">${label}</span>
     ${GO_SVG}
   </a>`;
 }
