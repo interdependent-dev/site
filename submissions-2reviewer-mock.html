@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="noindex">
+<title>INTERDEPENDENT — SUBMISSIONS · 2-REVIEWER CONCEPT (MOCK)</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   STAGED MOCKUP — two-reviewer submissions concept.
+   Self-contained: no API, no auth. Mock data baked in below.
+   Throwaway unless committed/pushed to main.
+   Base styles lifted from the live submissions.html so it reads on-brand.
+   ───────────────────────────────────────────────────────────────────────── */
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Bold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Eurostile Wide";src:url("fonts/EurostileNextPro-WideBold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap}
+
+*{margin:0;box-sizing:border-box}
+html{background:#000;color:#fff;color-scheme:dark;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;display:flex;flex-direction:column}
+.eur{font-family:"Eurostile",'Helvetica Neue',sans-serif}
+
+/* mock banner */
+.mockbar{background:#1a1206;border-bottom:1px solid #3a2a0a;color:#fbbf24;
+  font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  padding:9px 32px;line-height:1.6}
+.mockbar b{color:#fde68a}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid #181818;position:sticky;top:0;background:#000;z-index:10}
+.logo{display:flex;align-items:center;gap:14px;text-decoration:none}
+.logo svg{width:32px;height:auto}
+.logo-name{font-family:"Eurostile Wide","Eurostile",sans-serif;font-weight:700;font-size:11px;letter-spacing:.28em;color:#999;text-transform:uppercase}
+.logo-name b{color:#fff}
+
+main{flex:1;padding:40px 32px;max-width:1040px;margin:0 auto;width:100%}
+
+.section-label{font-family:"Eurostile",sans-serif;font-size:11px;letter-spacing:.25em;color:#888;text-transform:uppercase;padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:14px}
+.section-sub{font-size:12px;color:#777;margin-bottom:22px;max-width:640px;line-height:1.7}
+
+/* ── reviewer segmented control ── */
+.rev-switch{display:inline-flex;border:1px solid #2a2a2a;margin-bottom:26px;background:#0a0a0a}
+.rev-switch button{
+  background:none;border:none;border-right:1px solid #2a2a2a;
+  padding:11px 20px;color:#888;cursor:pointer;
+  font-family:"Eurostile",sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  display:flex;align-items:center;gap:9px;transition:color .15s,background .15s}
+.rev-switch button:last-child{border-right:none}
+.rev-switch button:hover{color:#ccc}
+.rev-switch button.on{background:#fff;color:#000}
+.rev-switch button .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-casey{background:#38bdf8}
+.dot-baraka{background:#c084fc}
+.rev-switch button.on .dot{box-shadow:0 0 0 2px rgba(0,0,0,.15)}
+
+/* ── result card ── */
+.card{border:1px solid #1c1c1c;background:#070707;padding:30px 30px 34px}
+.result-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #181818}
+.result-title{font-family:"Eurostile",sans-serif;font-weight:700;font-size:21px;letter-spacing:.05em;text-transform:uppercase;line-height:1.3}
+.result-date{font-size:11px;color:#777;margin-top:5px}
+.rev-tag{display:inline-flex;align-items:center;gap:7px;font-family:"Eurostile",sans-serif;font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#aaa;margin-top:9px}
+.rev-tag .dot{width:8px;height:8px;border-radius:50%}
+.badge{font-family:"Eurostile",sans-serif;padding:6px 13px;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;flex-shrink:0;color:#fff}
+
+.meta-grid{display:flex;flex-wrap:wrap;gap:18px 26px;margin-bottom:22px}
+.meta-item{display:flex;flex-direction:column;gap:3px}
+.meta-key{font-family:"Eurostile",sans-serif;font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase}
+.meta-val{font-size:13px;color:#ddd}
+
+.comps-row{margin-bottom:22px}
+.comps-key,.scores-key,.summary-key,.block-key{font-family:"Eurostile",sans-serif;font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase;margin-bottom:10px}
+.comps-val{font-size:12.5px;color:#aaa;font-style:italic;line-height:1.8}
+
+.scores-block{margin-bottom:22px}
+.score-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.score-name{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.07em;color:#999;text-transform:uppercase;width:150px;flex-shrink:0}
+.score-track{flex:1;height:2px;background:#1c1c1c;position:relative}
+.score-fill{position:absolute;top:0;bottom:0;left:0}
+.fill-casey{background:#38bdf8}
+.fill-baraka{background:#c084fc}
+.fill-red{background:red}
+.score-num{font-size:12px;font-family:'Courier New',monospace;color:#ccc;width:26px;text-align:right;flex-shrink:0}
+.score-just{font-size:11.5px;color:#787878;line-height:1.62;margin:0 0 14px;max-width:680px}
+
+.weighted-row{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.weighted-key{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.15em;color:#777;text-transform:uppercase}
+.weighted-num{font-family:"Eurostile",sans-serif;font-weight:700;font-size:34px;letter-spacing:.02em}
+.weighted-denom{font-size:13px;color:#666}
+
+/* championability block (Baraka only) */
+.champ-wrap{margin:26px 0 22px;padding-top:22px;border-top:1px solid #181818}
+.champ-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.champ-rating{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spacing:.04em;text-transform:uppercase}
+.champ-axis-label{font-family:"Eurostile",sans-serif;font-size:9px;letter-spacing:.2em;color:#777;text-transform:uppercase}
+.champ-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.champ-cell{border:1px solid #1c1c1c;background:#0a0a0a;padding:14px 16px}
+.champ-cell h4{font-family:"Eurostile",sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.14em;color:#bbb;text-transform:uppercase;margin-bottom:7px}
+.champ-cell p{font-size:11.5px;color:#888;line-height:1.62}
+
+.summary-body{font-size:13px;color:#bbb;line-height:1.72;max-width:720px}
+
+/* ── COMPARE: two columns ── */
+.cmp-banner{display:flex;align-items:center;gap:12px;border:1px solid #1c1c1c;padding:13px 16px;margin-bottom:20px;font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.cmp-banner.agree{border-left:3px solid #16a34a;color:#86efac}
+.cmp-banner.split{border-left:3px solid #d97706;color:#fcd34d}
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #1c1c1c}
+.cmp-col{padding:22px 22px 26px}
+.cmp-col+.cmp-col{border-left:1px solid #1c1c1c}
+.cmp-col-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.cmp-rev{display:inline-flex;align-items:center;gap:8px;font-family:"Eurostile",sans-serif;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff}
+.cmp-rev .dot{width:9px;height:9px;border-radius:50%}
+.cmp-sub{font-size:10.5px;color:#666;margin-bottom:16px;line-height:1.5}
+.cmp-headline{display:flex;align-items:baseline;gap:8px;margin:4px 0 4px}
+.cmp-big{font-family:"Eurostile",sans-serif;font-weight:700;font-size:30px;letter-spacing:.02em}
+.cmp-denom{font-size:12px;color:#666}
+.cmp-2ndaxis{font-size:11px;color:#999;margin-bottom:16px}
+.cmp-2ndaxis b{font-family:"Eurostile",sans-serif;letter-spacing:.06em}
+.cmp-mini .score-name{width:122px;font-size:9px}
+.cmp-note{font-size:11.5px;color:#8a8a8a;line-height:1.66;margin-top:14px;border-top:1px solid #181818;padding-top:14px}
+
+/* ── table ── */
+hr{border:none;border-top:1px solid #181818;margin:46px 0 30px}
+.table-wrap{overflow-x:auto}
+.sub-table{width:100%;border-collapse:collapse}
+.sub-table th{font-family:"Eurostile",sans-serif;font-size:9px;letter-spacing:.18em;color:#777;text-transform:uppercase;text-align:left;padding:0 14px 12px 0;font-weight:400;white-space:nowrap;border-bottom:1px solid #181818}
+.col-rev{border-bottom:2px solid #222}
+.th-casey{color:#7dd3fc}
+.th-baraka{color:#d8b4fe}
+.sub-table td{padding:14px 14px 14px 0;border-bottom:1px solid #111;font-size:12.5px;color:#999;vertical-align:middle}
+.sub-table tr.clickable{cursor:pointer}
+.sub-table tr.clickable:hover td{color:#fff;background:#080808}
+.td-title{color:#eee;font-size:13px;font-weight:500}
+.td-title small{display:block;color:#666;font-weight:400;font-size:10.5px;letter-spacing:.04em;margin-top:2px}
+.cell-rev{white-space:nowrap}
+.rev-score{font-family:'Courier New',monospace;color:#ccc;font-size:12.5px;margin-right:9px}
+.rev-2nd{font-family:"Eurostile",sans-serif;font-size:9px;letter-spacing:.08em;color:#999;margin-right:9px}
+.chip{font-family:"Eurostile",sans-serif;padding:3px 8px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;color:#fff;display:inline-block}
+.chip-ghost{background:none;border:1px dashed #333;color:#666;letter-spacing:.1em}
+.run-pill{font-family:"Eurostile",sans-serif;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#c084fc;border:1px solid #3a2a52;background:#150d22;padding:4px 10px;cursor:pointer}
+.split-mark{color:#d97706;font-family:"Eurostile",sans-serif;font-size:9px;letter-spacing:.1em;margin-left:6px}
+.agree-mark{color:#3f6f4a;font-family:"Eurostile",sans-serif;font-size:9px;letter-spacing:.1em;margin-left:6px}
+
+.legend{display:flex;flex-wrap:wrap;gap:18px;margin:18px 0 0;font-family:"Eurostile",sans-serif;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#777}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend .dot{width:9px;height:9px;border-radius:50%}
+
+@media(max-width:760px){
+  main{padding:30px 18px}
+  .champ-grid,.cmp-grid{grid-template-columns:1fr}
+  .cmp-col+.cmp-col{border-left:none;border-top:1px solid #1c1c1c}
+  .score-name{width:118px}
+  header,.mockbar{padding-left:18px;padding-right:18px}
+}
+</style>
+</head>
+<body>
+
+<div class="mockbar eur">⚠ Staged mockup — <b>two-reviewer concept</b> for interdependent.studio/submissions. Not wired to the live API. Real data: Publicity (Casey&nbsp;58 + Baraka). Other rows are illustrative. Throwaway unless committed.</div>
+
+<header>
+  <a href="#" class="logo">
+    <svg viewBox="0 0 74.6 89.4" fill-rule="evenodd" aria-hidden="true"><path fill="red" d="M9.3 28a28 28 0 1 0 56 0 28 28 0 1 0-56 0M20 64.9a7.5 7.3 0 1 0 15 0 7.5 7.3 0 1 0-15 0M23.2 64.7a4.1 4.1 0 1 0 8.2 0 4.1 4.1 0 1 0-8.2 0M43.9 60a4 4 0 1 0 8 0 4 4 0 1 0-8 0M45.5 60a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0M37.3 72.7a3.3 3.3 0 1 0 6.6 0 3.3 3.3 0 1 0-6.6 0M29.3 85.4a4 4 0 1 0 8 0 4 4 0 1 0-8 0M0 50.7a6.7 6.7 0 1 0 13.4 0 6.7 6.7 0 1 0-13.4 0M61.3 49.3a6.7 6.7 0 1 0 13.3 0 6.7 6.7 0 1 0-13.3 0"/></svg>
+    <span class="logo-name"><b>Interdependent</b> · Submissions</span>
+  </a>
+  <span class="logo-name" style="color:#555">2-Reviewer Concept</span>
+</header>
+
+<main>
+  <div class="section-label">Evaluation</div>
+  <p class="section-sub">Each script can now be read by two independent analysts. <b style="color:#7dd3fc">Casey</b> returns a single weighted craft score (0–100). <b style="color:#d8b4fe">Baraka</b> returns a craft score <em>and</em> a separate Championability rating (would an exec advocate?), combined through a decision matrix. Toggle a reviewer, or compare them side by side.</p>
+
+  <div class="rev-switch" id="revSwitch">
+    <button data-view="casey"><span class="dot dot-casey"></span>Casey</button>
+    <button data-view="baraka"><span class="dot dot-baraka"></span>Baraka</button>
+    <button data-view="compare" class="on">⇄ Compare</button>
+  </div>
+
+  <div class="card" id="resultCard"></div>
+
+  <hr>
+
+  <div class="section-label">Past Submissions</div>
+  <p class="section-sub" style="margin-bottom:14px">Two reviewer columns. Casey has read the full back catalogue; Baraka is new, so most rows show <span style="color:#c084fc">Run&nbsp;Baraka</span> until a second read is requested. When both have read a script, agreement and splits surface at a glance.</p>
+  <div class="table-wrap">
+    <table class="sub-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Pages</th>
+          <th class="col-rev th-casey">Casey · Craft</th>
+          <th class="col-rev th-baraka">Baraka · Craft + Champ</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="subBody"></tbody>
+    </table>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:#16a34a"></span>Recommend</span>
+    <span><span class="dot" style="background:#d97706"></span>Consider</span>
+    <span><span class="dot" style="background:#dc2626"></span>Pass</span>
+    <span style="color:#3f6f4a">▲ reviewers agree</span>
+    <span style="color:#d97706">◆ reviewers split</span>
+  </div>
+</main>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   MOCK DATA
+   - Publicity: REAL. Casey headline (58.0 / PASS / Comedy-Satire / $8M /
+     "spike") is from the live dataset; Casey category breakdown is
+     reconstructed to weight to ~58 for the mock. Baraka is a real read of
+     the 111-page script against the Baraka rubric.
+   - Other rows: real Casey headline scores; Baraka shown "not run" (the
+     realistic migration state). One [SAMPLE] row is fully synthetic to show
+     a reviewer split.
+   ════════════════════════════════════════════════════════════════════════ */
+const DEC = { RECOMMEND:'#16a34a', CONSIDER:'#d97706', PASS:'#dc2626' };
+const CHAMP = { HIGH:'#16a34a', MEDIUM:'#d97706', LOW:'#8a8a8a' };
+
+const PUBLICITY = {
+  title:'Publicity', pages:111, date:'Dec 19, 2025',
+  casey:{
+    decision:'PASS', weighted_score:58.0, genre:'Comedy / Satire', country:'US', budget:'$8,000,000',
+    comparable_films:[{title:'The Player'},{title:'Wag the Dog'},{title:'Tropic Thunder'}],
+    scores:{
+      theme:{score:7,justification:'A clear, biting thesis — manufactured celebrity and a complicit, apathetic public — runs end to end and pays off in the "nobody cares" finale.'},
+      character:{score:5,justification:'Bonnie, Daisy and Dolores have genuine arcs; the rest of the ensemble are vivid but single-note gag archetypes serving the satire.'},
+      dialogue:{score:7,justification:'The strongest tool: Blake’s cynical wit, Daisy’s naive literalism and Dolores’s gallows gruffness give distinct, quotable voices.'},
+      'plot/structure':{score:5,justification:'Two strong engines and a superb ending, but an episodic, gag-driven middle and a late vampire swerve loosen the structure.'},
+      marketability:{score:5,justification:'A sharp hook and voice, but relentlessly indiscriminate offensiveness narrows it to a specialty / hard-R audience.'},
+      originality:{score:6,justification:'The apathy ending and tonal nerve feel fresh; the "Hollywood is fake" lane and shock-comedy idiom are well-trodden.'}
+    },
+    summary:'A fearless media satire whose cynical, public-apathy ending — the world learns vampires run the media and literally nobody cares — is a genuine gut-punch most studio comedies lack the nerve to land. Held back by a loose, sketch-like structure and humor offensive enough to limit its market. Verdict: PASS, but a real voice worth tracking.'
+  },
+  baraka:{
+    decision:'PASS', final_craft_score:55.5, championability_rating:'MEDIUM',
+    genre:'comedy, horror', country:'US', budget:'$12,000,000',
+    craft:{
+      story_architecture:{score:5,rationale:'Bonnie’s disillusionment and Daisy’s manufactured rise drive the story, and the apathy climax is both surprising and inevitable — but the middle is episodic and gag-driven, and the third-act vampire reveal is a tonal swerve grafted onto a media satire.'},
+      character_construction:{score:5,rationale:'Bonnie (idealist ground to madness), Daisy (fame found hollow) and Dolores (complicit cynic who finally acts, then despairs) carry real arcs; outside Blake, the rest are single-note mouthpieces for the thesis.'},
+      scene_craft:{score:5,rationale:'Scenes are reliably funny and visually inventive, but many exist to deliver an isolated shock-gag and don’t escalate; runners repeat by design and tension rarely compounds across scenes.'},
+      screenplay_execution:{score:6,rationale:'Clean, professional formatting and economical, confident action lines with strong comic timing on the page; a recurring handful of typos and looseness keep it just short of polished.'},
+      dialogue_effectiveness:{score:7,rationale:'The script’s sharpest craft tool — distinct, quotable voices supply most of the comedy; weakened only by the villain’s heavily on-the-nose final monologue.'},
+      thematic_cohesion:{score:7,rationale:'Exceptionally unified — every scene reinforces that media is manufactured and the public complicit, and the ending lands the argument cleanly.'},
+      emotional_engagement:{score:5,rationale:'Page-turning as comedy, but the relentless transgression keeps the audience at arm’s length; the payoff is intellectually satisfying yet deliberately cold, with real pathos only in Dolores’s arc and Bonnie’s closing manic laugh.'}
+    },
+    craft_justification:'Greatest strengths: a razor-sharp, fully cohesive satirical thesis and a confident comic voice carried by excellent dialogue, culminating in a bold "world learns the truth and shrugs" climax. Limitations are structural and tonal: an episodic middle, thesis-vehicle characters outside the three leads, a late horror swerve, and humor indiscriminate enough to cap emotional engagement.',
+    championability:{
+      distinctiveness:{description:'A manufactured-celebrity machine, a literal vampire cabal running all media, and an ending where the exposed conspiracy meets pure public apathy is a bold swing. But "media is fake" is a worn lane (The Player, Wag the Dog, BoJack) and the shock-comedy idiom is familiar, so the freshness is in execution and nerve more than premise.'},
+      writers_voice:{description:'A strong, consistent, misanthropic-satirical voice with a clear point of view and real comic confidence — a signature you’d recognize in a future anonymous script. Plainly suited to dark social satire.'},
+      memorability:{description:'Several sticky beats survive: the apathetic press-conference climax and its poll, Blake’s villain musical number, the demon-baby button, and the Amish-girl-to-A-lister rise. "Nobody cares" is the natural talking point.'},
+      genre_competence:{description:'Understands satirical dark comedy and delivers both laughs and a coherent payload, but frequently reaches for shock as an end in itself, and the indiscriminate offensiveness will alienate a meaningful share of any audience or buyer.'}
+    },
+    championability_justification:'Real reasons to advocate — a distinctive voice, a highly memorable ending, a bold hook — lift it clear of forgettable. But the derivative lane, craft looseness and taste liabilities make it a specialty / calling-card play, not a studio package: a genuine but qualified case to champion.'
+  }
+};
+
+// Table rows. Publicity = both real. Others: real Casey headline; Baraka "not run"
+// except one synthetic [SAMPLE] row that demonstrates a split.
+const ROWS = [
+  { title:"The Time Traveler's La Ronde", pages:112, date:'Jun 14', casey:{d:'RECOMMEND',s:86.0}, baraka:null },
+  { title:"Christmas Time Is Here", pages:124, date:'Jun 12', casey:{d:'RECOMMEND',s:85.5}, baraka:null },
+  { title:"[SAMPLE] Static Bloom", sample:true, pages:98, date:'Jun 11',
+    casey:{d:'CONSIDER',s:72.0}, baraka:{craft:58.0, champ:'MEDIUM', d:'PASS'} },
+  { title:"JUMPMAN: The Legend of Shigeru Miyamoto", pages:118, date:'Jun 9', casey:{d:'CONSIDER',s:80.0}, baraka:null },
+  { title:"The Deadhead", pages:121, date:'Jun 7', casey:{d:'CONSIDER',s:80.0}, baraka:null },
+  { title:"Publicity", pages:111, date:'Dec 19', hero:true,
+    casey:{d:'PASS',s:58.0}, baraka:{craft:55.5, champ:'MEDIUM', d:'PASS'} },
+  { title:"The Loser's Club", pages:104, date:'Jun 3', casey:{d:'PASS',s:59.5}, baraka:null },
+];
+
+/* ── helpers ── */
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function badge(dec){ return `<span class="badge" style="background:${DEC[dec]||'#444'}">${dec}</span>`; }
+function bars(obj, fillClass, {scoreKey='score', justKey='justification', names=null}={}){
+  return Object.entries(obj).map(([k,v])=>{
+    const val = Number(v[scoreKey]); const pct = Math.max(0,Math.min(100,val*10));
+    const label = names ? names[k] : k.replace(/[_/]/g,' ');
+    const just = v[justKey];
+    return `<div class="score-row">
+      <span class="score-name">${esc(label)}</span>
+      <div class="score-track"><div class="score-fill ${fillClass}" style="width:${pct}%"></div></div>
+      <span class="score-num">${val}</span>
+    </div>${just?`<div class="score-just">${esc(just)}</div>`:''}`;
+  }).join('');
+}
+function metaGrid(pairs){
+  return pairs.filter(([,v])=>v!=null&&v!=='').map(([k,v])=>
+    `<div class="meta-item"><span class="meta-key">${k}</span><span class="meta-val">${esc(v)}</span></div>`).join('');
+}
+
+const CASEY_NAMES={theme:'Theme',character:'Character',dialogue:'Dialogue','plot/structure':'Plot / Structure',marketability:'Marketability',originality:'Originality'};
+const CRAFT_NAMES={story_architecture:'Story Architecture',character_construction:'Character Construction',scene_craft:'Scene Craft',screenplay_execution:'Screenplay Execution',dialogue_effectiveness:'Dialogue',thematic_cohesion:'Thematic Cohesion',emotional_engagement:'Emotional Engagement'};
+const CHAMP_NAMES={distinctiveness:'Distinctiveness',writers_voice:"Writer's Voice",memorability:'Memorability',genre_competence:'Genre Competence'};
+
+/* ── Casey renderer ── */
+function renderCasey(c){
+  return `
+    <div class="result-header">
+      <div>
+        <div class="result-title">${esc(PUBLICITY.title)}</div>
+        <div class="result-date">${PUBLICITY.date} · ${PUBLICITY.pages} pages</div>
+        <div class="rev-tag"><span class="dot dot-casey"></span>Casey · single weighted craft score</div>
+      </div>
+      ${badge(c.decision)}
+    </div>
+    <div class="meta-grid">${metaGrid([['Genre',c.genre],['Country',c.country],['Est. Budget',c.budget],['Pages',PUBLICITY.pages]])}</div>
+    <div class="comps-row"><div class="comps-key">Comparable Films</div><div class="comps-val">${c.comparable_films.map(f=>esc(f.title)).join(', ')}</div></div>
+    <div class="scores-block"><div class="scores-key">Score Breakdown · 6 categories</div>${bars(c.scores,'fill-casey',{names:CASEY_NAMES})}</div>
+    <div class="weighted-row"><span class="weighted-key">Weighted Craft Score</span><span class="weighted-num">${c.weighted_score.toFixed(1)}</span><span class="weighted-denom">/ 100</span></div>
+    <div style="margin-top:24px"><div class="summary-key">Summary</div><div class="summary-body">${esc(c.summary)}</div></div>`;
+}
+
+/* ── Baraka renderer ── */
+function renderBaraka(b){
+  const champCells = Object.entries(b.championability).map(([k,v])=>
+    `<div class="champ-cell"><h4>${CHAMP_NAMES[k]}</h4><p>${esc(v.description)}</p></div>`).join('');
+  return `
+    <div class="result-header">
+      <div>
+        <div class="result-title">${esc(PUBLICITY.title)}</div>
+        <div class="result-date">${PUBLICITY.date} · ${PUBLICITY.pages} pages</div>
+        <div class="rev-tag"><span class="dot dot-baraka"></span>Baraka · craft score + championability</div>
+      </div>
+      ${badge(b.decision)}
+    </div>
+    <div class="meta-grid">${metaGrid([['Genre',b.genre],['Country',b.country],['Est. Budget',b.budget],['Pages',PUBLICITY.pages]])}</div>
+    <div class="scores-block"><div class="scores-key">Craft Score · 7 categories</div>${bars(b.craft,'fill-baraka',{scoreKey:'score',justKey:'rationale',names:CRAFT_NAMES})}</div>
+    <div class="weighted-row"><span class="weighted-key">Weighted Craft Score</span><span class="weighted-num">${b.final_craft_score.toFixed(1)}</span><span class="weighted-denom">/ 100</span></div>
+    <div class="summary-body" style="margin-top:10px">${esc(b.craft_justification)}</div>
+    <div class="champ-wrap">
+      <div class="champ-head">
+        <div><div class="champ-axis-label">Championability</div><div class="champ-rating" style="color:${CHAMP[b.championability_rating]}">${b.championability_rating}</div></div>
+        <div style="font-size:11px;color:#666;max-width:340px;line-height:1.5">A second, independent axis: would a creative exec advocate for this? Scored apart from craft.</div>
+      </div>
+      <div class="champ-grid">${champCells}</div>
+      <div class="summary-body" style="margin-top:16px">${esc(b.championability_justification)}</div>
+    </div>`;
+}
+
+/* ── Compare renderer ── */
+function renderCompare(c,b){
+  const agree = c.decision===b.decision;
+  const banner = agree
+    ? `<div class="cmp-banner agree">▲ Reviewers agree · both ${c.decision} — Baraka’s second axis still adds signal (see Championability)</div>`
+    : `<div class="cmp-banner split">◆ Reviewers split · Casey ${c.decision} vs Baraka ${b.decision} — worth a human read</div>`;
+  const caseyMini = bars(c.scores,'fill-casey',{names:CASEY_NAMES});
+  const craftMini = bars(b.craft,'fill-baraka',{scoreKey:'score',justKey:'__none',names:CRAFT_NAMES})
+                      .replace(/<div class="score-just">[\s\S]*?<\/div>/g,''); // headlines only in compare
+  const caseyMiniHeadlines = caseyMini.replace(/<div class="score-just">[\s\S]*?<\/div>/g,'');
+  return `
+    <div class="result-header">
+      <div>
+        <div class="result-title">${esc(PUBLICITY.title)}</div>
+        <div class="result-date">${PUBLICITY.date} · ${PUBLICITY.pages} pages · two reviews</div>
+      </div>
+    </div>
+    ${banner}
+    <div class="cmp-grid">
+      <div class="cmp-col">
+        <div class="cmp-col-head"><span class="cmp-rev"><span class="dot dot-casey"></span>Casey</span>${badge(c.decision)}</div>
+        <div class="cmp-sub">Single weighted craft score · 6 categories</div>
+        <div class="cmp-headline"><span class="cmp-big" style="color:#7dd3fc">${c.weighted_score.toFixed(1)}</span><span class="cmp-denom">/ 100 craft</span></div>
+        <div class="cmp-2ndaxis" style="color:#555">No second axis</div>
+        <div class="scores-block cmp-mini">${caseyMiniHeadlines}</div>
+        <div class="cmp-note">${esc(c.summary)}</div>
+      </div>
+      <div class="cmp-col">
+        <div class="cmp-col-head"><span class="cmp-rev"><span class="dot dot-baraka"></span>Baraka</span>${badge(b.decision)}</div>
+        <div class="cmp-sub">Craft score + Championability · 7 categories + 4-axis advocacy read</div>
+        <div class="cmp-headline"><span class="cmp-big" style="color:#c084fc">${b.final_craft_score.toFixed(1)}</span><span class="cmp-denom">/ 100 craft</span></div>
+        <div class="cmp-2ndaxis">Championability <b style="color:${CHAMP[b.championability_rating]}">${b.championability_rating}</b></div>
+        <div class="scores-block cmp-mini">${craftMini}</div>
+        <div class="cmp-note">${esc(b.craft_justification)}</div>
+      </div>
+    </div>
+    <p class="section-sub" style="margin-top:20px;max-width:760px">Both reviewers land on <b>PASS</b>, but they disagree about <em>why it might matter</em>. Casey collapses everything into 58. Baraka separates a middling craft score (55.5) from a <b style="color:#d97706">MEDIUM</b> Championability — surfacing that the voice, the ending and the hook are advocacy-worthy even when the craft isn’t there yet. That second number is the case for two reviewers.`;
+}
+
+/* ── table ── */
+function caseyCell(r){
+  return `<span class="rev-score">${r.casey.s.toFixed(1)}</span><span class="chip" style="background:${DEC[r.casey.d]}">${r.casey.d}</span>`;
+}
+function barakaCell(r){
+  if(!r.baraka) return `<span class="run-pill">Run Baraka ▸</span>`;
+  return `<span class="rev-score">${r.baraka.craft.toFixed(1)}</span><span class="rev-2nd">${r.baraka.champ}</span><span class="chip" style="background:${DEC[r.baraka.d]}">${r.baraka.d}</span>`;
+}
+function splitMark(r){
+  if(!r.baraka) return '';
+  return r.casey.d===r.baraka.d ? `<span class="agree-mark">▲</span>` : `<span class="split-mark">◆</span>`;
+}
+document.getElementById('subBody').innerHTML = ROWS.map(r=>{
+  const cls = r.hero ? 'clickable' : '';
+  return `<tr class="${cls}" ${r.hero?'data-hero="1"':''}>
+    <td class="td-title">${esc(r.title)}${splitMark(r)}${r.hero?'<small>↑ shown above — full two-reviewer read</small>':''}${r.sample?'<small>synthetic example · reviewer split</small>':''}</td>
+    <td>${r.pages}</td>
+    <td class="cell-rev">${caseyCell(r)}</td>
+    <td class="cell-rev">${barakaCell(r)}</td>
+    <td>${r.date}</td>
+  </tr>`;
+}).join('');
+document.querySelectorAll('tr[data-hero]').forEach(tr=>tr.addEventListener('click',()=>{
+  document.getElementById('resultCard').scrollIntoView({behavior:'smooth',block:'start'});
+}));
+
+/* ── view switching ── */
+const card = document.getElementById('resultCard');
+function show(view){
+  if(view==='casey') card.innerHTML = renderCasey(PUBLICITY.casey);
+  else if(view==='baraka') card.innerHTML = renderBaraka(PUBLICITY.baraka);
+  else card.innerHTML = renderCompare(PUBLICITY.casey, PUBLICITY.baraka);
+  document.querySelectorAll('#revSwitch button').forEach(b=>b.classList.toggle('on', b.dataset.view===view));
+}
+document.querySelectorAll('#revSwitch button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
+
+// default view from ?view= (for screenshots), else compare
+const v = new URLSearchParams(location.search).get('view');
+show(['casey','baraka','compare'].includes(v)?v:'compare');
+</script>
+</body>
+</html>

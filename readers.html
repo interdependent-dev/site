@@ -72,6 +72,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .dec.g{background:#0f2a17;color:#3ec46a}.dec.m{background:#191919;color:#aaa}.dec.r{background:#2a0f0f;color:#ff6b6b}
 .fb-n{font-size:12.5px;color:#cfcfcf;line-height:1.55;margin-top:5px}
 .fb-n.muted{color:#999}
+.r-xp{margin-top:10px}
 @media(max-width:560px){header{padding:14px 20px}main{padding:32px 20px}.read .bar{width:64px}.r-name{font-size:15px}}
 </style>
 </head>
@@ -95,8 +96,10 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   <div id="list"><div class="state">Loading readers —</div></div>
 </main>
 
+<script src="/lib/xp-bar.js?v=2026-06-30k"></script>
 <script>
 const API = 'https://interdependent-api.onrender.com';
+window.IDP_API_BASE = API;
 
 // Reader role-icon — default avatar when a reader hasn't set a photo. Themed
 // via currentColor (see .avatar.ph). Mirrors /reader-icon.svg on disk.
@@ -170,6 +173,7 @@ function readerCard(rd, i) {
       <div class="r-id">
         <div class="r-name">${esc(rd.name)}<span class="r-handle">@${esc(rd.handle)}</span></div>
         <div class="r-sub">${summary}</div>
+        <div class="r-xp" id="xp-slot-${i}"></div>
       </div>
       ${CHEV_SVG}
     </button>
@@ -194,10 +198,26 @@ document.getElementById('list').addEventListener('click', (e) => {
   body.hidden = !open;
 });
 
+// XP standing per reader, keyed by handle. Fetched alongside the list; if the
+// endpoint isn't live yet the bars are simply omitted (graceful degradation).
+async function loadXpMap(t) {
+  try {
+    const res = await fetch(`${API}/xp/leaderboard`, { headers: { Authorization: `Bearer ${t}` } });
+    if (!res.ok) return {};
+    const { readers } = await res.json();
+    const map = {};
+    (readers || []).forEach((r) => { map[r.handle] = r; });
+    return map;
+  } catch { return {}; }
+}
+
 async function load() {
   const t = token(); if (!t) return;
   try {
-    const res = await fetch(`${API}/readers/list`, { headers: { Authorization: `Bearer ${t}` } });
+    const [res, xpMap] = await Promise.all([
+      fetch(`${API}/readers/list`, { headers: { Authorization: `Bearer ${t}` } }),
+      loadXpMap(t),
+    ]);
     if (res.status === 401) { window.location.href = '/passcode'; return; }
     if (!res.ok) throw new Error('load');
     const { readers } = await res.json();
@@ -209,6 +229,14 @@ async function load() {
     }
     document.getElementById('count').textContent = `${readers.length} top reader${readers.length === 1 ? '' : 's'} · tap to expand`;
     list.innerHTML = readers.map(readerCard).join('');
+    // paint each reader's XP bar into its slot (compact: bar + level, no footer)
+    if (window.XpBar) {
+      readers.forEach((rd, i) => {
+        const xp = xpMap[rd.handle];
+        const slot = document.getElementById(`xp-slot-${i}`);
+        if (xp && slot) XpBar.render(slot, xp, { compact: true, showReward: false });
+      });
+    }
   } catch {
     document.getElementById('list').innerHTML = `<div class="state">Couldn't load readers — reload to try again.</div>`;
   }
