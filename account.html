@@ -129,7 +129,8 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   <p class="foot">Lost access to all your devices? <a href="/recover.html">Recover your account →</a></p>
 </main>
 
-<script src="/reader-auth.js?v=2026-06-28-photos"></script>
+<script src="/reader-auth.js?v=2026-06-30-ux"></script>
+<script src="/lib/roles.js?v=2026-06-30-ux"></script>
 <script src="/lib/xp-bar.js?v=2026-06-30k"></script>
 <script>
 (function () {
@@ -173,7 +174,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 
   function setPreview(photoUrl) {
     pfPreview.className = photoUrl ? 'avatar' : 'avatar ph';
-    pfPreview.innerHTML = photoUrl ? '<img src="' + esc(photoUrl) + '" alt="">' : READER_SVG;
+    pfPreview.innerHTML = photoUrl ? '<img src="' + esc(photoUrl) + '" alt="">' : (window.Roles ? Roles.roleIcon('reader',{color:'white',size:56,title:'Reader'}) : READER_SVG);
   }
 
   // After a verified sign-in, fetch the current avatar (public profile endpoint).
@@ -184,6 +185,25 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
       if (res.ok) { var j = await res.json(); setPreview(j.photoUrl || null); return; }
     } catch (e) {}
     setPreview(null);
+  }
+
+  // After a verified sign-in, pre-fill the recovery-email field with the value on
+  // file. Only when a fresh action token already exists, so this NEVER triggers a
+  // passkey prompt; any miss (empty, no token, error) silently keeps the default.
+  async function prefillRecoveryEmail() {
+    // Reset FIRST — so the field can NEVER carry a previously-signed-in account's
+    // address across a switch, and a no-recovery-email account clears any stale value.
+    var emEl = document.getElementById('em'), emText = document.getElementById('em-go-text');
+    if (emEl) emEl.value = '';
+    if (emText) emText.textContent = 'Save recovery email';
+    if (!verified || !window.ReaderAuth || !ReaderAuth.getRecoveryEmail) return;
+    try {
+      var email = await ReaderAuth.getRecoveryEmail(); // fresh in-memory token only; never prompts
+      if (email) {
+        if (emEl) emEl.value = email;
+        if (emText) emText.textContent = 'Change recovery email';
+      }
+    } catch (e) { /* graceful degrade — keep placeholder + "Save recovery email" */ }
   }
 
   // Reader standing (XP) — read-only public endpoint, so it works from the
@@ -209,6 +229,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
     var cached = window.ReaderAuth ? ReaderAuth.getReader() : null;
     whoActions.innerHTML = '';
     renderStanding(verified ? verified.handle : (cached && cached.handle));
+    reflectDevice();
 
     if (verified) {
       whoEl.className = 'who';
@@ -226,8 +247,8 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
       whoEl.innerHTML = '<div class="name">' + esc(cached.displayName || cached.handle) + '</div>'
         + '<div class="handle">@' + esc(cached.handle) + '</div>'
         + '<div class="caveat">This is just what this browser last used — not confirmed. Sign in to manage this account, or switch to a different one before making changes.</div>';
-      addBtn('Sign in to confirm', 'primary', signIn);
-      addBtn('Not you? Switch / sign out', 'ghost', signOut);
+      addBtn('ENTER TO CONFIRM', 'primary', signIn);
+      addBtn('NOT YOU? SWITCH / EXIT', 'ghost', signOut);
     } else {
       whoEl.className = 'who out';
       whoEl.textContent = 'Not signed in on this browser. Sign in with your passkey to manage your account.';
@@ -244,6 +265,25 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
     whoActions.appendChild(b);
   }
 
+  // Reflect whether THIS browser is already enrolled (best-available signal) in
+  // the add-passkey block: an enrolled device says so and offers "another"; an
+  // unenrolled one keeps the original "add a passkey on this device" copy.
+  function reflectDevice() {
+    var enrolled = !!(window.ReaderAuth && ReaderAuth.isRegistered());
+    var h = blockAdd.querySelector('h2');
+    var p = blockAdd.querySelector('p');
+    var t = document.getElementById('add-go-text');
+    if (enrolled) {
+      if (h) h.textContent = 'This device is set up';
+      if (p) p.textContent = "This browser already has a passkey for your account. Add another — for a new phone or laptop, or a backup. You'll confirm with a passkey you already have, then create the new one.";
+      if (t) t.textContent = 'Add another passkey';
+    } else {
+      if (h) h.textContent = 'Add this device';
+      if (p) p.textContent = "Register an additional passkey — for a new phone or laptop, or a backup. You'll confirm with a passkey you already have, then create the new one.";
+      if (t) t.textContent = 'Add a passkey on this device';
+    }
+  }
+
   // Discoverable sign-in — clears the stale cache first so the browser shows the
   // passkey PICKER (you choose which account), instead of silently re-using the
   // cached handle.
@@ -256,6 +296,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
       verified = r;
       render();
       loadPhoto();
+      prefillRecoveryEmail();
     } catch (e) {
       verified = null;
       render();
@@ -269,6 +310,12 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
     ReaderAuth.clearReader();
     verified = null;
     pendingFile = null; pfFile.value = '';
+    // Clear the recovery-email field so a signed-out (or about-to-switch) session
+    // never leaves the previous account's address on screen or savable.
+    var emEl = document.getElementById('em'), emText = document.getElementById('em-go-text'), emMsg = document.getElementById('em-msg');
+    if (emEl) emEl.value = '';
+    if (emText) emText.textContent = 'Save recovery email';
+    if (emMsg) { emMsg.className = 'msg'; emMsg.textContent = ''; }
     render();
     setPreview(null);
   }
@@ -299,7 +346,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
       addMsg.textContent = 'New passkey added to @' + (done.handle || verified.handle) + '. You can sign in with it on this device.';
       setBusy(addGo, false, '', 'Add another passkey', addGoText);
     } catch (e) {
-      setBusy(addGo, false, '', 'Add a passkey on this device', addGoText);
+      setBusy(addGo, false, '', 'Add another passkey', addGoText);
       addMsg.className = 'msg err';
       addMsg.textContent = (e && e.message) || 'Could not add a passkey — please try again.';
     }
@@ -315,7 +362,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
       await ReaderAuth.setRecoveryEmail(emEl.value);
       emMsg.className = 'msg ok';
       emMsg.textContent = 'Recovery email saved for @' + verified.handle + '.';
-      setBusy(emGo, false, '', 'Update recovery email', emGoText);
+      setBusy(emGo, false, '', 'Change recovery email', emGoText);
     } catch (e) {
       setBusy(emGo, false, '', 'Save recovery email', emGoText);
       emMsg.className = 'msg err';
