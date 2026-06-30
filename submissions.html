@@ -587,6 +587,32 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 
   <hr>
 
+  <!-- Featured: The Carrier — read it to earn the first Reader XP perk (Jul 31 event) -->
+  <style>
+  .carrier-banner{display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:22px 0;padding:20px 22px;border:1px solid #2a0f0f;border-left:3px solid #FF0000;background:linear-gradient(100deg,#170707,#0b0b0b 62%);border-radius:10px;box-shadow:0 0 26px rgba(255,0,0,.08)}
+  .carrier-eyebrow{font-family:"Eurostile",sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#FF0000;display:flex;align-items:center;gap:8px}
+  .carrier-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#FF0000;box-shadow:0 0 8px #FF0000;animation:carrier-pulse 1.8s ease-in-out infinite}
+  @keyframes carrier-pulse{0%,100%{opacity:.45}50%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.carrier-eyebrow .dot{animation:none}}
+  .carrier-title{font-family:"Eurostile Wide","Eurostile",sans-serif;font-weight:700;font-size:26px;letter-spacing:.02em;text-transform:uppercase;margin:6px 0 5px;color:#fff}
+  .carrier-sub{color:#bdbdbd;font-size:12.5px;line-height:1.55;max-width:440px}.carrier-sub b{color:#fff}
+  .carrier-count{font-family:"Courier New",monospace;color:#FFD600;font-size:12px;margin-top:8px}
+  .carrier-cta{display:inline-flex;align-items:center;gap:8px;background:#FF0000;color:#fff;border:none;font-family:"Eurostile",sans-serif;font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:12px 20px;border-radius:6px;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+  .carrier-cta:hover:not(:disabled){opacity:.85}.carrier-cta:disabled{opacity:.5;cursor:wait}
+  @media(max-width:560px){.carrier-title{font-size:21px}}
+  </style>
+  <div class="carrier-banner" id="carrierBanner">
+    <div class="carrier-l">
+      <div class="carrier-eyebrow"><span class="dot"></span>Featured · Read to attend</div>
+      <div class="carrier-title">The Carrier</div>
+      <div class="carrier-sub">Read it and leave <b>complete feedback</b> to earn <b>free admission</b> to our July&nbsp;31 event at <b>Plots</b> — the first Reader&nbsp;XP perk.</div>
+      <div class="carrier-count" id="carrierCount"></div>
+    </div>
+    <button class="carrier-cta" id="carrierRead">Read The Carrier
+      <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>
+    </button>
+  </div>
+
   <div class="section-label">Past Submissions</div>
   <div class="sub-controls">
     <div class="search-box">
@@ -670,7 +696,7 @@ if (window.pdfjsLib) {
 <!-- Canonical "finished read" definition, shared verbatim with the API. -->
 <script src="/lib/read-gate.js"></script>
 <!-- Reader XP bar + gain toasts. -->
-<script src="/lib/xp-bar.js?v=2026-06-30e"></script>
+<script src="/lib/xp-bar.js?v=2026-06-30f"></script>
 
 <script>
 const API = 'https://interdependent-api.onrender.com';
@@ -2664,6 +2690,34 @@ window.refreshXpChip = async function () {
   } catch (e) { /* non-blocking */ }
 };
 window.refreshXpChip();
+
+// Featured banner — The Carrier (the read that unlocks the Jul 31 event perk).
+(function carrierBanner() {
+  const banner = document.getElementById('carrierBanner');
+  if (!banner) return;
+  if (window.GUEST_REC) { banner.style.display = 'none'; return; } // full slate only
+
+  const cnt = document.getElementById('carrierCount');
+  if (cnt) {
+    const days = Math.ceil((new Date(2026, 6, 31) - new Date()) / 86400000); // Jul 31, 2026
+    cnt.textContent = days > 0 ? `${days} day${days === 1 ? '' : 's'} until the event` :
+      days === 0 ? 'The event is today' : 'Event has passed';
+  }
+  const btn = document.getElementById('carrierRead');
+  if (btn) btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      await ensureAllLoaded();
+      const c = allRows.find((r) => /carrier/i.test(r.title || ''));
+      if (c) openModal(c.id);
+      else { // not on the slate yet — drop the title into search so it's findable
+        const s = document.getElementById('subSearch');
+        if (s) { s.value = 'Carrier'; s.dispatchEvent(new Event('input')); s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      }
+    } catch (e) { /* non-blocking */ }
+    btn.disabled = false;
+  });
+})();
 </script>
 </body>
 </html>
