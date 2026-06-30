@@ -220,6 +220,37 @@
     throw new ReaderAuthError(code || `http_${res.status}`, bodyJson.error || `Request failed (${res.status})`, res.status);
   }
 
+  // GET sibling of postJSON — same base url, timeout, and error mapping; no body.
+  async function getJSON(path, { retries = 0, timeout = 30000, headers = null } = {}) {
+    const opts = {
+      method: 'GET',
+      headers: Object.assign({}, headers || {}),
+    };
+
+    let res;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        res = await fetchWithTimeout(`${API}${path}`, opts, timeout);
+        break;
+      } catch (e) {
+        if (attempt >= retries) throw err('network');
+        await new Promise(r => setTimeout(r, 2500));
+      }
+    }
+
+    if (res.ok) {
+      try { return await res.json(); }
+      catch { throw err('bad_response', res.status); }
+    }
+
+    let bodyJson = {};
+    try { bodyJson = await res.json(); } catch { /* no body */ }
+    try { console.warn('[ReaderAuth] ' + path + ' → ' + res.status, bodyJson); } catch {}
+    const code = bodyJson.code;
+    if (code && (CODE_MESSAGES[code] || LOCAL_MESSAGES[code])) throw err(code, res.status);
+    throw new ReaderAuthError(code || `http_${res.status}`, bodyJson.error || `Request failed (${res.status})`, res.status);
+  }
+
   // Translate a WebAuthn DOMException into our error vocabulary.
   function mapCeremonyError(e, phase) {
     if (e instanceof ReaderAuthError) return e;
@@ -541,6 +572,16 @@
     return done;
   }
 
+  // Read the recovery email on a signed-in account. Uses the fresh in-memory
+  // action token ONLY (getActionToken returns null when none is fresh), so this
+  // can NEVER trigger a passkey prompt; returns the email string or null.
+  async function getRecoveryEmail() {
+    const token = getActionToken();
+    if (!token) return null;
+    const done = await getJSON('/readers/email', { headers: { Authorization: 'Bearer ' + token } });
+    return done && typeof done.email !== 'undefined' ? done.email : null;
+  }
+
   // ── Flow 5: account recovery (lost every passkey) ──────────────────────────
   // Step 1 (any device): email a one-time link. Always resolves with a generic
   // ok — it never reveals whether the handle/email matched.
@@ -794,6 +835,7 @@
     // device + recovery management
     addDevice,         // register an additional passkey on this account (signed in)
     setRecoveryEmail,  // add/update the recovery email (signed in)
+    getRecoveryEmail,  // read the current recovery email (signed in, reuses token)
     setPhoto,          // upload/replace the profile photo (signed in)
     requestRecovery,   // email a one-time recovery link (handle + email)
     completeRecovery,  // consume a recovery link → new passkey (used by recover.html)

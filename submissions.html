@@ -512,9 +512,8 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     <span class="logo-name">Interdependent</span>
   </a>
   <div style="display:flex;align-items:center;gap:10px">
-    <a class="btn-ghost" id="xpChip" href="/account.html" title="Your reader standing" style="display:none;text-decoration:none"></a>
-    <a class="btn-ghost" href="/readers.html" style="text-decoration:none">Readers</a>
-    <a class="btn-ghost" href="/account.html" style="text-decoration:none">Passkey</a>
+    <a class="btn-ghost" id="xpChip" href="/account.html" title="Your role, standing &amp; passkey" style="display:none;text-decoration:none"></a>
+    <a class="btn-ghost" href="/readers.html" style="text-decoration:none">Leaderboard</a>
     <button class="btn-ghost" id="signOutBtn">EXIT</button>
   </div>
 </header>
@@ -598,7 +597,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   .carrier-sub{color:#bdbdbd;font-size:12.5px;line-height:1.55;max-width:440px}.carrier-sub b{color:#fff}
   .carrier-count{font-family:"Courier New",monospace;color:#FFD600;font-size:12px;margin-top:8px}
   .carrier-cta{display:inline-flex;align-items:center;gap:8px;background:#FF0000;color:#fff;border:none;font-family:"Eurostile",sans-serif;font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:12px 20px;border-radius:6px;cursor:pointer;transition:opacity .15s;white-space:nowrap}
-  .carrier-cta:hover:not(:disabled){opacity:.85}.carrier-cta:disabled{opacity:.5;cursor:wait}
+  .carrier-cta:hover:not(:disabled){opacity:.85}.carrier-cta:disabled{opacity:.7;cursor:wait}
+  .carrier-cta .cspin{display:none;width:13px;height:13px;border:1.7px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+  .carrier-cta.loading .cspin{display:inline-block}
   @media(max-width:560px){.carrier-title{font-size:21px}}
   </style>
   <div class="carrier-banner" id="carrierBanner">
@@ -608,7 +609,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
       <div class="carrier-sub">Read it and leave <b>complete feedback</b> to earn <b>free admission</b> to our July&nbsp;31 event at <b>Plots</b> — the first Reader&nbsp;XP perk.</div>
       <div class="carrier-count" id="carrierCount"></div>
     </div>
-    <button class="carrier-cta" id="carrierRead">Read The Carrier
+    <button class="carrier-cta" id="carrierRead"><span class="cspin" aria-hidden="true"></span><span class="cta-label">View submission</span>
       <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>
     </button>
   </div>
@@ -1624,7 +1625,7 @@ async function openModal(id) {
     if (window.GUEST_REC) {
       // recipient without the passcode — the one recommended script is open via /share
       const res = await fetch(`${API}/share/${id}`);
-      if (!res.ok) { content.innerHTML = '<div class="td-empty" style="padding:24px 0">This recommendation isn’t available</div>'; return; }
+      if (!res.ok) { content.innerHTML = '<div class="td-empty" style="padding:24px 0">This recommendation isn’t available</div>'; return false; }
       row = shareToRow(await res.json(), id);
       _guestPdfUrl = row._sharePdfUrl || null;
     } else {
@@ -1632,7 +1633,7 @@ async function openModal(id) {
       if (!t) return;
       const res = await apiFetch(`/scripts/${id}`, { headers: { Authorization: `Bearer ${t}` } });
       if (res.status === 401) { window.location.href = '/passcode'; return; }
-      if (!res.ok) { content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>'; return; }
+      if (!res.ok) { content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>'; return false; }
       row = await res.json();
     }
     if (window.Analytics) Analytics.track('script_view', { script_id: id, recommender: REC_BY || undefined, source: window.GUEST_REC ? 'recommend' : 'portal', total_pages: row.page_count || undefined });
@@ -1687,8 +1688,10 @@ async function openModal(id) {
     renderModalActions(row);   // gated: Feedback / Recommend / Champion unlock only after a finished read
     updateRecBanner();
     verifyServerCompletion(row.id); // keep the verified-read reputation signal in sync across devices
+    return true;
   } catch {
     content.innerHTML = '<div class="td-empty" style="padding:24px 0">Failed to load details</div>';
+    return false;
   }
 }
 
@@ -2055,6 +2058,35 @@ function openFeedback(row) {
   });
 }
 
+// --- Already-championed detection (reflect state on modal open) -------------
+// The reader's championed script ids, fetched ONCE from their public leaderboard
+// (GET /leaderboard/:handle -> { scripts:[{ script:{ id } }] }) and cached.
+let _championedSet = null, _championedPromise = null;
+function getChampionedSet() {
+  if (_championedSet) return Promise.resolve(_championedSet);
+  if (_championedPromise) return _championedPromise;
+  const r = window.ReaderAuth && ReaderAuth.getReader && ReaderAuth.getReader();
+  if (!r || !r.handle) return Promise.resolve(new Set());
+  _championedPromise = (async () => {
+    try {
+      const res = await fetch(`${API}/leaderboard/${encodeURIComponent(r.handle)}`);
+      if (!res.ok) { _championedPromise = null; return new Set(); } // don't cache a failure — retry on next open
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : (data.scripts || data.items || []);
+      const set = new Set(items.map((x) => (x && x.script && x.script.id) || x.scriptId || x.script_id || x.id).filter(Boolean));
+      _championedSet = set;
+      return set;
+    } catch { _championedPromise = null; return new Set(); }
+  })();
+  return _championedPromise;
+}
+function markChampioned(btn, msgEl) {
+  const txt = btn.querySelector('.champion-text'); if (txt) txt.textContent = 'Championed'; else btn.textContent = 'Championed';
+  const star = btn.querySelector('.star'); if (star) star.textContent = '✓';
+  btn.classList.add('done'); btn.disabled = true; btn.title = 'You’ve championed this';
+  if (msgEl) msgEl.textContent = 'In your champions ✓';
+}
+
 function wireChampion(row) {
   const btn = document.getElementById('championBtn');
   if (!btn || !row.id) return;
@@ -2070,7 +2102,10 @@ function wireChampion(row) {
     btn.disabled = true;
   }
 
-  btn.addEventListener('click', () => championScript(row, btn, msgEl));
+  // Reflect an EXISTING champion on open — done + non-clickable, no re-press needed.
+  getChampionedSet().then((set) => { if (set && set.has(row.id)) markChampioned(btn, msgEl); });
+
+  btn.addEventListener('click', () => { if (!btn.classList.contains('done')) championScript(row, btn, msgEl); });
 }
 
 async function championScript(row, btn, msgEl) {
@@ -2123,6 +2158,7 @@ async function championScript(row, btn, msgEl) {
       btn.classList.add('done');
       const star = btn.querySelector('.star'); if (star) star.textContent = '✓';
       msgEl.textContent = 'Added to your champions ✓';
+      (_championedSet || (_championedSet = new Set())).add(row.id); // keep the cache fresh for re-opens
       return;
     }
 
@@ -2706,7 +2742,12 @@ window.refreshXpChip = async function (celebrateFirst) {
     if (!xp) { chip.style.display = 'none'; return; }
     const role = xp.role || 'Reader';
     const num = String(xp.totalXp || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    chip.innerHTML = '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#FF0000;margin-right:7px;vertical-align:middle"></span>' + role + ' · ' + num + ' XP';
+    // Canonical role head icon (replaces the old red dot). Falls back to the dot
+    // if roles.js hasn't loaded for any reason.
+    const icon = (window.Roles && Roles.roleIcon)
+      ? Roles.roleIcon(Roles.slugFor(role), { color: 'white', size: 16, title: role })
+      : '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#FF0000;vertical-align:middle"></span>';
+    chip.innerHTML = icon + '<span style="margin-left:7px;vertical-align:middle">' + role + ' · ' + num + ' XP</span>';
     chip.style.display = '';
   } catch (e) { /* non-blocking */ }
 };
@@ -2729,20 +2770,29 @@ window.refreshXpChip();
     const s = document.getElementById('subSearch');
     if (s) { s.value = 'Carrier'; s.dispatchEvent(new Event('input')); s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   };
+  // Resolve the featured script id once (the server already knows it) so the CTA
+  // can open The Carrier in ONE fetch instead of loading the whole slate first.
+  let carrierId = null;
+  (async () => { try { const r = await fetch(`${API}/xp/config`); if (r.ok) carrierId = (await r.json()).featuredScriptId || null; } catch { /* fall back to a slate scan below */ } })();
   if (btn) btn.addEventListener('click', async () => {
-    btn.disabled = true;
+    btn.classList.add('loading'); btn.disabled = true;
     try {
-      await ensureAllLoaded();
-      const c = allRows.find((r) => /carrier/i.test(r.title || ''));
-      if (c) openModal(c.id);
-      else seekCarrier(); // not on the slate yet
+      if (carrierId) {
+        const ok = await openModal(carrierId); // opens instantly with its own brand-red skeleton spinner — one /scripts/:id fetch
+        if (ok === false) seekCarrier();        // stale/unloadable featured id → fall back to search instead of a dead-end modal
+      } else {
+        await ensureAllLoaded();
+        const c = allRows.find((r) => /carrier/i.test(r.title || ''));
+        if (c) openModal(c.id);
+        else seekCarrier(); // not on the slate yet
+      }
     } catch (e) {
       // API cold-start / network failure — the cached rejected promise would make
       // re-taps no-op, so clear it and fall back to search instead of going dead.
       allLoadingPromise = null;
       seekCarrier();
     }
-    btn.disabled = false;
+    btn.classList.remove('loading'); btn.disabled = false;
   });
 })();
 </script>
