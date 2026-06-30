@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reader XP — Preview</title>
+<style>
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Regular.ttf") format("truetype");font-weight:400}
+@font-face{font-family:"Eurostile";src:url("fonts/EurostileNextPro-Bold.ttf") format("truetype");font-weight:700}
+@font-face{font-family:"Eurostile Wide";src:url("fonts/EurostileNextPro-WideBold.ttf") format("truetype");font-weight:700}
+html{background:#000;color:#fff;color-scheme:dark;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px}
+body{max-width:680px;margin:0 auto;padding:40px 22px 80px}
+h1{font-family:"Eurostile Wide","Eurostile",sans-serif;font-size:20px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px}
+.lede{color:#999;margin:0 0 8px;line-height:1.6}
+.muted{color:#666;font-size:12px;margin:0 0 28px}
+h2{font-family:"Eurostile",sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#777;margin:34px 0 14px;border-top:1px solid #1c1c1c;padding-top:20px}
+.case{border:1px solid #1c1c1c;background:#0a0a0a;border-radius:8px;padding:18px;margin-bottom:14px}
+.cap{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#888;margin-bottom:12px;font-family:"Eurostile",sans-serif}
+.toastbar{position:sticky;top:0;background:#000;padding:14px 0;z-index:5;border-bottom:1px solid #1c1c1c;margin-bottom:24px}
+button{background:#FF0000;border:none;color:#fff;font-family:"Eurostile",sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:11px 18px;border-radius:4px;cursor:pointer}
+.links a{color:#FF0000;text-decoration:none;border-bottom:1px solid #5a0000;margin-right:18px;font-size:12px}
+.empty{color:#777}
+</style></head><body>
+<h1>Reader XP — Preview</h1>
+<p class="lede">The gamification, running on a local copy of the API against your real Supabase data. Nothing here is deployed — the live site is untouched.</p>
+<p class="muted">One role — <b>READER</b> — one number. The same bar for everyone: a gradient of commitment (gray → white → red). The <b>XP number is the identity</b>; you read a newbie from a committed reader at a glance. Perk icons mark where rewards unlock; a 🔒 means the points are there but the action isn't done yet.</p>
+
+<div class="toastbar" style="display:flex;gap:10px;flex-wrap:wrap"><button id="toastBtn">▲ +55 XP gain (per action)</button><button id="luBtn" style="background:#0b0b0b;border:1px solid #FFD600;color:#FFD600">★ Perk unlocked (level-up)</button></div>
+
+<h2>One role · the number is the key — sample standings</h2>
+<div id="states"></div>
+
+<h2>Your real readers — live XP from the database</h2>
+<div id="live"><div class="case"><span class="empty">Loading live data…</span></div></div>
+
+<p class="muted" style="margin-top:28px">This same bar appears, in the live build, on the <b>Top Readers</b> page (a compact bar per reader), the <b>LOT Pass</b> page (the full bar with badges), and as a <b>header chip + gain toast</b> on the submissions reader.</p>
+
+<script>window.IDP_API_BASE='http://127.0.0.1:3001';</script>
+<script src="/lib/xp-bar.js?v=2026-06-30k"></script>
+<script>
+function mk(cfg,totalXp,unlockedIndex,opts){opts=opts||{};var L=cfg.levels,n=L.length;
+  var levels=L.map(function(l,i){var reached=totalXp>=l.min,isNext=i===unlockedIndex+1;
+    return {key:l.key,name:l.name,min:l.min,color:l.color,reward:l.reward,reached:i<=unlockedIndex?true:reached,
+      gateMet:i<=unlockedIndex?true:(isNext?!!opts.nextGateMet:false),unlocked:i<=unlockedIndex,unmet:isNext?(opts.unmet||[]):[]};});
+  var next=unlockedIndex+1<n?{key:L[unlockedIndex+1].key,name:L[unlockedIndex+1].name,min:L[unlockedIndex+1].min,
+    xpToGo:Math.max(0,L[unlockedIndex+1].min-totalXp),gateMet:!!opts.nextGateMet,unmet:opts.unmet||[]}:null;
+  return {totalXp:totalXp,barMax:L[n-1].min,level:{key:L[unlockedIndex].key,name:L[unlockedIndex].name,index:unlockedIndex},
+    nextLevel:next,levels:levels,badges:opts.badges||[],breakdown:[]};}
+function addCase(host,cap,xp){var w=document.createElement('div');w.className='case';
+  var c=document.createElement('div');c.className='cap';c.textContent=cap;w.appendChild(c);
+  var s=document.createElement('div');w.appendChild(s);host.appendChild(w);
+  XpBar.render(s,xp,{showReward:true,showTicks:true,showBadges:true,animate:true});}
+(async function(){
+  var cfg=await fetch('http://127.0.0.1:3001/xp/config').then(r=>r.json());
+  var host=document.getElementById('states');
+  addCase(host,'480 XP — points from champions, but the event perk needs The Carrier read + feedback',
+    mk(cfg,480,0,{nextGateMet:false,unmet:[{key:'featuredRead',need:1,have:0},{key:'featuredFeedback',need:1,have:0}]}));
+  addCase(host,'120 XP — first perk in reach: free event + podcast (one read + complete feedback)',
+    mk(cfg,120,1,{nextGateMet:false,unmet:[{key:'reads',need:5,have:2},{key:'feedbacks',need:3,have:1}],badges:['calibrator']}));
+  addCase(host,'860 XP — committed, but the next perk needs a recommendation that LANDED',
+    mk(cfg,860,2,{nextGateMet:false,unmet:[{key:'recsLanded',need:1,have:0}],badges:['deep-reader','calibrator','connector']}));
+  addCase(host,'1,250 XP — climbing toward the screen credit',
+    mk(cfg,1250,3,{nextGateMet:true,unmet:[],badges:['deep-reader','tastemaker','early-spotter','prolific']}));
+  addCase(host,'2,150 XP — fully committed, every perk unlocked',
+    mk(cfg,2150,4,{badges:['deep-reader','tastemaker','early-spotter','prolific','connector','calibrator']}));
+
+  // live readers — the gated leaderboard, fetched with a local preview token
+  var live=document.getElementById('live');
+  try{
+    var tok=await fetch('http://127.0.0.1:3001/xp/_previewtoken').then(r=>r.ok?r.text():null).catch(()=>null);
+    var headers=tok?{Authorization:'Bearer '+tok}:{};
+    var res=await fetch('http://127.0.0.1:3001/xp/leaderboard',{headers:headers});
+    var readers=res.ok?(await res.json()).readers:[];
+    live.innerHTML='';
+    if(!readers.length){live.innerHTML='<div class="case"><span class="empty">No readers with XP yet.</span></div>';return;}
+    readers.forEach(function(r){var w=document.createElement('div');w.className='case';
+      var c=document.createElement('div');c.className='cap';c.textContent='@'+r.handle;w.appendChild(c);
+      var s=document.createElement('div');w.appendChild(s);live.appendChild(w);
+      XpBar.render(s,r,{showReward:true,showBadges:true});});
+  }catch(e){live.innerHTML='<div class="case"><span class="empty">Couldn\'t reach the local API.</span></div>';}
+})();
+document.getElementById('toastBtn').onclick=function(){XpBar.toast('+55 XP','Complete read');};
+document.getElementById('luBtn').onclick=function(){XpBar.levelUp({icon:'ticket',label:'Free event admission + podcast appearance'});};
+</script></body></html>

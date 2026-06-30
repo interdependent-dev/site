@@ -696,7 +696,7 @@ if (window.pdfjsLib) {
 <!-- Canonical "finished read" definition, shared verbatim with the API. -->
 <script src="/lib/read-gate.js"></script>
 <!-- Reader XP bar + gain toasts. -->
-<script src="/lib/xp-bar.js?v=2026-06-30j"></script>
+<script src="/lib/xp-bar.js?v=2026-06-30k"></script>
 
 <script>
 const API = 'https://interdependent-api.onrender.com';
@@ -739,7 +739,8 @@ function getValidToken() {
 // so the normal authed portal path is unchanged.
 const _q = new URLSearchParams(location.search);
 const REC_ID = _q.get('rec');
-const REC_BY = _q.get('by') || '';
+const REC_BY = _q.get('by') || '';   // the recommender's stable HANDLE — the attribution key sent on events
+const REC_AS = _q.get('as') || '';   // their display name — for the recipient banner only (cosmetic)
 // ?script=<id> opens a script's detail directly (e.g. from the Top Readers
 // page) — same modal as a row click, WITHOUT the "recommended for you" framing.
 const SCRIPT_ID = _q.get('script');
@@ -1873,12 +1874,15 @@ function wireShare(row) {
   const btn = document.getElementById('shareBtn');
   if (!btn || !row.id) return;
   const textEl = btn.querySelector('.share-text');
-  const makeUrl = (name) => {
+  const makeUrl = (handle, displayName) => {
     // Recommendations open inside the portal itself (same UI, with a sticky
-    // "Recommended to you" banner) — not a separate page.
+    // "Recommended to you" banner) — not a separate page. ?by=<handle> is the
+    // stable attribution key (matches how the server credits recommendations);
+    // ?as=<display name> is shown to the recipient and is cosmetic only.
     const u = new URL(`${location.origin}/submissions.html`);
     u.searchParams.set('rec', row.id);
-    if (name) u.searchParams.set('by', name);
+    if (handle) u.searchParams.set('by', handle);
+    if (displayName) u.searchParams.set('as', displayName);
     return u.toString();
   };
   const copyLink = async (url) => {
@@ -1891,8 +1895,8 @@ function wireShare(row) {
   btn.addEventListener('click', async () => {
     // Already a known recommender → keep the gesture so native share still works.
     const existing = window.ReaderAuth ? ReaderAuth.getReader() : null;
-    if (existing && existing.displayName) {
-      const url = makeUrl(existing.displayName);
+    if (existing && (existing.handle || existing.displayName)) {
+      const url = makeUrl(existing.handle, existing.displayName);
       if (navigator.share) {
         try { await navigator.share({ title: `${row.title} — INTERDEPENDENT`, text: `A screenplay recommendation: ${row.title}`, url }); } catch {}
         return;
@@ -1900,14 +1904,14 @@ function wireShare(row) {
       return copyLink(url);
     }
     // First time recommending → identify (name + passkey), same as Champion.
-    let name = '';
+    let reader = null;
     try {
       if (window.ReaderAuth && await ReaderAuth.checkSupport()) {
-        const r = await ReaderAuth.signInOrRegister();
-        name = (r && r.displayName) || (ReaderAuth.getReader() || {}).displayName || '';
+        await ReaderAuth.signInOrRegister();
+        reader = ReaderAuth.getReader();
       }
     } catch { /* cancelled — recommend without attribution */ }
-    copyLink(makeUrl(name));
+    copyLink(makeUrl(reader && reader.handle, reader && reader.displayName));
   });
 }
 
@@ -2028,13 +2032,21 @@ function openFeedback(row) {
     try {
       const res = await ReaderAuth.authedWrite(`/feedback/${row.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) {
+        const firstTime = !hasLeftFeedback(row.id); // capture before we mark it
         markFeedbackLeft(row.id);
-        if (window.XpBar) {
-          const dn = state.dims ? Object.values(state.dims).filter((v) => v != null).length : 0;
-          const fx = 15 + Math.min(dn * 2, 15) + (text.length >= 120 ? 10 : 0) + (state.audioBlob ? 15 : 0);
-          XpBar.toast('+' + fx + ' XP', 'Feedback'); if (window.refreshXpChip) setTimeout(window.refreshXpChip, 1500);
-        }
-        msg.textContent = 'Thank you — your decision was recorded.'; submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); }, 1200);
+        // Celebratory effects are non-critical and must NEVER reverse a confirmed
+        // write — wrapped so a canvas/audio failure can't surface a false error. The
+        // "+XP" toast fires only on the FIRST submission (editing earns nothing more).
+        try {
+          if (window.XpBar && firstTime) {
+            const dn = state.dims ? Object.values(state.dims).filter((v) => v != null).length : 0;
+            const fx = 15 + Math.min(dn * 2, 15) + (text.length >= 120 ? 10 : 0) + (state.audioBlob ? 15 : 0);
+            XpBar.toast('+' + fx + ' XP', 'Feedback');
+          }
+          if (window.refreshXpChip) setTimeout(() => window.refreshXpChip(true), 1500);
+        } catch { /* effects only */ }
+        msg.textContent = firstTime ? 'Thank you — your decision was recorded.' : 'Updated — thanks for refining your feedback.';
+        submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); }, 1200);
       }
       else { const b = await res.json().catch(() => ({})); msg.className = 'fb-msg err'; msg.textContent = b.error || `Could not send (${res.status})`; submit.disabled = false; submit.textContent = 'Submit feedback'; }
     } catch (e) { msg.className = 'fb-msg err'; msg.textContent = (e && e.message) || 'Could not send'; submit.disabled = false; submit.textContent = 'Submit feedback'; }
@@ -2099,7 +2111,12 @@ async function championScript(row, btn, msgEl) {
 
     if (res.ok || res.status === 409) {
       if (res.ok && window.Analytics) Analytics.track('champion', { script_id: row.id, source: window.GUEST_REC ? 'recommend' : 'portal', recommender: REC_BY || undefined });
-      if (res.ok && window.XpBar) { XpBar.toast('+20 XP', 'Champion'); if (window.refreshXpChip) setTimeout(window.refreshXpChip, 1500); }
+      // Effects are non-critical — never let a canvas/audio failure reverse a
+      // confirmed champion (the 409 "already added" path intentionally stays quiet).
+      try {
+        if (res.ok && window.XpBar) XpBar.toast('+20 XP', 'Champion');
+        if (res.ok && window.refreshXpChip) setTimeout(() => window.refreshXpChip(true), 1500);
+      } catch { /* effects only */ }
       setText(res.status === 409 ? 'Already added' : 'Championed');
       btn.classList.add('done');
       const star = btn.querySelector('.star'); if (star) star.textContent = '✓';
@@ -2663,25 +2680,27 @@ function closeNavOverlayIfCompact() {
 if (window.ReaderAuth) ReaderAuth.checkSupport();
 
 if (window.GUEST_REC) {
-  enterGuestRec(REC_ID, REC_BY);           // recipient without the passcode
+  enterGuestRec(REC_ID, REC_AS || REC_BY);           // recipient without the passcode (banner shows display name)
 } else {
   loadSubmissions();
-  if (REC_ID) { showRecBanner(REC_ID, REC_BY); openModal(REC_ID); } // signed-in, following a rec link
+  if (REC_ID) { showRecBanner(REC_ID, REC_AS || REC_BY); openModal(REC_ID); } // signed-in, following a rec link
   else if (SCRIPT_ID) { openModal(SCRIPT_ID); } // open a script's detail directly (no rec banner)
 }
 
 // Header XP chip — the reader's level + total, linking to their full bar on the
 // LOT Pass page. Read-only (public endpoint), so it shows from the cached reader
 // without forcing a passkey prompt. Refreshed after champion/feedback actions.
-window.refreshXpChip = async function () {
+window.refreshXpChip = async function (celebrateFirst) {
   try {
     const chip = document.getElementById('xpChip');
     if (!chip || !window.ReaderAuth || !window.XpBar) return;
     const r = ReaderAuth.getReader && ReaderAuth.getReader();
     if (!r || !r.handle) { chip.style.display = 'none'; return; }
     // sync (not fetch) so crossing a perk threshold after an action auto-fires
-    // the level-up celebration. The first call just seeds the baseline.
-    const xp = await XpBar.sync(r.handle);
+    // the level-up celebration. The first call just seeds the baseline — EXCEPT
+    // when called right after an action (celebrateFirst), so a brand-new reader
+    // whose very first action unlocks The Carrier perk still gets the fireworks.
+    const xp = await XpBar.sync(r.handle, { celebrateFirst: !!celebrateFirst });
     if (!xp) { chip.style.display = 'none'; return; }
     const role = xp.role || 'Reader';
     const num = String(xp.totalXp || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -2704,17 +2723,23 @@ window.refreshXpChip();
       days === 0 ? 'The event is today' : 'Event has passed';
   }
   const btn = document.getElementById('carrierRead');
+  const seekCarrier = () => { // fallback: surface The Carrier via search so the CTA is never a dead end
+    const s = document.getElementById('subSearch');
+    if (s) { s.value = 'Carrier'; s.dispatchEvent(new Event('input')); s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  };
   if (btn) btn.addEventListener('click', async () => {
     btn.disabled = true;
     try {
       await ensureAllLoaded();
       const c = allRows.find((r) => /carrier/i.test(r.title || ''));
       if (c) openModal(c.id);
-      else { // not on the slate yet — drop the title into search so it's findable
-        const s = document.getElementById('subSearch');
-        if (s) { s.value = 'Carrier'; s.dispatchEvent(new Event('input')); s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-      }
-    } catch (e) { /* non-blocking */ }
+      else seekCarrier(); // not on the slate yet
+    } catch (e) {
+      // API cold-start / network failure — the cached rejected promise would make
+      // re-taps no-op, so clear it and fall back to search instead of going dead.
+      allLoadingPromise = null;
+      seekCarrier();
+    }
     btn.disabled = false;
   });
 })();

@@ -130,7 +130,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 </main>
 
 <script src="/reader-auth.js?v=2026-06-28-photos"></script>
-<script src="/lib/xp-bar.js?v=2026-06-30j"></script>
+<script src="/lib/xp-bar.js?v=2026-06-30k"></script>
 <script>
 (function () {
   'use strict';
@@ -193,7 +193,9 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   function renderStanding(handle) {
     var block = document.getElementById('block-xp');
     if (!block) return;
-    if (!handle || !window.XpBar) { block.style.display = 'none'; return; }
+    // Reset the cache when hiding (e.g. on sign-out) so signing back in as the SAME
+    // handle re-fetches and re-shows the block instead of staying hidden.
+    if (!handle || !window.XpBar) { block.style.display = 'none'; xpLoadedFor = null; return; }
     if (xpLoadedFor === handle) return;
     xpLoadedFor = handle;
     XpBar.fetch(handle).then(function (xp) {
