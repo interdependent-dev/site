@@ -27,6 +27,7 @@
   const LS_ID      = 'reader_id';
   const LS_HANDLE  = 'reader_handle';
   const LS_DISPLAY = 'reader_display';
+  const LS_SESSION = 'reader_session'; // long-lived reader IDENTITY (read personalization: AI-eval gating, chat)
 
   // Action tokens are 5-minute JWTs. We treat ours as stale a little early to
   // avoid handing the server a token that expires mid-flight.
@@ -277,17 +278,21 @@
     return !!(localStorage.getItem(LS_ID) && localStorage.getItem(LS_HANDLE));
   }
 
-  function storeReader({ readerId, handle, displayName }) {
+  function storeReader({ readerId, handle, displayName, sessionToken }) {
     if (readerId)            localStorage.setItem(LS_ID, readerId);
     if (handle)             localStorage.setItem(LS_HANDLE, handle);
     if (displayName != null) localStorage.setItem(LS_DISPLAY, displayName);
+    if (sessionToken)        localStorage.setItem(LS_SESSION, sessionToken);
     return getReader();
   }
+
+  function getSessionToken() { return localStorage.getItem(LS_SESSION) || null; }
 
   function clearReader() {
     localStorage.removeItem(LS_ID);
     localStorage.removeItem(LS_HANDLE);
     localStorage.removeItem(LS_DISPLAY);
+    localStorage.removeItem(LS_SESSION);
     clearToken();
   }
 
@@ -817,6 +822,9 @@
     getReader,
     isRegistered,
     clearReader,
+
+    // reader session token (persistent identity — read personalization only)
+    getSessionToken,
 
     // action token (in-memory)
     getActionToken,
