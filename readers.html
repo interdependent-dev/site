@@ -245,10 +245,12 @@ async function renderTaste() {
   const sec = document.getElementById('tasteSection');
   if (!sec) return;
   const escT = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const handle = localStorage.getItem('reader_handle');
-  const session = localStorage.getItem('reader_session');
-  if (!handle || !session) return; // only for a signed-in reader
   try {
+    // localStorage access can throw (Safari private mode / disabled site data) — keep it
+    // inside the try so it fails silently rather than as an unhandled promise rejection.
+    const handle = localStorage.getItem('reader_handle');
+    const session = localStorage.getItem('reader_session');
+    if (!handle || !session) return; // only for a signed-in reader
     const res = await fetch(`${API}/readers/${encodeURIComponent(handle)}/taste`, { headers: { 'X-Reader-Session': session } });
     if (!res.ok) return;
     const d = await res.json();
