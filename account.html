@@ -174,7 +174,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 
   function setPreview(photoUrl) {
     pfPreview.className = photoUrl ? 'avatar' : 'avatar ph';
-    pfPreview.innerHTML = photoUrl ? '<img src="' + esc(photoUrl) + '" alt="">' : (window.Roles ? Roles.roleIcon('reader',{color:'white',size:56,title:'Reader'}) : READER_SVG);
+    pfPreview.innerHTML = photoUrl ? '<img src="' + esc(photoUrl) + '" alt="">' : (window.Roles ? Roles.roleIcon('reader',{color:'red',size:56,title:'Reader'}) : READER_SVG);
   }
 
   // After a verified sign-in, fetch the current avatar (public profile endpoint).
