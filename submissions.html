@@ -479,6 +479,16 @@ body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eva
 .surface-btn:disabled{opacity:.6;cursor:wait}
 .surface-note{font-size:11px;color:#888}
 @media(max-width:560px){.surface-note{width:100%}}
+/* Read-first "Readers' takes" panel — verdict distribution + who agreed/differed. */
+.opinions-panel:empty{display:none}
+.op-head{font-family:"Eurostile",sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#888;margin:16px 0 8px}
+.op-locked{color:#9a9a9a;font-size:12.5px;line-height:1.55}.op-locked b{color:#fff}
+.op-dist{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.op-chip{font-family:"Eurostile",sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 9px;border-radius:4px;border:1px solid #333}
+.op-chip.op-recommend{color:#16a34a;border-color:#16a34a}.op-chip.op-consider{color:#d97706;border-color:#d97706}.op-chip.op-pass{color:#dc2626;border-color:#dc2626}
+.op-line{font-size:12.5px;color:#bdbdbd;margin:5px 0}
+.op-k{font-family:"Eurostile",sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#777;margin-right:8px}
+.op-reader{color:#ddd;text-decoration:none;border-bottom:1px solid #333;margin-right:8px}.op-reader:hover{color:#fff;border-color:#777}
 .dec-chip{font-family:"Eurostile",'Helvetica Neue',sans-serif;background:#0a0a0a;border:1px solid #2a2a2a;color:#888;padding:9px 13px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}
 .dec-chip:hover{color:#ccc;border-color:#555}
 .dec-chip[data-dec="RECOMMEND"].on{border-color:#16a34a;color:#16a34a}
@@ -1720,6 +1730,7 @@ async function openModal(id) {
         ? `<div class="summary-body" style="margin:2px 0 18px;color:#9a9a9a">Read it first — form your own opinion. The coverage and other readers' takes stay hidden until you've read it yourself.</div>`
         : summaryHtml(n)}
       ${readBarHtml}
+      <div class="opinions-panel" id="opinionsPanel"></div>
       ${hideEval ? '' : coverageBodyHtml(n, { skipSummary: true })}
       ${!hideEval && row.status === 'error' && row.evaluation_result ? `<div class="summary-key">Error</div><div class="summary-body">${esc(row.evaluation_result)}</div>` : ''}
       ${!hideEval && (row.status === 'error' || (row.status === 'evaluated' && !n.categories.length)) ? `<button class="btn-submit" id="retryBtn" style="margin-top:28px">Retry Evaluation</button>` : ''}
@@ -1732,6 +1743,7 @@ async function openModal(id) {
     _modalRow = row;
     wireReadActions(row);
     renderModalActions(row);   // gated: Feedback / Recommend / Champion unlock only after a finished read
+    renderOpinions(row);       // read-first: others' takes appear only after your own finished read
     updateRecBanner();
     verifyServerCompletion(row.id); // keep the verified-read reputation signal in sync across devices
     return true;
@@ -1883,6 +1895,50 @@ function wireSurface(row, btn) {
   });
 }
 
+// Read-first: after YOUR finished read, show other readers' verdicts — the distribution
+// + who read it like you vs saw it differently. The server gates the data on your read.
+function verdictClass(v) { return 'op-' + String(v || '').toLowerCase(); }
+function readerLink(o) {
+  return o.handle
+    ? `<a class="op-reader" href="/readers.html">${esc(o.reader || ('@' + o.handle))}</a>`
+    : `<span class="op-reader">${esc(o.reader || 'A reader')}</span>`;
+}
+async function renderOpinions(row) {
+  const panel = document.getElementById('opinionsPanel');
+  if (!panel || !row || !row.id) return;
+  panel.innerHTML = '';
+  const t = getValidToken();
+  if (!t) return;
+  try {
+    const res = await apiFetch(`/feedback/${encodeURIComponent(row.id)}`, { headers: { Authorization: `Bearer ${t}` } });
+    if (!res.ok) return;
+    const d = await res.json();
+    const total = d.totalOpinions || 0;
+    if (!d.canSeeOpinions) {
+      panel.innerHTML = total > 0
+        ? `<div class="op-head">Readers' takes</div><div class="op-locked">${total} reader${total === 1 ? '' : 's'} ${total === 1 ? 'has' : 'have'} weighed in — <b>finish your read</b> to see what they thought and who read it like you.</div>`
+        : '';
+      return;
+    }
+    const ops = (d.feedback || []).filter((o) => (o.championVerdict || '').trim());
+    if (!ops.length) { panel.innerHTML = ''; return; }
+    const counts = { recommend: 0, consider: 0, pass: 0 };
+    ops.forEach((o) => { const v = (o.championVerdict || '').toLowerCase(); if (counts[v] != null) counts[v]++; });
+    const dist = `<div class="op-dist">${['recommend', 'consider', 'pass'].filter((v) => counts[v]).map((v) => `<span class="op-chip ${verdictClass(v)}">${v.toUpperCase()} ${counts[v]}</span>`).join('')}</div>`;
+    const me = window.ReaderAuth && ReaderAuth.getReader && ReaderAuth.getReader();
+    const mineOp = me && me.handle ? ops.find((o) => o.handle && o.handle === me.handle) : null;
+    const myV = mineOp ? (mineOp.championVerdict || '').toLowerCase() : '';
+    let agree = '';
+    if (myV) {
+      const others = ops.filter((o) => o.handle && (!me || o.handle !== me.handle));
+      const same = others.filter((o) => (o.championVerdict || '').toLowerCase() === myV);
+      const diff = others.filter((o) => { const v = (o.championVerdict || '').toLowerCase(); return v && v !== myV; });
+      agree = `${same.length ? `<div class="op-line"><span class="op-k">Read it like you</span>${same.map(readerLink).join(', ')}</div>` : ''}${diff.length ? `<div class="op-line"><span class="op-k">Saw it differently</span>${diff.map(readerLink).join(', ')}</div>` : ''}`;
+    }
+    panel.innerHTML = `<div class="op-head">Readers' takes</div>${dist}${agree}`;
+  } catch { /* non-blocking */ }
+}
+
 function renderModalActions(row) {
   const gate = document.getElementById('hrGate');
   if (!gate || !row) return;
@@ -1920,6 +1976,7 @@ function refreshModalGates() {
   const open = document.getElementById('modalBack') && document.getElementById('modalBack').classList.contains('open');
   if (!open || !_modalRow || window.GUEST_REC) return;
   renderModalActions(_modalRow);
+  renderOpinions(_modalRow);
 }
 
 // Cross-device: a finished read recorded on another device lives in read_events
