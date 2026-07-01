@@ -1284,20 +1284,32 @@ function renderResult(data) {
 
   document.getElementById('rTitle').textContent = data.title || '';
 
+  // Read-first: the AI coverage is Curator-only, so a writer's in-portal poll no longer
+  // carries the verdict (the full evaluation is delivered by email). If it's absent,
+  // show that cleanly rather than an empty score/coverage panel.
+  const hasEval = ev.decision != null || n.scoreValue != null || (n.categories && n.categories.length);
   const badge = document.getElementById('rBadge');
-  badge.textContent = ev.decision || '—';
-  badge.style.background = DECISIONS[ev.decision] || '#444';
-  badge.style.color = '#fff';
-
-  document.getElementById('rMeta').innerHTML = buildMeta([
-    ['Genre',       fmtGenre(n.genre)],
-    ['Country',     n.country],
-    ['Budget',      n.budget],
-    ['Pages',       data.pageCount],
-    ['Word Count',  data.wordCount ? data.wordCount.toLocaleString() : null],
-  ]);
-
-  document.getElementById('rCoverage').innerHTML = coverageBodyHtml(n);
+  if (hasEval) {
+    badge.style.display = '';
+    badge.textContent = ev.decision || '—';
+    badge.style.background = DECISIONS[ev.decision] || '#444';
+    badge.style.color = '#fff';
+    document.getElementById('rMeta').innerHTML = buildMeta([
+      ['Genre',       fmtGenre(n.genre)],
+      ['Country',     n.country],
+      ['Budget',      n.budget],
+      ['Pages',       data.pageCount],
+      ['Word Count',  data.wordCount ? data.wordCount.toLocaleString() : null],
+    ]);
+    document.getElementById('rCoverage').innerHTML = coverageBodyHtml(n);
+  } else {
+    badge.style.display = 'none';
+    document.getElementById('rMeta').innerHTML = buildMeta([
+      ['Pages',       data.pageCount],
+      ['Word Count',  data.wordCount ? data.wordCount.toLocaleString() : null],
+    ]);
+    document.getElementById('rCoverage').innerHTML = '<div class="summary-body" style="color:#bdbdbd">Your submission was received and evaluated — <b>the full coverage has been emailed to you</b> at the address you provided. Detailed evaluations are kept out of the public portal.</div>';
+  }
 
   const panel = document.getElementById('resultPanel');
   panel.style.display = 'block';
@@ -1366,6 +1378,9 @@ async function loadSubmissions({ reset = true } = {}) {
 
     const { data } = await res.json();
     const rows = data || [];
+    // Read-first: reveal the CRAFT/DECISION columns + AI-decision filters only when the
+    // server actually returned evals (Curator/admin). For Readers they're stripped → hidden.
+    if (reset) document.body.classList.toggle('no-eval', !rows.some((r) => r.evaluation_json));
 
     if (reset) {
       tbody.innerHTML = '';
@@ -1540,15 +1555,19 @@ document.querySelectorAll('.dec-chip').forEach(chip =>
 // ── recommendation guest mode ───────────────────────────────────────────────
 // Map the public /share payload to the row shape the modal + reader expect (no PII).
 function shareToRow(d, id) {
+  // The /share verdict is Curator-only (server strips it for Readers). Only attach
+  // evaluation_json when a verdict actually came back — otherwise the read-first gate
+  // (presence-based hideEval/showEval) would render empty eval chrome to a recipient.
+  const hasVerdict = d.decision != null || d.scores != null || d.evaluation != null || d.weightedScore != null;
   return {
     id, title: d.title, page_count: d.pageCount, status: 'evaluated',
     submitted_at: null, submitter_name: null, submitter_email: null, users: null,
     storage_path: d.pdfUrl ? 'shared' : null, _sharePdfUrl: d.pdfUrl || null,
-    evaluation_json: {
+    evaluation_json: hasVerdict ? {
       decision: d.decision, genre: d.genre, country: null, budget: d.budget,
       logline: d.logline, read_verified: d.readVerified, evaluation: d.evaluation,
       scores: d.scores, weighted_score: d.weightedScore, comparable_films: d.comparableFilms,
-    },
+    } : null,
   };
 }
 
@@ -2764,8 +2783,6 @@ window.refreshXpChip = async function (celebrateFirst) {
     // whose very first action unlocks The Carrier perk still gets the fireworks.
     const xp = await XpBar.sync(r.handle, { celebrateFirst: !!celebrateFirst });
     if (!xp) { chip.style.display = 'none'; return; }
-    // Read-first: reveal the AI verdict (CRAFT/DECISION columns + filters) only to Curators.
-    document.body.classList.toggle('no-eval', !xp.curator);
     const role = xp.role || 'Reader';
     const num = String(xp.totalXp || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     // Canonical role head icon (replaces the old red dot). Falls back to the dot
