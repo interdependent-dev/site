@@ -31,6 +31,14 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .sub{color:#999;font-size:13px;margin-bottom:26px;max-width:560px}
 .state{color:#999;padding:40px 0;text-align:center}
 .count{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#777;margin-bottom:16px}
+/* "Readers who read like you" taste-match section (Stage 5). */
+#tasteSection:empty{display:none}
+.taste-head{font-family:"Eurostile",sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#FF0000;margin:6px 0 12px}
+.taste-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px}
+.taste-chip{display:flex;flex-direction:column;gap:2px;border:1px solid #2a2a2a;border-left:3px solid #FF0000;border-radius:8px;padding:10px 14px;background:#0c0c0c}
+.taste-name{color:#fff;font-size:13px;font-weight:600}
+.taste-pct{color:#16a34a;font-family:"Eurostile",sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em}
+.taste-shared{color:#777;font-size:10.5px}
 
 /* Card (collapsed by default) */
 .reader{border:1px solid #1c1c1c;background:#0a0a0a;border-radius:6px;margin-bottom:12px;overflow:hidden}
@@ -97,6 +105,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   <h1>Leaderboard</h1>
   <p class="sub">Standing across every role — starting with the Readers, who earn their place by finishing real reads. Tap an entry to see what they've read (depth <em>and</em> time, never scroll alone) and what they thought. Tap any read to open the screenplay.</p>
   <div class="count" id="count"></div>
+  <div id="tasteSection"></div>
   <div id="list"><div class="state">Loading readers —</div></div>
 </main>
 
@@ -230,8 +239,33 @@ async function loadXpMap(t) {
   } catch { return {}; }
 }
 
+// "Readers who read like you" — taste match from shared verdicts (Stage 5).
+// Personal to the signed-in reader; the API gates it on the session token.
+async function renderTaste() {
+  const sec = document.getElementById('tasteSection');
+  if (!sec) return;
+  const escT = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  try {
+    // localStorage access can throw (Safari private mode / disabled site data) — keep it
+    // inside the try so it fails silently rather than as an unhandled promise rejection.
+    const handle = localStorage.getItem('reader_handle');
+    const session = localStorage.getItem('reader_session');
+    if (!handle || !session) return; // only for a signed-in reader
+    const res = await fetch(`${API}/readers/${encodeURIComponent(handle)}/taste`, { headers: { 'X-Reader-Session': session } });
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!d.canSee || !d.matches || !d.matches.length) return;
+    const chips = d.matches.map((m) => {
+      const pct = Math.round((m.score || 0) * 100);
+      return `<div class="taste-chip"><span class="taste-name">${escT(m.name || ('@' + m.handle))}</span><span class="taste-pct">${pct}% match</span><span class="taste-shared">${m.agreed}/${m.shared} agreed</span></div>`;
+    }).join('');
+    sec.innerHTML = `<div class="taste-head">Readers who read like you</div><div class="taste-grid">${chips}</div>`;
+  } catch { /* non-blocking */ }
+}
+
 async function load() {
   const t = token(); if (!t) return;
+  renderTaste();
   try {
     const [res, xpMap] = await Promise.all([
       fetch(`${API}/readers/list`, { headers: { Authorization: `Bearer ${t}` } }),
