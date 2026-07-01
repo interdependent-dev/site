@@ -489,6 +489,29 @@ body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eva
 .op-line{font-size:12.5px;color:#bdbdbd;margin:5px 0}
 .op-k{font-family:"Eurostile",sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#777;margin-right:8px}
 .op-reader{color:#ddd;text-decoration:none;border-bottom:1px solid #333;margin-right:8px}.op-reader:hover{color:#fff;border-color:#777}
+/* Champions-only chat (Stage 4). */
+.chat-panel:empty{display:none}
+.chat-head{font-family:"Eurostile",sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#888;margin:18px 0 10px}
+.chat-sub{color:#FF0000;margin-left:6px}
+.chat-locked{color:#9a9a9a;font-size:12.5px;line-height:1.55}.chat-locked b{color:#fff}
+.chat-list{display:flex;flex-direction:column;gap:12px;max-height:320px;overflow-y:auto;margin-bottom:12px}
+.chat-msg{border-left:2px solid #2a2a2a;padding:2px 0 2px 12px}
+.chat-metarow{display:flex;gap:8px;align-items:baseline}
+.chat-author{color:#fff;font-size:12px;font-weight:600}
+.chat-time{color:#666;font-size:10px}
+.chat-body{color:#cfcfcf;font-size:13px;line-height:1.5;margin:3px 0;white-space:pre-wrap;word-break:break-word}
+.chat-actions{display:flex;gap:10px;align-items:center;margin-top:3px}
+.chat-endorse{background:none;border:1px solid #333;color:#999;font-family:"Eurostile",sans-serif;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:4px;cursor:pointer}
+.chat-endorse:hover{border-color:#777;color:#fff}.chat-endorse.on{border-color:#16a34a;color:#16a34a;cursor:default}
+.chat-endcount{font-size:10px;color:#16a34a}
+.chat-you{font-size:9px;color:#666;letter-spacing:.1em;text-transform:uppercase}
+.chat-empty{color:#888;font-size:12.5px;font-style:italic}
+.chat-compose{display:flex;gap:8px;align-items:flex-end}
+.chat-compose textarea{flex:1;background:#0a0a0a;border:1px solid #2a2a2a;color:#eee;font-family:inherit;font-size:13px;padding:8px 10px;border-radius:6px;resize:vertical}
+.chat-compose textarea:focus{outline:none;border-color:#555}
+.chat-send{background:#FF0000;border:none;color:#fff;font-family:"Eurostile",sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:9px 16px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.chat-send:hover{opacity:.85}
+.chat-err{color:#dc2626;font-size:11.5px;margin-top:6px;min-height:14px}
 .dec-chip{font-family:"Eurostile",'Helvetica Neue',sans-serif;background:#0a0a0a;border:1px solid #2a2a2a;color:#888;padding:9px 13px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}
 .dec-chip:hover{color:#ccc;border-color:#555}
 .dec-chip[data-dec="RECOMMEND"].on{border-color:#16a34a;color:#16a34a}
@@ -1731,6 +1754,7 @@ async function openModal(id) {
         : summaryHtml(n)}
       ${readBarHtml}
       <div class="opinions-panel" id="opinionsPanel"></div>
+      <div class="chat-panel" id="chatPanel"></div>
       ${hideEval ? '' : coverageBodyHtml(n, { skipSummary: true })}
       ${!hideEval && row.status === 'error' && row.evaluation_result ? `<div class="summary-key">Error</div><div class="summary-body">${esc(row.evaluation_result)}</div>` : ''}
       ${!hideEval && (row.status === 'error' || (row.status === 'evaluated' && !n.categories.length)) ? `<button class="btn-submit" id="retryBtn" style="margin-top:28px">Retry Evaluation</button>` : ''}
@@ -1744,6 +1768,7 @@ async function openModal(id) {
     wireReadActions(row);
     renderModalActions(row);   // gated: Feedback / Recommend / Champion unlock only after a finished read
     renderOpinions(row);       // read-first: others' takes appear only after your own finished read
+    renderChat(row);           // champions-only chat (the warm audience)
     updateRecBanner();
     verifyServerCompletion(row.id); // keep the verified-read reputation signal in sync across devices
     return true;
@@ -1903,6 +1928,75 @@ function readerLink(o) {
     ? `<a class="op-reader" href="/readers.html">${esc(o.reader || ('@' + o.handle))}</a>`
     : `<span class="op-reader">${esc(o.reader || 'A reader')}</span>`;
 }
+// ── Champions-only chat (Stage 4) — the warm audience of readers who championed it.
+function chatTimeAgo(iso) {
+  if (!iso) return '';
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'now';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h';
+  return Math.floor(s / 86400) + 'd';
+}
+async function renderChat(row) {
+  const panel = document.getElementById('chatPanel');
+  if (!panel || !row || !row.id) return;
+  const t = getValidToken();
+  if (!t) { panel.innerHTML = ''; return; }
+  try {
+    const res = await apiFetch(`/messages/${encodeURIComponent(row.id)}`, { headers: { Authorization: `Bearer ${t}` } });
+    if (!res.ok) { panel.innerHTML = ''; return; }
+    const d = await res.json();
+    if (!d.canChat) {
+      panel.innerHTML = `<div class="chat-head">Readers' chat</div><div class="chat-locked"><b>Champion this script</b> to join the conversation with the readers who love it.</div>`;
+      return;
+    }
+    renderChatMessages(row, d.messages || []);
+  } catch { panel.innerHTML = ''; }
+}
+function renderChatMessages(row, messages) {
+  const panel = document.getElementById('chatPanel');
+  if (!panel) return;
+  const list = messages.map((m) => `<div class="chat-msg">
+      <div class="chat-metarow"><span class="chat-author">${esc(m.reader || 'A reader')}</span><span class="chat-time">${chatTimeAgo(m.createdAt)}</span></div>
+      <div class="chat-body">${esc(m.body || '')}</div>
+      <div class="chat-actions">${m.mine ? '<span class="chat-you">you</span>' : `<button class="chat-endorse${m.endorsedByMe ? ' on' : ''}" data-mid="${esc(m.id)}"${m.endorsedByMe ? ' disabled' : ''}>${m.endorsedByMe ? '✓ Endorsed' : 'Endorse'}</button>`}${m.endorsements ? `<span class="chat-endcount">${m.endorsements} endorsement${m.endorsements === 1 ? '' : 's'}</span>` : ''}</div>
+    </div>`).join('');
+  panel.innerHTML = `<div class="chat-head">Readers' chat <span class="chat-sub">champions only</span></div>
+    <div class="chat-list">${list || '<div class="chat-empty">Be the first to weigh in with the other champions.</div>'}</div>
+    <div class="chat-compose"><textarea id="chatInput" rows="2" maxlength="4000" placeholder="Share your take with the champions…"></textarea><button class="chat-send" id="chatSend" type="button">Post</button></div>
+    <div class="chat-err" id="chatErr" aria-live="polite"></div>`;
+  const send = panel.querySelector('#chatSend');
+  if (send) send.addEventListener('click', () => postChat(row));
+  panel.querySelectorAll('.chat-endorse:not([disabled])').forEach((b) => b.addEventListener('click', () => endorseChat(row, b.dataset.mid, b)));
+}
+async function postChat(row) {
+  const input = document.getElementById('chatInput');
+  const err = document.getElementById('chatErr');
+  const body = ((input && input.value) || '').trim();
+  if (!body) return;
+  if (err) err.textContent = '';
+  if (!window.ReaderAuth) return;
+  try { await ReaderAuth.signInOrRegister(); } catch (e) { if (err) err.textContent = 'Verify with your passkey to post'; return; }
+  try {
+    const res = await ReaderAuth.authedWrite(`/messages/${encodeURIComponent(row.id)}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body }),
+    });
+    if (res.ok) { if (input) input.value = ''; renderChat(row); if (window.refreshXpChip) setTimeout(() => refreshXpChip(true), 1200); }
+    else if (res.status === 403) { if (err) err.textContent = 'Champion this script first to join the chat'; }
+    else { if (err) err.textContent = 'Could not post — try again'; }
+  } catch { if (err) err.textContent = 'Could not post — try again'; }
+}
+async function endorseChat(row, mid, btn) {
+  if (!window.ReaderAuth || !mid) return;
+  if (btn) btn.disabled = true;
+  try { await ReaderAuth.signInOrRegister(); } catch (e) { if (btn) btn.disabled = false; return; }
+  try {
+    const res = await ReaderAuth.authedWrite(`/messages/${encodeURIComponent(mid)}/endorse`, { method: 'POST' });
+    if (res.ok) { renderChat(row); if (window.refreshXpChip) setTimeout(() => refreshXpChip(true), 1200); }
+    else if (btn) btn.disabled = false;
+  } catch { if (btn) btn.disabled = false; }
+}
+
 async function renderOpinions(row) {
   const panel = document.getElementById('opinionsPanel');
   if (!panel || !row || !row.id) return;
@@ -1977,6 +2071,7 @@ function refreshModalGates() {
   if (!open || !_modalRow || window.GUEST_REC) return;
   renderModalActions(_modalRow);
   renderOpinions(_modalRow);
+  renderChat(_modalRow);
 }
 
 // Cross-device: a finished read recorded on another device lives in read_events
