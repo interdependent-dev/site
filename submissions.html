@@ -470,6 +470,15 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 /* Read-first: non-Curators never see the AI verdict — hide the CRAFT/DECISION
    columns + the AI-decision filters. Toggled by body.no-eval (set from xp.curator). */
 body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eval .dec-filters{display:none}
+/* Curator-only surface toggle inside a script modal. */
+.curator-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 18px;padding:9px 12px;border:1px solid #2a2a2a;border-left:3px solid #FF0000;border-radius:6px;background:#0c0c0c}
+.curator-bar .cur-tag{font-family:"Eurostile",sans-serif;font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#FF0000}
+.surface-btn{background:none;border:1px solid #444;color:#bbb;font-family:"Eurostile",sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:6px 12px;border-radius:5px;cursor:pointer;transition:border-color .15s,color .15s;white-space:nowrap}
+.surface-btn:hover:not(:disabled){border-color:#777;color:#fff}
+.surface-btn.on{border-color:#16a34a;color:#16a34a}
+.surface-btn:disabled{opacity:.6;cursor:wait}
+.surface-note{font-size:11px;color:#888}
+@media(max-width:560px){.surface-note{width:100%}}
 .dec-chip{font-family:"Eurostile",'Helvetica Neue',sans-serif;background:#0a0a0a;border:1px solid #2a2a2a;color:#888;padding:9px 13px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}
 .dec-chip:hover{color:#ccc;border-color:#555}
 .dec-chip[data-dec="RECOMMEND"].on{border-color:#16a34a;color:#16a34a}
@@ -1696,6 +1705,7 @@ async function openModal(id) {
           <div class="hr-gate" id="hrGate"></div>
         </div>
       </div>
+      ${hideEval ? '' : `<div class="curator-bar"><span class="cur-tag">Curator</span><button class="surface-btn" id="surfaceBtn" type="button">…</button><span class="surface-note">Only surfaced scripts appear in a Reader's slate.</span></div>`}
       <div class="meta-grid" style="margin-bottom:20px">${buildMeta(hideEval ? [
         ['Pages',        row.page_count ?? row.pageCount],
       ] : [
@@ -1717,6 +1727,8 @@ async function openModal(id) {
 
     const retryBtn = content.querySelector('#retryBtn');
     if (retryBtn) retryBtn.addEventListener('click', () => retryEvaluation(row.id, retryBtn));
+    const surfaceBtn = content.querySelector('#surfaceBtn');
+    if (surfaceBtn) wireSurface(row, surfaceBtn);
     _modalRow = row;
     wireReadActions(row);
     renderModalActions(row);   // gated: Feedback / Recommend / Champion unlock only after a finished read
@@ -1846,6 +1858,31 @@ function readPagesLabel(pct, pages) {
 // not. Reading is shown, never required: how much you've read travels with anything
 // you recommend or champion, so credibility is earned in the open. The action buttons
 // sign you in if you're not a reader yet (one passkey tap).
+// Curator-only: surface / un-surface a script to the Reader slate (POST /scripts/:id/surface).
+// apiFetch attaches the reader session token (X-Reader-Session); the server checks isCuratorHandle.
+function surfaceLabel(on) { return on ? '✓ Surfaced to readers' : 'Surface to readers'; }
+function wireSurface(row, btn) {
+  let on = !!row.surfaced_to_readers;
+  const paint = () => { btn.textContent = surfaceLabel(on); btn.classList.toggle('on', on); };
+  paint();
+  btn.addEventListener('click', async () => {
+    const t = getValidToken();
+    if (!t) return;
+    btn.disabled = true;
+    try {
+      const res = await apiFetch(`/scripts/${encodeURIComponent(row.id)}/surface`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ surfaced: !on }),
+      });
+      if (res.ok) { const d = await res.json().catch(() => ({})); on = !!d.surfaced_to_readers; row.surfaced_to_readers = on; paint(); }
+      else if (res.status === 403) { btn.textContent = 'Curator access required'; }
+      else { btn.textContent = 'Could not update — retry'; }
+    } catch { btn.textContent = 'Could not update — retry'; }
+    btn.disabled = false;
+  });
+}
+
 function renderModalActions(row) {
   const gate = document.getElementById('hrGate');
   if (!gate || !row) return;
