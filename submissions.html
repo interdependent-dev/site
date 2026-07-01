@@ -467,6 +467,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .s-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:#777;font-size:18px;line-height:1;cursor:pointer;padding:0}
 .s-clear:hover{color:#fff}
 .dec-filters{display:flex;gap:7px}
+/* Read-first: non-Curators never see the AI verdict — hide the CRAFT/DECISION
+   columns + the AI-decision filters. Toggled by body.no-eval (set from xp.curator). */
+body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eval .dec-filters{display:none}
 .dec-chip{font-family:"Eurostile",'Helvetica Neue',sans-serif;background:#0a0a0a;border:1px solid #2a2a2a;color:#888;padding:9px 13px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}
 .dec-chip:hover{color:#ccc;border-color:#555}
 .dec-chip[data-dec="RECOMMEND"].on{border-color:#16a34a;color:#16a34a}
@@ -502,7 +505,7 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .meta-val,.summary-body,.comps-val,.td-title,.score-just{overflow-wrap:break-word}
 </style>
 </head>
-<body>
+<body class="no-eval">
 
 <header>
   <a href="/" class="logo">
@@ -635,8 +638,8 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
           <th>Title</th>
           <th class="hide-m">Submitted By</th>
           <th class="hide-m">Pages</th>
-          <th>Craft</th>
-          <th>Decision</th>
+          <th class="eval-col">Craft</th>
+          <th class="eval-col">Decision</th>
           <th>Date</th>
         </tr>
       </thead>
@@ -774,6 +777,10 @@ function fetchWithTimeout(url, opts, ms) {
 }
 
 async function apiFetch(path, opts = {}, { retries = 1, timeout = 60000 } = {}) {
+  // Attach the reader's identity (session token) so the API can gate the AI
+  // evaluation to Curators. The portal passcode stays in opts.headers.Authorization.
+  const _st = window.ReaderAuth && ReaderAuth.getSessionToken && ReaderAuth.getSessionToken();
+  if (_st) opts = { ...opts, headers: { ...(opts.headers || {}), 'X-Reader-Session': _st } };
   for (let attempt = 0; ; attempt++) {
     try {
       return await fetchWithTimeout(`${API}${path}`, opts, timeout);
@@ -1277,20 +1284,32 @@ function renderResult(data) {
 
   document.getElementById('rTitle').textContent = data.title || '';
 
+  // Read-first: the AI coverage is Curator-only, so a writer's in-portal poll no longer
+  // carries the verdict (the full evaluation is delivered by email). If it's absent,
+  // show that cleanly rather than an empty score/coverage panel.
+  const hasEval = ev.decision != null || n.scoreValue != null || (n.categories && n.categories.length);
   const badge = document.getElementById('rBadge');
-  badge.textContent = ev.decision || '—';
-  badge.style.background = DECISIONS[ev.decision] || '#444';
-  badge.style.color = '#fff';
-
-  document.getElementById('rMeta').innerHTML = buildMeta([
-    ['Genre',       fmtGenre(n.genre)],
-    ['Country',     n.country],
-    ['Budget',      n.budget],
-    ['Pages',       data.pageCount],
-    ['Word Count',  data.wordCount ? data.wordCount.toLocaleString() : null],
-  ]);
-
-  document.getElementById('rCoverage').innerHTML = coverageBodyHtml(n);
+  if (hasEval) {
+    badge.style.display = '';
+    badge.textContent = ev.decision || '—';
+    badge.style.background = DECISIONS[ev.decision] || '#444';
+    badge.style.color = '#fff';
+    document.getElementById('rMeta').innerHTML = buildMeta([
+      ['Genre',       fmtGenre(n.genre)],
+      ['Country',     n.country],
+      ['Budget',      n.budget],
+      ['Pages',       data.pageCount],
+      ['Word Count',  data.wordCount ? data.wordCount.toLocaleString() : null],
+    ]);
+    document.getElementById('rCoverage').innerHTML = coverageBodyHtml(n);
+  } else {
+    badge.style.display = 'none';
+    document.getElementById('rMeta').innerHTML = buildMeta([
+      ['Pages',       data.pageCount],
+      ['Word Count',  data.wordCount ? data.wordCount.toLocaleString() : null],
+    ]);
+    document.getElementById('rCoverage').innerHTML = '<div class="summary-body" style="color:#bdbdbd">Your submission was received and evaluated — <b>the full coverage has been emailed to you</b> at the address you provided. Detailed evaluations are kept out of the public portal.</div>';
+  }
 
   const panel = document.getElementById('resultPanel');
   panel.style.display = 'block';
@@ -1359,6 +1378,9 @@ async function loadSubmissions({ reset = true } = {}) {
 
     const { data } = await res.json();
     const rows = data || [];
+    // Read-first: reveal the CRAFT/DECISION columns + AI-decision filters only when the
+    // server actually returned evals (Curator/admin). For Readers they're stripped → hidden.
+    if (reset) document.body.classList.toggle('no-eval', !rows.some((r) => r.evaluation_json));
 
     if (reset) {
       tbody.innerHTML = '';
@@ -1533,15 +1555,19 @@ document.querySelectorAll('.dec-chip').forEach(chip =>
 // ── recommendation guest mode ───────────────────────────────────────────────
 // Map the public /share payload to the row shape the modal + reader expect (no PII).
 function shareToRow(d, id) {
+  // The /share verdict is Curator-only (server strips it for Readers). Only attach
+  // evaluation_json when a verdict actually came back — otherwise the read-first gate
+  // (presence-based hideEval/showEval) would render empty eval chrome to a recipient.
+  const hasVerdict = d.decision != null || d.scores != null || d.evaluation != null || d.weightedScore != null;
   return {
     id, title: d.title, page_count: d.pageCount, status: 'evaluated',
     submitted_at: null, submitter_name: null, submitter_email: null, users: null,
     storage_path: d.pdfUrl ? 'shared' : null, _sharePdfUrl: d.pdfUrl || null,
-    evaluation_json: {
+    evaluation_json: hasVerdict ? {
       decision: d.decision, genre: d.genre, country: null, budget: d.budget,
       logline: d.logline, read_verified: d.readVerified, evaluation: d.evaluation,
       scores: d.scores, weighted_score: d.weightedScore, comparable_films: d.comparableFilms,
-    },
+    } : null,
   };
 }
 
@@ -1640,10 +1666,10 @@ async function openModal(id) {
     const ev   = parseEval(row);
     const n    = normalizeEval(ev);
     const date = fmtDate(row, 'long');
-    // The Carrier — the featured film we've committed to — leads with READING, not a
-    // score: a PASS/number biases the read before it begins. Hide its AI evaluation
-    // (the general "read first, then unlock opinions" gate is the next step).
-    const hideEval = /^the\s+carrier\b/i.test((row.title || '').trim());
+    // Read-first: the AI verdict is Curator-only. For a Reader the server strips
+    // evaluation_json/result, so there's nothing to show — the modal leads with
+    // reading. Curators receive the eval → it renders as before.
+    const hideEval = !row.evaluation_json && !row.evaluation_result;
 
     const readBarHtml = row.storage_path ? `
       <div class="read-bar">
@@ -2596,15 +2622,23 @@ function openReader(row) {
   readerCurrentId = row.id;
 
   document.getElementById('readerTitle').textContent = row.title || '—';
+  // Read-first: the AI verdict is Curator-only. The server strips it for Readers,
+  // so the reading rail hides the score/decision — form your own opinion first.
+  const showEval = !!(row.evaluation_json || row.evaluation_result);
   const dec = document.getElementById('readerDec');
-  dec.textContent = ev.decision || '—';
-  dec.style.background = DECISIONS[ev.decision] || '#444';
-  document.getElementById('readerScore').textContent = n.scoreValue != null ? n.scoreValue.toFixed(1) : '—';
+  const scoreEl = document.getElementById('readerScore');
+  dec.style.display = showEval ? '' : 'none';
+  scoreEl.style.display = showEval ? '' : 'none';
+  if (showEval) {
+    dec.textContent = ev.decision || '—';
+    dec.style.background = DECISIONS[ev.decision] || '#444';
+    scoreEl.textContent = n.scoreValue != null ? n.scoreValue.toFixed(1) : '—';
+  }
 
   const bars = barsFromCategories(n.categories);
   const champ = n.championship;
   const champColor = champ ? (CHAMP_COLORS[champ.rating] || '#444') : '';
-  document.getElementById('readerRail').innerHTML = `
+  document.getElementById('readerRail').innerHTML = showEval ? `
     <div class="rail-dec"><span class="badge" style="background:${DECISIONS[ev.decision] || '#444'};color:#fff">${ev.decision ? esc(ev.decision) : '—'}</span></div>
     <div class="rail-weighted">${n.scoreValue != null ? n.scoreValue.toFixed(1) : '—'}<small> / 100 ${champ ? 'craft' : 'weighted'}</small></div>
     ${n.readVerified === false ? `<div class="read-status warn">⚠ Partial read — ending unverified; treat with caution</div>` : (n.readVerified === true ? `<div class="read-status ok">✓ Full read verified</div>` : '')}
@@ -2615,7 +2649,8 @@ function openReader(row) {
     ${n.comps ? `<div class="rail-section">Comparable Films</div><div class="comps-val">${esc(n.comps)}</div>` : ''}
     ${bars ? `<div class="rail-section">Score Breakdown</div>${bars}` : ''}
     ${n.summary ? `<div class="rail-section">Summary</div><div class="summary-body">${esc(n.summary)}</div>` : ''}
-    ${(n.craftAssessment && n.craftAssessment !== n.summary) ? `<div class="rail-section">Craft Assessment</div><div class="summary-body">${esc(n.craftAssessment)}</div>` : ''}`;
+    ${(n.craftAssessment && n.craftAssessment !== n.summary) ? `<div class="rail-section">Craft Assessment</div><div class="summary-body">${esc(n.craftAssessment)}</div>` : ''}`
+    : `<div class="rail-section" style="margin-top:6px">Your read</div><div class="summary-body" style="color:#9a9a9a">Form your own opinion first — the coverage stays out of sight so it can't shape your read. When you finish, you'll be able to weigh in and see what other readers thought.</div>`;
 
   const r = document.getElementById('reader');
   r.classList.add('open');
