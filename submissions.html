@@ -307,8 +307,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 
 /* reader feedback form — layered ABOVE the full-screen reader (z-200) so the
    in-reader Feedback button works with the reader open */
-.fb-back{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85)}
-.fb-card{width:100%;max-width:440px;max-height:92vh;overflow-y:auto;background:#0a0a0a;border:1px solid #222;padding:26px 24px;font-family:'Helvetica Neue',sans-serif}
+.fb-back{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85);
+  padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
+.fb-card{width:100%;max-width:440px;max-height:92vh;max-height:calc(100dvh - 40px);overflow-y:auto;background:#0a0a0a;border:1px solid #222;padding:26px 24px;font-family:'Helvetica Neue',sans-serif}
 .fb-card h3{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px;color:#fff}
 .fb-card .fb-sub{color:#888;font-size:12px;margin-bottom:18px;line-height:1.55}
 .fb-card .fb-q{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin:20px 0 8px}
@@ -501,17 +502,19 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     padding:10px max(12px, env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
     border-right:none;border-top:1px solid #1c1c1c;background:rgba(0,0,0,.94);justify-content:center
   }
-  .reader-actions .share-btn,.reader-actions .champion-btn{flex:1 1 0;justify-content:center;max-width:160px;padding:11px 8px}
+  /* min-height 44px: proper thumb targets for the primary phone actions */
+  .reader-actions .share-btn,.reader-actions .champion-btn{flex:1 1 0;justify-content:center;max-width:160px;padding:11px 8px;min-height:44px}
   .reader-tools{margin-left:auto}
   .reader-doc{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
   .reader-nav,.reader-rail{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 @media(max-width:580px){
-  /* icon-only toggles — but the lock glyph must survive (it IS the signal) */
+  /* icon-only toggles — but the lock glyph must survive (it IS the signal).
+     min 42px square so the only phone toolbar controls are actually tappable. */
   .reader-tools .rtool span:not(.rt-lock){display:none}
-  .reader-tools .rtool{padding:9px 11px}
-  .reader-back{padding:9px 11px}
-  .reader-top{gap:10px;padding:11px 12px}
+  .reader-tools .rtool{padding:9px 11px;min-height:42px;min-width:42px;justify-content:center}
+  .reader-back{padding:9px 11px;min-height:42px}
+  .reader-top{gap:10px;padding:8px 12px}
 }
 
 /* ── search / filter controls ── */

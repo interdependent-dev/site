@@ -90,7 +90,9 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .stat-line{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px;row-gap:4px;font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#9a9a9a;margin:12px 0 2px}
 .stat-line .stat{white-space:nowrap}
 .stat-line .stat + .stat::before{content:"· ";color:#555}
-@media(max-width:560px){header{padding:14px 20px}main{padding:32px 20px}.read .bar{width:64px}.r-name{font-size:15px}.stat-line{flex-direction:column;column-gap:0;row-gap:3px}.stat-line .stat + .stat::before{content:none}.stat-line .stat-desk{display:none}.read-chip .rc-t{display:none}}
+/* phones: icon-only logo (same fix as submissions.html — the wordmark + nav
+   buttons overflow 390px otherwise; the red mark carries the brand) */
+@media(max-width:560px){header{padding:14px 20px}.logo-name{display:none}.logo{gap:0}main{padding:32px 20px}.read .bar{width:64px}.r-name{font-size:15px}.stat-line{flex-direction:column;column-gap:0;row-gap:3px}.stat-line .stat + .stat::before{content:none}.stat-line .stat-desk{display:none}.read-chip .rc-t{display:none}}
 </style>
 <script src="/lib/roles.js?v=2026-06-30-ux"></script>
 </head>

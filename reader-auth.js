@@ -622,9 +622,11 @@
     _styleInjected = true;
     const css = `
 .ra-back{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
-  padding:24px;background:rgba(0,0,0,.88);animation:ra-fade .2s ease-out both}
+  padding:24px;background:rgba(0,0,0,.88);animation:ra-fade .2s ease-out both;
+  padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))}
 @keyframes ra-fade{from{opacity:0}to{opacity:1}}
-.ra-card{width:100%;max-width:360px;background:#070707;border:1px solid #1c1c1c;
+.ra-card{width:100%;max-width:360px;max-height:calc(100dvh - 48px);overflow-y:auto;
+  background:#070707;border:1px solid #1c1c1c;
   padding:34px 28px 28px;position:relative;color:#fff;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif}
 .ra-eur{font-family:"Eurostile","Helvetica Neue",sans-serif}
