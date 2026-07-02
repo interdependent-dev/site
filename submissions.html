@@ -644,21 +644,17 @@ body.assign-lock .fyc-card[aria-disabled="true"] .fyc-lock{display:block}
       AND time, not scroll — who championed it, and reader feedback + the
       AI↔reader calibration, all on the script's own detail. ── */
 
-/* Reader gate — the locked state for actions + activity until a finished read. */
+/* Header action cluster + "You've read …" line (the read-gate lock UI is gone —
+   the portal is OPEN; reading is shown, never required). */
 .hr-gate{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-.gate-lock{display:inline-flex;align-items:flex-start;gap:9px;box-sizing:border-box;font-size:12px;color:#9a9a9a;background:#0e0e0e;border:1px solid #1e1e1e;border-radius:4px;padding:11px 14px;line-height:1.55;max-width:min(400px,100%);text-align:left}
-.gate-lock svg{width:13px;height:13px;fill:#fff;flex-shrink:0;margin-top:1px}
-.gate-hint{font-size:11px;color:#777}
 .hr-read{font-size:11px;color:#888;line-height:1.5;max-width:300px;text-align:right;margin-top:3px}
 .hr-read b{color:#fff;font-weight:700}
-.gate-link{background:none;border:none;color:#FF0000;font:inherit;font-size:12px;padding:0;cursor:pointer;text-decoration:underline}
-/* Mobile: stack the detail-modal header so the gate/buttons never force sideways scroll. */
+/* Mobile: stack the detail-modal header so the buttons never force sideways scroll. */
 @media(max-width:580px){
   .result-header{flex-wrap:wrap}
   .header-right{width:100%;align-items:stretch}
   .hr-gate{width:100%;align-items:stretch}
   .hr-btns{flex-wrap:wrap}
-  .gate-lock{max-width:100%}
   .champion-msg{text-align:left;max-width:none}
   .hr-read{text-align:left;max-width:none}
 }
@@ -887,9 +883,9 @@ if (window.pdfjsLib) {
 </script>
 
 <!-- Reader passkey auth — powers the Champion button (add to a reader's leaderboard). -->
-<script src="/reader-auth.js?v=2026-07-01-rf"></script>
-<!-- Reader analytics (best-effort, anonymous device id). -->
-<script src="/analytics.js"></script>
+<script src="/reader-auth.js?v=2026-07-01a"></script>
+<!-- Reader analytics (best-effort; reader attribution via X-Reader-Session). -->
+<script src="/analytics.js?v=2026-07-01a"></script>
 <!-- Canonical "finished read" definition, shared verbatim with the API. -->
 <script src="/lib/read-gate.js"></script>
 <!-- Canonical role registry + icon renderer (chip, avatar, leaderboard). -->
@@ -1061,21 +1057,6 @@ function buildMeta(pairs) {
        <span class="meta-val">${esc(String(v))}</span>
      </div>`
   ).join('');
-}
-
-function buildBars(scores, { withJustifications = false } = {}) {
-  if (!scores || typeof scores !== 'object') return '';
-  return Object.entries(scores).map(([key, raw]) => {
-    const val = Number(scoreVal(raw));
-    if (isNaN(val)) return '';
-    const pct = Math.min(100, Math.max(0, (val / 10) * 100)).toFixed(1);
-    const just = withJustifications ? scoreJust(raw) : null;
-    return `<div class="score-row">
-      <span class="score-name">${SCORE_NAMES[key] || esc(key)}</span>
-      <div class="score-track"><div class="score-fill" style="width:${pct}%"></div></div>
-      <span class="score-num">${val}</span>
-    </div>${just ? `<div class="score-just">${esc(just)}</div>` : ''}`;
-  }).join('');
 }
 
 function decisionBadge(row, ev) {
@@ -2195,7 +2176,11 @@ function markFeedbackLeft(scriptId) {
 // counts). The "finished" test lives in /lib/read-gate.js — shared verbatim with
 // the API's /reads/status so client and server never drift on what "read" means.
 // Honest "how much did you actually read" % — min(scroll depth, time spent).
-// Uses the shared module; the inline copy is only a fail-safe if it didn't load.
+// Delegates to the shared module (window.ReadGate); the inline math below the
+// guard is ONLY the fallback for when /lib/read-gate.js failed to load, and it
+// MUST mirror lib/read-gate.js exactly (readingPct: depth clamped 0-100, time %
+// = seconds / (pages × PACE_SEC_PER_PAGE=20), pages defaulting to 100; finished
+// = readingPct >= 85). If the lib changes, change this fallback with it.
 function readingPctOf(depth, seconds, pages) {
   if (window.ReadGate) return ReadGate.readingPct(depth, seconds, pages);
   const d = Math.max(0, Math.min(100, depth || 0));
@@ -2204,7 +2189,7 @@ function readingPctOf(depth, seconds, pages) {
 }
 function isFinishedRead(depth, seconds, pages) {
   if (window.ReadGate) return ReadGate.isFinishedRead(depth, seconds, pages);
-  return readingPctOf(depth, seconds, pages) >= 85;
+  return readingPctOf(depth, seconds, pages) >= 85; // mirror of lib/read-gate.js
 }
 function maybeMarkRead(scriptId, depth, seconds, pages) {
   if (!scriptId) return false;
@@ -2905,41 +2890,111 @@ function wireReadActions(row) {
   if (previewClose) previewClose.addEventListener('click', () => { stopPreviewTracking(); pane.classList.remove('open'); pscroll.innerHTML = ''; });
 }
 
-// ── full-screen reader ────────────────────────────────────────────────────────
-let readerCurrentId = null;
-let _readerAnalytics = null, _readerProgressFn = null, _readerBumpFn = null, _readerTick = null, _readerHeartbeat = null; // read analytics state
-
-// Report read DEPTH + ACTIVE TIME for the current reader session (best-effort).
-// Live reading readout in the reader top bar (visible to the reader as they read).
-function updateReaderProgress() {
-  if (!_readerAnalytics) return;
-  const el = document.getElementById('readerProgress');
-  if (!el) return;
-  const a = _readerAnalytics;
-  const pct = readingPctOf(a.maxDepth, a.activeSec, a.pages);
-  const m = Math.floor((a.activeSec || 0) / 60);
-  el.textContent = readPagesLabel(pct, a.pages) + (m ? ` · ${m}m` : '');
-}
-
-function sendReadProgress() {
-  if (!_readerAnalytics) return;
-  const a = _readerAnalytics;
+// ── Shared read tracker (full reader + quick preview) ────────────────────────
+// ONE state machine for both reading surfaces. Tracks read DEPTH + ACTIVE TIME:
+// depth alone is gameable (scroll to the bottom in seconds), so we also
+// accumulate real time spent with the surface visible and recently active.
+// "Read" / "finished" is derived from depth AND time downstream — never scroll.
+// Both surfaces persist to the SAME per-script localStorage keys, so progress
+// carries when the reader switches between preview and reader (each restores
+// on open).
+//
+//   scrollEl   — the scrolling element whose depth is measured
+//   row        — the script row ({ id, page_count | pageCount })
+//   source     — event source tag ('portal' | 'recommend')
+//   onProgress — paints the live readout; called with the tracker state
+//   isPaused   — optional: while it returns true the active-seconds tick is
+//                suspended (the preview pauses while the full reader is open
+//                on top, so the two never count at once)
+//
+// Active time: +1s/tick while visible, not paused, and active within the last
+// 3 minutes. Reading a dense screenplay page can take minutes with no scroll,
+// so the idle window is generous — it exists only to exclude a tab left open
+// and walked away from, not to penalise someone who's actually reading.
+// Persistence (60s heartbeat + stop/flush): idp_read_depth / idp_read_sec /
+// idp_read_pct per script, the idp_read_done flag via maybeMarkRead, and a
+// read_progress event via Analytics.track — reader attribution rides the
+// X-Reader-Session header analytics.js attaches for signed-in readers.
+function createReadTracker({ scrollEl, row, source, onProgress, isPaused }) {
+  const state = {
+    id: row.id,
+    maxDepth: parseInt(localStorage.getItem(`idp_read_depth:${row.id}`) || '0', 10) || 0,
+    activeSec: parseInt(localStorage.getItem(`idp_read_sec:${row.id}`) || '0', 10) || 0,
+    pages: row.page_count || row.pageCount || null,
+    lastActive: Date.now(),
+    source,
+  };
+  let live = true;
+  const paint = () => { if (onProgress) onProgress(state); };
+  const bump = () => { if (live) state.lastActive = Date.now(); };
+  const onScroll = () => {
+    if (!live) return;
+    const sh = scrollEl.scrollHeight - scrollEl.clientHeight;
+    const pct = sh > 0 ? Math.min(100, Math.round((scrollEl.scrollTop / sh) * 100)) : 0;
+    if (pct > state.maxDepth) state.maxDepth = pct;
+    bump();
+    paint();
+  };
   // Persist this device's reading (depth, time, and the honest read %) — shown
   // openly on the reader's actions and restored when they reopen the script.
-  localStorage.setItem(`idp_read_depth:${a.id}`, String(Math.round(a.maxDepth || 0)));
-  localStorage.setItem(`idp_read_sec:${a.id}`, String(Math.round(a.activeSec || 0)));
-  localStorage.setItem(`idp_read_pct:${a.id}`, String(readingPctOf(a.maxDepth, a.activeSec, a.pages)));
-  // Record a verified read (a reputation signal — no longer a gate).
-  maybeMarkRead(a.id, a.maxDepth, a.activeSec, a.pages);
-  if (!window.Analytics) return;
-  Analytics.track('read_progress', {
-    script_id: _readerAnalytics.id,
-    depth_pct: _readerAnalytics.maxDepth,
-    seconds: _readerAnalytics.activeSec,
-    source: _readerAnalytics.source,
-    recommender: REC_BY || undefined,
-  });
+  const persist = () => {
+    if (!live) return;
+    localStorage.setItem(`idp_read_depth:${state.id}`, String(Math.round(state.maxDepth || 0)));
+    localStorage.setItem(`idp_read_sec:${state.id}`, String(Math.round(state.activeSec || 0)));
+    localStorage.setItem(`idp_read_pct:${state.id}`, String(readingPctOf(state.maxDepth, state.activeSec, state.pages)));
+    // Record a verified read (a reputation signal — no longer a gate).
+    maybeMarkRead(state.id, state.maxDepth, state.activeSec, state.pages);
+    if (window.Analytics) Analytics.track('read_progress', {
+      script_id: state.id,
+      depth_pct: state.maxDepth,
+      seconds: state.activeSec,
+      source: state.source,
+      recommender: REC_BY || undefined,
+    });
+  };
+  const BUMP_EVENTS = ['pointermove', 'pointerdown', 'touchstart'];
+  scrollEl.addEventListener('scroll', onScroll, { passive: true });
+  BUMP_EVENTS.forEach((e) => scrollEl.addEventListener(e, bump, { passive: true }));
+  const tick = setInterval(() => {
+    if (live && !(isPaused && isPaused()) && document.visibilityState === 'visible'
+        && (Date.now() - state.lastActive) < 180000) {
+      state.activeSec += 1;
+      paint();
+    }
+  }, 1000);
+  // heartbeat so long reads record progress even without a clean stop
+  const heartbeat = setInterval(persist, 60000);
+  paint(); // initial readout (restored progress)
+  return {
+    state,   // exposed so the reader can backfill pages from the PDF itself
+    persist, // flush point for pagehide/visibilitychange (no-op once stopped)
+    stop() {
+      if (!live) return;
+      persist(); // final depth + active time
+      live = false;
+      scrollEl.removeEventListener('scroll', onScroll);
+      BUMP_EVENTS.forEach((e) => scrollEl.removeEventListener(e, bump));
+      clearInterval(tick);
+      clearInterval(heartbeat);
+    },
+  };
 }
+
+// ── full-screen reader ────────────────────────────────────────────────────────
+let _readerTracker = null; // createReadTracker() instance while the reader is open
+
+// Live reading readout in the reader top bar (visible to the reader as they read).
+function paintReaderProgress(s) {
+  const el = document.getElementById('readerProgress');
+  if (!el) return;
+  const pct = readingPctOf(s.maxDepth, s.activeSec, s.pages);
+  const m = Math.floor((s.activeSec || 0) / 60);
+  el.textContent = readPagesLabel(pct, s.pages) + (m ? ` · ${m}m` : '');
+}
+
+// Report read DEPTH + ACTIVE TIME for the current reader session (best-effort).
+// Kept as a named flush point for the pagehide/visibilitychange handlers.
+function sendReadProgress() { if (_readerTracker) _readerTracker.persist(); }
 
 // Refresh the modal's "You've read …" line from the latest stored progress, so
 // it reflects reading done in the preview or reader without reopening the modal.
@@ -2956,72 +3011,34 @@ function refreshDetailReadLine() {
 
 // ── Quick-preview read tracking ───────────────────────────────────────────────
 // The inline preview tracks read depth + active time exactly like the full
-// reader, persisting to the SAME localStorage keys — so progress carries when
-// you switch between preview and reader (each restores on open). The two never
-// count at once: the preview tick pauses while the full reader is open.
-let _previewAnalytics = null, _previewScrollFn = null, _previewBumpFn = null, _previewTick = null, _previewHeartbeat = null;
+// reader — one shared createReadTracker() — persisting to the SAME localStorage
+// keys, so progress carries when you switch between preview and reader. The two
+// never count at once: the preview tick pauses while the full reader is open.
+let _previewTracker = null; // createReadTracker() instance while the preview is open
 
-function updatePreviewProgress() {
-  if (!_previewAnalytics) return;
-  const el = document.getElementById('previewProgress');
-  if (!el) return;
-  const a = _previewAnalytics;
-  el.textContent = readPagesLabel(readingPctOf(a.maxDepth, a.activeSec, a.pages), a.pages);
-}
-
-function persistPreview() {
-  if (!_previewAnalytics) return;
-  const a = _previewAnalytics;
-  localStorage.setItem(`idp_read_depth:${a.id}`, String(Math.round(a.maxDepth || 0)));
-  localStorage.setItem(`idp_read_sec:${a.id}`, String(Math.round(a.activeSec || 0)));
-  localStorage.setItem(`idp_read_pct:${a.id}`, String(readingPctOf(a.maxDepth, a.activeSec, a.pages)));
-  maybeMarkRead(a.id, a.maxDepth, a.activeSec, a.pages);
-  if (window.Analytics) Analytics.track('read_progress', { script_id: a.id, depth_pct: a.maxDepth, seconds: a.activeSec, source: a.source, recommender: REC_BY || undefined });
-}
+// Flush point for the pagehide/visibilitychange handlers (no-op once stopped).
+function persistPreview() { if (_previewTracker) _previewTracker.persist(); }
 
 function startPreviewTracking(row) {
   stopPreviewTracking();
   const sc = document.getElementById('previewScroll');
   if (!sc || !row) return;
-  _previewAnalytics = {
-    id: row.id,
-    maxDepth: parseInt(localStorage.getItem(`idp_read_depth:${row.id}`) || '0', 10) || 0,
-    activeSec: parseInt(localStorage.getItem(`idp_read_sec:${row.id}`) || '0', 10) || 0,
-    pages: row.page_count || row.pageCount || null,
-    lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal',
-  };
-  updatePreviewProgress();
-  _previewBumpFn = () => { if (_previewAnalytics) _previewAnalytics.lastActive = Date.now(); };
-  _previewScrollFn = () => {
-    if (!_previewAnalytics) return;
-    const sh = sc.scrollHeight - sc.clientHeight;
-    const pct = sh > 0 ? Math.min(100, Math.round((sc.scrollTop / sh) * 100)) : 0;
-    if (pct > _previewAnalytics.maxDepth) _previewAnalytics.maxDepth = pct;
-    _previewBumpFn(); updatePreviewProgress();
-  };
-  sc.addEventListener('scroll', _previewScrollFn, { passive: true });
-  ['pointermove', 'pointerdown', 'touchstart'].forEach((e) => sc.addEventListener(e, _previewBumpFn, { passive: true }));
-  _previewTick = setInterval(() => {
-    if (_previewAnalytics && !document.getElementById('reader').classList.contains('open')
-        && document.visibilityState === 'visible' && (Date.now() - _previewAnalytics.lastActive) < 180000) {
-      _previewAnalytics.activeSec += 1; updatePreviewProgress();
-    }
-  }, 1000);
-  _previewHeartbeat = setInterval(persistPreview, 60000);
+  _previewTracker = createReadTracker({
+    scrollEl: sc,
+    row,
+    source: window.GUEST_REC ? 'recommend' : 'portal',
+    onProgress: (s) => {
+      const el = document.getElementById('previewProgress');
+      if (el) el.textContent = readPagesLabel(readingPctOf(s.maxDepth, s.activeSec, s.pages), s.pages);
+    },
+    isPaused: () => document.getElementById('reader').classList.contains('open'),
+  });
 }
 
 function stopPreviewTracking() {
-  if (!_previewAnalytics) return;
-  persistPreview();
-  const sc = document.getElementById('previewScroll');
-  if (sc) {
-    if (_previewScrollFn) sc.removeEventListener('scroll', _previewScrollFn);
-    if (_previewBumpFn) ['pointermove', 'pointerdown', 'touchstart'].forEach((e) => sc.removeEventListener(e, _previewBumpFn));
-  }
-  if (_previewTick) clearInterval(_previewTick);
-  if (_previewHeartbeat) clearInterval(_previewHeartbeat);
-  _previewScrollFn = _previewBumpFn = _previewTick = _previewHeartbeat = null;
-  _previewAnalytics = null;
+  if (!_previewTracker) return;
+  _previewTracker.stop(); // persists final depth + time
+  _previewTracker = null;
   refreshDetailReadLine();
 }
 
@@ -3057,7 +3074,7 @@ async function renderReaderPdf(url) {
 
   // Authoritative page count from the PDF itself — so completion stays pace-aware
   // even when the stored page_count was missing (otherwise the time floor collapses).
-  if (_readerAnalytics && !_readerAnalytics.pages) _readerAnalytics.pages = pdf.numPages;
+  if (_readerTracker && !_readerTracker.state.pages) _readerTracker.state.pages = pdf.numPages;
 
   doc.innerHTML = '';
   const dpr   = Math.min(window.devicePixelRatio || 1, 2);
@@ -3268,11 +3285,10 @@ document.getElementById('readerSynX').addEventListener('click', () => {
 });
 
 function openReader(row) {
-  if (_readerAnalytics) closeReader(); // defensive: never stack two reader sessions
+  if (_readerTracker) closeReader(); // defensive: never stack two reader sessions
   stopPreviewTracking(); // hand off from the preview — its progress is persisted, the reader restores it below
   const ev = parseEval(row);
   const n  = normalizeEval(ev);
-  readerCurrentId = row.id;
   _readerRow = row;
 
   document.getElementById('readerTitle').textContent = row.title || '—';
@@ -3313,40 +3329,16 @@ function openReader(row) {
   const r = document.getElementById('reader');
   r.classList.add('open');
 
-  // analytics: reader opened + read DEPTH and ACTIVE READING TIME. Depth alone is
-  // gameable (scroll to the bottom in seconds), so we also accumulate real time
-  // spent with the reader visible and recently active (idle/hidden time excluded).
-  // "Read" / "finished" is derived from depth AND time downstream — never scroll.
-  const _rdoc = document.getElementById('readerDoc');
-  _readerAnalytics = {
-    id: row.id,
-    maxDepth: parseInt(localStorage.getItem(`idp_read_depth:${row.id}`) || '0', 10) || 0,
-    activeSec: parseInt(localStorage.getItem(`idp_read_sec:${row.id}`) || '0', 10) || 0,
-    lastActive: Date.now(), source: window.GUEST_REC ? 'recommend' : 'portal',
-    pages: row.page_count || row.pageCount || null,
-  };
-  updateReaderProgress();
-  if (window.Analytics) Analytics.track('reader_open', { script_id: row.id, total_pages: row.page_count || undefined, source: _readerAnalytics.source, recommender: REC_BY || undefined });
-  _readerBumpFn = () => { if (_readerAnalytics) _readerAnalytics.lastActive = Date.now(); };
-  _readerProgressFn = () => {
-    if (!_readerAnalytics) return;
-    const sh = _rdoc.scrollHeight - _rdoc.clientHeight;
-    const pct = sh > 0 ? Math.min(100, Math.round((_rdoc.scrollTop / sh) * 100)) : 0;
-    if (pct > _readerAnalytics.maxDepth) _readerAnalytics.maxDepth = pct;
-    _readerBumpFn();
-    updateReaderProgress();
-  };
-  _rdoc.addEventListener('scroll', _readerProgressFn, { passive: true });
-  ['pointermove', 'pointerdown', 'touchstart'].forEach((ev) => _rdoc.addEventListener(ev, _readerBumpFn, { passive: true }));
-  // Count active time: +1s/tick while the reader is visible and was active in the
-  // last 3 minutes. Reading a dense screenplay page can take minutes with no scroll,
-  // so the idle window is generous — it exists only to exclude a tab left open and
-  // walked away from, not to penalise someone who's actually reading.
-  _readerTick = setInterval(() => {
-    if (_readerAnalytics && document.visibilityState === 'visible' && (Date.now() - _readerAnalytics.lastActive) < 180000) { _readerAnalytics.activeSec += 1; updateReaderProgress(); }
-  }, 1000);
-  // heartbeat so long reads record progress even without a clean close
-  _readerHeartbeat = setInterval(sendReadProgress, 60000);
+  // analytics: reader opened + read DEPTH and ACTIVE READING TIME — the shared
+  // read tracker (see createReadTracker for the depth+time model, idle window,
+  // heartbeat, and persistence).
+  _readerTracker = createReadTracker({
+    scrollEl: document.getElementById('readerDoc'),
+    row,
+    source: window.GUEST_REC ? 'recommend' : 'portal',
+    onProgress: paintReaderProgress,
+  });
+  if (window.Analytics) Analytics.track('reader_open', { script_id: row.id, total_pages: row.page_count || undefined, source: _readerTracker.state.source, recommender: REC_BY || undefined });
 
   // Panels. Coverage rail: Curator-only (readers never get the column OR the
   // toggle). Scene nav: defaults COLLAPSED below 1400px so the page gets the
@@ -3370,14 +3362,9 @@ function openReader(row) {
 
 function closeReader() {
   document.getElementById('reader').classList.remove('open');
-  if (_readerAnalytics) {
-    sendReadProgress(); // final depth + active time
-    const d = document.getElementById('readerDoc');
-    if (_readerProgressFn) { d.removeEventListener('scroll', _readerProgressFn); _readerProgressFn = null; }
-    if (_readerBumpFn) { ['pointermove', 'pointerdown', 'touchstart'].forEach((ev) => d.removeEventListener(ev, _readerBumpFn)); _readerBumpFn = null; }
-    if (_readerTick) { clearInterval(_readerTick); _readerTick = null; }
-    if (_readerHeartbeat) { clearInterval(_readerHeartbeat); _readerHeartbeat = null; }
-    _readerAnalytics = null;
+  if (_readerTracker) {
+    _readerTracker.stop(); // persists final depth + active time
+    _readerTracker = null;
   }
   teardownReader();
   _readerRow = null;

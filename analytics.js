@@ -12,9 +12,27 @@
   function readerId() {
     try { const r = window.ReaderAuth && ReaderAuth.getReader && ReaderAuth.getReader(); return r && r.readerId || undefined; } catch { return undefined; }
   }
+  // The reader session JWT ReaderAuth stores (see reader-auth.js LS_SESSION).
+  function sessionToken() {
+    try { return localStorage.getItem('reader_session') || ''; } catch { return ''; }
+  }
   function send(body) {
     try {
       const json = JSON.stringify(body);
+      // Reader attribution rides ONLY on the X-Reader-Session header — the API
+      // ignores body reader_id. sendBeacon cannot set headers, so a signed-in
+      // reader must use fetch; keepalive makes it survive unload like a beacon.
+      const token = sessionToken();
+      if (token) {
+        fetch(API + '/events', {
+          method: 'POST',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json', 'X-Reader-Session': token },
+          body: json,
+        }).catch(() => {});
+        return;
+      }
+      // Anonymous events need no headers — beacon is the most reliable on unload.
       if (navigator.sendBeacon) { navigator.sendBeacon(API + '/events', new Blob([json], { type: 'application/json' })); return; }
       fetch(API + '/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json, keepalive: true }).catch(() => {});
     } catch { /* ignore */ }

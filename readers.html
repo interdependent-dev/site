@@ -133,7 +133,7 @@ function token() {
   if (!t || Date.now() > e) { window.location.href = '/passcode'; return null; }
   return t;
 }
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 function ago(iso) {
   if (!iso) return '';
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -251,7 +251,7 @@ async function loadXpMap(t) {
 async function renderTaste() {
   const sec = document.getElementById('tasteSection');
   if (!sec) return;
-  const escT = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const escT = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   try {
     // localStorage access can throw (Safari private mode / disabled site data) — keep it
     // inside the try so it fails silently rather than as an unhandled promise rejection.

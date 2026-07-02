@@ -328,26 +328,6 @@
       && !!(navigator.credentials && navigator.credentials.create && navigator.credentials.get);
   }
 
-  // Is this an Apple platform (Mac / iPhone / iPad)? Readers must use iCloud
-  // Keychain so their passkey syncs across their devices, and no web API reports
-  // "iCloud Keychain" directly — UVPAA only says a platform authenticator exists
-  // (it's true for Windows Hello / Android too). So we additionally require an
-  // Apple platform. Prefer userAgentData (precise on Chromium); fall back to the
-  // UA/platform string for Safari, which has no userAgentData.
-  function isApplePlatform() {
-    try {
-      const uaData = navigator.userAgentData;
-      if (uaData && typeof uaData.platform === 'string' && uaData.platform) {
-        const p = uaData.platform.toLowerCase();
-        return p.includes('mac') || p.includes('ios') || p.includes('iphone') || p.includes('ipad');
-      }
-      const ua = navigator.userAgent || '';
-      const plat = navigator.platform || '';
-      if (/iPhone|iPod|iPad/.test(ua)) return true;       // iOS / iPadOS browsers
-      return /Mac/i.test(plat) || /Macintosh/i.test(ua);  // macOS, and iPadOS that reports as Mac
-    } catch { return false; }
-  }
-
   // Authoritative STEP-0 check, async + cached. Cross-platform: the WebAuthn API
   // is present (false on IE), the page is secure (https), and a user-verifying
   // platform authenticator is actually available — true for Touch ID / Face ID
