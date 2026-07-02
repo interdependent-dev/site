@@ -920,7 +920,7 @@ if (window.pdfjsLib) {
 </script>
 
 <!-- Reader passkey auth — powers the Champion button (add to a reader's leaderboard). -->
-<script src="/reader-auth.js?v=2026-07-01a"></script>
+<script src="/reader-auth.js?v=2026-07-02a"></script>
 <!-- Reader analytics (best-effort; reader attribution via X-Reader-Session). -->
 <script src="/analytics.js?v=2026-07-01a"></script>
 <!-- Canonical "finished read" definition, shared verbatim with the API. -->
@@ -996,6 +996,9 @@ const token = window.GUEST_REC ? null : getValidToken();
 if (!token && !window.GUEST_REC) throw new Error('unauthenticated');
 
 document.getElementById('signOutBtn').addEventListener('click', () => {
+  // EXIT = FULL sign-out: the passkey identity (reader-auth.js owns those
+  // keys) as well as the portal passcode session.
+  if (window.ReaderAuth && ReaderAuth.signOut) ReaderAuth.signOut();
   localStorage.removeItem('session_token');
   localStorage.removeItem('session_expires');
   window.location.href = '/passcode';

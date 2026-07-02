@@ -296,6 +296,13 @@
     clearToken();
   }
 
+  // Full local sign-out — the semantic entry point for EXIT controls. Clears
+  // every identity key this module owns (reader_id / reader_handle /
+  // reader_display / reader_session) plus the in-memory action token. Pages
+  // call this BEFORE clearing their portal passcode session so "exit" drops
+  // the passkey identity too, not just the passcode.
+  function signOut() { clearReader(); }
+
   // ── action token (in-memory only) ─────────────────────────────────────────
   let _token = null;
   let _tokenExp = 0;
@@ -870,6 +877,7 @@
     getReader,
     isRegistered,
     clearReader,
+    signOut,           // full local sign-out (identity keys + in-memory token) — wire EXIT controls here
 
     // reader session token (persistent identity — read personalization only)
     getSessionToken,

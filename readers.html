@@ -114,6 +114,8 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   <div id="list"><div class="state">Loading readers —</div></div>
 </main>
 
+<!-- Reader passkey auth — one source of truth for the identity keys EXIT clears. -->
+<script src="/reader-auth.js?v=2026-07-02a"></script>
 <script src="/lib/xp-bar.js?v=2026-06-30k"></script>
 <script>
 const API = 'https://interdependent-api.onrender.com';
@@ -149,6 +151,9 @@ function ago(iso) {
 }
 
 document.getElementById('exitBtn').addEventListener('click', () => {
+  // EXIT = FULL sign-out: passkey identity (reader-auth.js owns those keys)
+  // as well as the portal passcode session.
+  if (window.ReaderAuth && ReaderAuth.signOut) ReaderAuth.signOut();
   localStorage.removeItem('session_token'); localStorage.removeItem('session_expires');
   window.location.href = '/passcode';
 });

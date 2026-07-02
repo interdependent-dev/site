@@ -132,7 +132,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   <p class="foot">Lost access to all your devices? <a href="/recover.html">Recover your account →</a></p>
 </main>
 
-<script src="/reader-auth.js?v=2026-07-01a"></script>
+<script src="/reader-auth.js?v=2026-07-02a"></script>
 <script src="/lib/roles.js?v=2026-06-30-ux"></script>
 <script src="/lib/xp-bar.js?v=2026-06-30k"></script>
 <script>
@@ -311,7 +311,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
   }
 
   function signOut() {
-    ReaderAuth.clearReader();
+    ReaderAuth.signOut(); // full identity sign-out (same keys everywhere)
     verified = null;
     pendingFile = null; pfFile.value = '';
     // Clear the recovery-email field so a signed-out (or about-to-switch) session
