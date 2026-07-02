@@ -2176,7 +2176,11 @@ function markFeedbackLeft(scriptId) {
 // counts). The "finished" test lives in /lib/read-gate.js — shared verbatim with
 // the API's /reads/status so client and server never drift on what "read" means.
 // Honest "how much did you actually read" % — min(scroll depth, time spent).
-// Uses the shared module; the inline copy is only a fail-safe if it didn't load.
+// Delegates to the shared module (window.ReadGate); the inline math below the
+// guard is ONLY the fallback for when /lib/read-gate.js failed to load, and it
+// MUST mirror lib/read-gate.js exactly (readingPct: depth clamped 0-100, time %
+// = seconds / (pages × PACE_SEC_PER_PAGE=20), pages defaulting to 100; finished
+// = readingPct >= 85). If the lib changes, change this fallback with it.
 function readingPctOf(depth, seconds, pages) {
   if (window.ReadGate) return ReadGate.readingPct(depth, seconds, pages);
   const d = Math.max(0, Math.min(100, depth || 0));
@@ -2185,7 +2189,7 @@ function readingPctOf(depth, seconds, pages) {
 }
 function isFinishedRead(depth, seconds, pages) {
   if (window.ReadGate) return ReadGate.isFinishedRead(depth, seconds, pages);
-  return readingPctOf(depth, seconds, pages) >= 85;
+  return readingPctOf(depth, seconds, pages) >= 85; // mirror of lib/read-gate.js
 }
 function maybeMarkRead(scriptId, depth, seconds, pages) {
   if (!scriptId) return false;
