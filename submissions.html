@@ -404,6 +404,11 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
    screens, fixed bottom bar ≤820px (see the phone media block below) */
 .reader-actions{display:flex;gap:8px;align-items:center;padding-right:10px;border-right:1px solid #1c1c1c}
 .reader-actions:empty{display:none}
+/* mid widths: trim the cluster so a curator's full toolbar (chips + actions +
+   both toggles) never overflows — the title truncates first */
+@media(min-width:821px) and (max-width:1000px){
+  .reader-actions .share-btn,.reader-actions .champion-btn{padding:8px 9px;letter-spacing:.08em}
+}
 /* transient status line for the in-reader actions (champion/share messages) */
 .reader-act-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;padding:7px 18px;background:#0a0a0a;border-bottom:1px solid #1c1c1c;flex-shrink:0;text-align:right}
 .reader-act-msg:empty{display:none}
@@ -1615,6 +1620,14 @@ async function loadSubmissions({ reset = true } = {}) {
   } catch {
     if (reset) {
       tbody.innerHTML = '<tr><td colspan="6" class="td-empty">Failed to load submissions — refresh to retry</td></tr>';
+      // Readers can't see the table's error (their table block is hidden) —
+      // surface the failure in the card-grid section instead.
+      const section = document.getElementById('fycSection');
+      const grid = document.getElementById('fycGrid');
+      if (section && grid && document.body.classList.contains('no-eval') && !window.GUEST_REC) {
+        grid.innerHTML = '<div class="td-empty" style="grid-column:1/-1">Failed to load the slate — refresh to retry</div>';
+        section.style.display = '';
+      }
     } else {
       subFoot.textContent = 'Could not load more — scroll to retry';
       subFoot.style.display = '';
@@ -2235,7 +2248,12 @@ function wireSurface(row, btn) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
         body: JSON.stringify({ surfaced: !on }),
       });
-      if (res.ok) { const d = await res.json().catch(() => ({})); on = !!d.surfaced_to_readers; row.surfaced_to_readers = on; paint(); }
+      if (res.ok) {
+        const d = await res.json().catch(() => ({})); on = !!d.surfaced_to_readers; row.surfaced_to_readers = on; paint();
+        // Keep the curator's FYC grid (their preview of the Reader slate) live.
+        const sr = slateRows.find((x) => x.id === row.id);
+        if (sr) { sr.surfaced_to_readers = on; renderFycGrid(); }
+      }
       else if (res.status === 403) { btn.textContent = 'Curator access required'; }
       else { btn.textContent = 'Could not update — retry'; }
     } catch { btn.textContent = 'Could not update — retry'; }
@@ -2287,7 +2305,8 @@ function wireAssign(row, btn) {
         });
         if (res.ok) { msg.textContent = `Assigned to @${sel.value} ✓`; }
         else if (res.status === 409) { msg.textContent = `Already assigned to @${sel.value}`; }
-        else if (res.status === 401 || res.status === 403) { msg.textContent = 'Staff only'; }
+        else if (res.status === 403) { msg.textContent = 'Staff only'; }
+        else if (res.status === 401) { msg.textContent = 'Verification expired — try again'; }
         else { const b = await res.json().catch(() => ({})); msg.textContent = b.error || `Could not assign (${res.status})`; }
       } catch (e) {
         msg.textContent = (e && e.code === 'passkey_cancelled') ? 'Dismissed — try again' : ((e && e.message) || 'Could not assign');
@@ -2617,7 +2636,11 @@ function openFeedback(row) {
   });
   recClear.addEventListener('click', () => { state.audioBlob = null; state.transcript = ''; transcriptEl.classList.remove('show'); transcriptEl.textContent = ''; recLabel.textContent = 'Record'; recClear.style.display = 'none'; recTime.textContent = ''; });
 
-  const close = () => { stopRec(); back.remove(); };
+  // Escape closes the FEEDBACK modal only — captured on document so the global
+  // Escape handler never sees it (it would close the reader/modal underneath).
+  const onEsc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+  document.addEventListener('keydown', onEsc, true);
+  const close = () => { stopRec(); document.removeEventListener('keydown', onEsc, true); back.remove(); };
   back.querySelector('#fbCancel').addEventListener('click', close);
   back.addEventListener('click', e => { if (e.target === back) close(); });
 
