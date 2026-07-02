@@ -597,6 +597,32 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
   font-size:11.5px;color:#444;line-height:1.5;max-width:100%;overflow-wrap:break-word;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
 }
+/* Assigned reads — FYC cards with a red border, an eyebrow and the assigner's note. */
+.fyc-card.assigned{border-color:#FF0000}
+.fyc-card.assigned:hover,.fyc-card.assigned:focus-visible{border-color:#FF0000;box-shadow:0 0 0 1px #FF0000,0 10px 30px rgba(0,0,0,.6)}
+.fyc-eyebrow{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;color:#FF0000;text-transform:uppercase}
+.fyc-note{font-size:11px;color:#555;line-height:1.5;max-width:100%;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Assignment gate: while an assigned read is undecided, every OTHER card locks —
+   dimmed, lock glyph, no hover lift; still keyboard-focusable (aria-disabled). */
+.fyc-lock{display:none;position:absolute;top:10px;right:10px;width:14px;height:14px}
+.fyc-lock svg{width:14px;height:14px;fill:#111;opacity:.75}
+body.assign-lock .fyc-card[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+body.assign-lock .fyc-card[aria-disabled="true"]:hover{transform:none;border-color:#111;box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 26px rgba(0,0,0,.55)}
+body.assign-lock .fyc-card[aria-disabled="true"] .fyc-lock{display:block}
+.carrier-banner.assign-locked .carrier-cta{opacity:.45;cursor:not-allowed}
+/* Curator: assign-to-reader panel (inline, under the curator bar). */
+.assign-panel{border:1px solid #2a2a2a;border-radius:6px;background:#0c0c0c;padding:14px;margin:-8px 0 18px}
+.assign-panel[hidden]{display:none}
+.ap-h{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#aaa;margin-bottom:10px}
+.ap-list{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.ap-reader{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:4px;cursor:pointer}
+.ap-reader:hover{background:#141414}
+.ap-name{color:#ddd;font-size:12.5px}
+.ap-handle{color:#777;font-size:11px}
+.assign-panel input[type=text]{width:100%;background:#0a0a0a;border:1px solid #2a2a2a;color:#fff;padding:9px 11px;font-size:12.5px;outline:none;font-family:inherit;border-radius:0;-webkit-appearance:none;margin-bottom:10px}
+.assign-panel input[type=text]:focus{border-color:red}
+.ap-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ap-msg{font-size:11px;color:#888;min-height:1em}
 /* Small red-edged notice toast (assignment gate, card-open errors). */
 .portal-toast{
   position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:400;
@@ -745,6 +771,14 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
     <button class="carrier-cta" id="carrierRead"><span class="cspin" aria-hidden="true"></span><span class="cta-label">Read The Carrier</span>
       <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>
     </button>
+  </div>
+
+  <!-- YOUR NEXT READ — pending staff assignments. While one is undecided, every
+       OTHER card (FYC grid + Carrier CTA) locks until the reader leaves a verdict.
+       Rendered by renderAssignedStrip(); hidden for guests / passcode-only users. -->
+  <div id="assignedSection" style="display:none">
+    <div class="fyc-label red">Your Next Read</div>
+    <div class="fyc-grid" id="assignedGrid"></div>
   </div>
 
   <!-- FOR YOUR CONSIDERATION — Readers browse the curated slate as title-page cards
@@ -1639,12 +1673,15 @@ function portalToast(msg) {
   _toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
 }
 
-function fycCardHtml(row) {
+function fycCardHtml(row, { assigned = false, locked = false, eyebrow = '', noteHtml = '' } = {}) {
   const syn = (typeof row.synopsis === 'string' && row.synopsis.trim())
     ? `<span class="fyc-syn">${esc(row.synopsis.trim())}</span>` : '';
-  return `<button type="button" class="fyc-card" data-id="${esc(row.id)}" aria-label="Read ${esc(row.title || 'this screenplay')}">
+  const isLocked = locked && !assigned;
+  return `<button type="button" class="fyc-card${assigned ? ' assigned' : ''}" data-id="${esc(row.id)}"${isLocked ? ' aria-disabled="true"' : ''} aria-label="Read ${esc(row.title || 'this screenplay')}">
+    <span class="fyc-lock" aria-hidden="true">${SVG_LOCK}</span>
+    ${eyebrow ? `<span class="fyc-eyebrow">${eyebrow}</span>` : ''}
     <span class="fyc-title">${esc(row.title || 'Untitled')}</span>
-    ${syn}
+    ${syn}${noteHtml}
   </button>`;
 }
 
@@ -1659,7 +1696,8 @@ async function renderFycGrid() {
   if (!document.body.classList.contains('no-eval')) rows = rows.filter((r) => r.surfaced_to_readers);
   if (_featuredId) rows = rows.filter((r) => r.id !== _featuredId);
   if (!rows.length) { section.style.display = 'none'; grid.innerHTML = ''; return; }
-  grid.innerHTML = rows.map((r) => fycCardHtml(r)).join('');
+  const locked = assignLockActive();
+  grid.innerHTML = rows.map((r) => fycCardHtml(r, { locked })).join('');
   section.style.display = '';
 }
 
@@ -1687,12 +1725,82 @@ async function openScriptInReader(id, card) {
 }
 
 // One delegated handler per grid; <button> cards give Enter/Space for free.
+// Locked cards (assignment gate) stay focusable but explain instead of opening.
 function onFycCardClick(e) {
   const card = e.target.closest('.fyc-card');
   if (!card || card.dataset.loading) return;
+  if (card.getAttribute('aria-disabled') === 'true') {
+    portalToast('Decide on your assigned read first — open it and leave your verdict');
+    return;
+  }
   openScriptInReader(card.dataset.id, card);
 }
 document.getElementById('fycGrid').addEventListener('click', onFycCardClick);
+document.getElementById('assignedGrid').addEventListener('click', onFycCardClick);
+
+// ── Assigned reads — inbox strip + decision gate (client-side) ────────────────
+// A signed-in reader with a PENDING assignment must decide on it (submit
+// feedback with a verdict) before the rest of the slate unlocks. Entirely
+// fail-silent: no reader identity, or the endpoint missing, means feature off —
+// guests and passcode-only users are never gated.
+let _assignments = null; // { pending:[], decided:[] } | null = feature off
+
+function assignLockActive() {
+  return !!(_assignments && _assignments.pending && _assignments.pending.length);
+}
+function isPendingAssignment(scriptId) {
+  return !!(scriptId && _assignments && (_assignments.pending || []).some((a) => a.scriptId === scriptId));
+}
+
+function renderAssignedStrip() {
+  const sec = document.getElementById('assignedSection');
+  const grid = document.getElementById('assignedGrid');
+  if (!sec || !grid) return;
+  const pending = (_assignments && _assignments.pending) || [];
+  if (!pending.length) { sec.style.display = 'none'; grid.innerHTML = ''; return; }
+  grid.innerHTML = pending.map((a) => {
+    const bits = [];
+    if (a.note) bits.push(`“${esc(a.note)}”`);
+    if (a.assignedBy) bits.push(`— ${esc(a.assignedBy)}`);
+    const noteHtml = bits.length ? `<span class="fyc-note">${bits.join(' ')}</span>` : '';
+    return fycCardHtml({ id: a.scriptId, title: a.title }, {
+      assigned: true, eyebrow: 'Assigned · decide to unlock the lot', noteHtml,
+    });
+  }).join('');
+  sec.style.display = '';
+}
+
+// Paint the whole gate: strip, dimmed/locked grid cards, and the Carrier CTA
+// (which stays live if the Carrier itself is the assigned read).
+async function applyAssignState() {
+  renderAssignedStrip();
+  document.body.classList.toggle('assign-lock', assignLockActive());
+  await renderFycGrid(); // re-paint lock state (dim + aria-disabled + lock glyph)
+  const banner = document.getElementById('carrierBanner');
+  if (banner) {
+    await featuredIdReady;
+    const lockCarrier = assignLockActive() && !isPendingAssignment(_featuredId);
+    banner.classList.toggle('assign-locked', lockCarrier);
+    const cta = document.getElementById('carrierRead');
+    if (cta) cta.setAttribute('aria-disabled', lockCarrier ? 'true' : 'false');
+  }
+}
+
+async function loadAssignments() {
+  if (window.GUEST_REC) return;
+  // Reader identity required — apiFetch attaches the X-Reader-Session header.
+  if (!(window.ReaderAuth && ReaderAuth.getSessionToken && ReaderAuth.getSessionToken())) return;
+  try {
+    const res = await apiFetch('/readers/me/assignments', {}, { retries: 0, timeout: 20000 });
+    if (!res.ok) return; // endpoint not live yet / not a reader → feature off
+    const d = await res.json();
+    _assignments = {
+      pending: Array.isArray(d.pending) ? d.pending.filter((a) => a && a.scriptId) : [],
+      decided: Array.isArray(d.decided) ? d.decided : [],
+    };
+  } catch { return; /* network — leave the feature off rather than mis-gate */ }
+  applyAssignState();
+}
 
 // ── search / filter ───────────────────────────────────────────────────────────
 // ~486 submissions: small enough to load once and filter instantly client-side
@@ -1951,7 +2059,7 @@ async function openModal(id) {
           <div class="hr-gate" id="hrGate"></div>
         </div>
       </div>
-      ${hideEval ? '' : `<div class="curator-bar"><span class="cur-tag">Curator</span><button class="surface-btn" id="surfaceBtn" type="button">…</button><span class="surface-note">Only surfaced scripts appear in a Reader's slate.</span></div>`}
+      ${hideEval ? '' : `<div class="curator-bar"><span class="cur-tag">Curator</span><button class="surface-btn" id="surfaceBtn" type="button">…</button><button class="surface-btn" id="assignBtn" type="button">Assign to reader</button><span class="surface-note">Only surfaced scripts appear in a Reader's slate.</span></div><div class="assign-panel" id="assignPanel" hidden></div>`}
       <div class="meta-grid" style="margin-bottom:20px">${buildMeta(hideEval ? [
         ['Pages',        row.page_count ?? row.pageCount],
       ] : [
@@ -1977,6 +2085,8 @@ async function openModal(id) {
     if (retryBtn) retryBtn.addEventListener('click', () => retryEvaluation(row.id, retryBtn));
     const surfaceBtn = content.querySelector('#surfaceBtn');
     if (surfaceBtn) wireSurface(row, surfaceBtn);
+    const assignBtn = content.querySelector('#assignBtn');
+    if (assignBtn) wireAssign(row, assignBtn);
     _modalRow = row;
     wireReadActions(row);
     renderModalActions(row);   // gated: Feedback / Recommend / Champion unlock only after a finished read
@@ -2130,6 +2240,60 @@ function wireSurface(row, btn) {
       else { btn.textContent = 'Could not update — retry'; }
     } catch { btn.textContent = 'Could not update — retry'; }
     btn.disabled = false;
+  });
+}
+
+// Curator-only: assign a script to a specific reader (POST /assignments —
+// staff-gated server-side; 403 → "Staff only"). Opens a small inline panel under
+// the curator bar: pick a reader (name + @handle), optional one-line note, send.
+function wireAssign(row, btn) {
+  const panel = document.getElementById('assignPanel');
+  if (!btn || !panel || !row.id) return;
+  btn.addEventListener('click', async () => {
+    if (!panel.hidden) { panel.hidden = true; return; } // toggle closed
+    panel.hidden = false;
+    panel.innerHTML = '<div class="ap-msg">Loading readers —</div>';
+    let readers = [];
+    try {
+      const t = getValidToken();
+      if (!t) return;
+      const res = await apiFetch('/readers/list', { headers: { Authorization: `Bearer ${t}` } });
+      if (res.ok) {
+        const d = await res.json();
+        readers = (d.readers || []).filter((r) => r && r.handle && !r.staff); // staff don't get assignments
+      }
+    } catch { /* fall through to the empty state */ }
+    if (!readers.length) { panel.innerHTML = '<div class="ap-msg">No readers available.</div>'; return; }
+    panel.innerHTML = `
+      <div class="ap-h">Assign “${esc(row.title || 'this script')}” to a reader</div>
+      <div class="ap-list">${readers.map((r) => `<label class="ap-reader"><input type="radio" name="apReader" value="${esc(r.handle)}"><span class="ap-name">${esc(r.name || r.handle)}</span><span class="ap-handle">@${esc(r.handle)}</span></label>`).join('')}</div>
+      <input type="text" id="apNote" maxlength="140" placeholder="Optional note to the reader…" autocomplete="off">
+      <div class="ap-row"><button class="surface-btn" id="apSend" type="button">Assign</button><span class="ap-msg" id="apMsg" aria-live="polite"></span></div>`;
+    const send = panel.querySelector('#apSend');
+    send.addEventListener('click', async () => {
+      const msg = panel.querySelector('#apMsg');
+      const sel = panel.querySelector('input[name="apReader"]:checked');
+      if (!sel) { msg.textContent = 'Pick a reader first'; return; }
+      send.disabled = true; msg.textContent = 'Assigning…';
+      try {
+        // Same identity flow as Champion: passkey-verify, then the staff-gated write.
+        if (!window.ReaderAuth || !(await ReaderAuth.checkSupport())) { msg.textContent = (window.ReaderAuth && ReaderAuth.UNSUPPORTED_MESSAGE) || 'Passkeys unavailable here'; send.disabled = false; return; }
+        await ReaderAuth.signInOrRegister();
+        const note = (panel.querySelector('#apNote').value || '').trim();
+        const res = await ReaderAuth.authedWrite('/assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ readerHandle: sel.value, scriptId: row.id, note: note || undefined }),
+        });
+        if (res.ok) { msg.textContent = `Assigned to @${sel.value} ✓`; }
+        else if (res.status === 409) { msg.textContent = `Already assigned to @${sel.value}`; }
+        else if (res.status === 401 || res.status === 403) { msg.textContent = 'Staff only'; }
+        else { const b = await res.json().catch(() => ({})); msg.textContent = b.error || `Could not assign (${res.status})`; }
+      } catch (e) {
+        msg.textContent = (e && e.code === 'passkey_cancelled') ? 'Dismissed — try again' : ((e && e.message) || 'Could not assign');
+      }
+      send.disabled = false;
+    });
   });
 }
 
@@ -2487,9 +2651,10 @@ function openFeedback(row) {
           if (window.refreshXpChip) setTimeout(() => window.refreshXpChip(true), 1500);
         } catch { /* effects only */ }
         msg.textContent = firstTime ? 'Thank you — your decision was recorded.' : 'Updated — thanks for refining your feedback.';
-        // Refresh every surface that reflects feedback state: the modal gates and
-        // the in-reader action cluster (its label flips to "Edit feedback").
-        submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); refreshReaderActions(); }, 1200);
+        // Refresh every surface that reflects feedback state: the modal gates, the
+        // in-reader action cluster (its label flips to "Edit feedback"), and the
+        // assignment gate (a verdict on an assigned read unlocks the lot live).
+        submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); refreshReaderActions(); loadAssignments(); }, 1200);
       }
       else { const b = await res.json().catch(() => ({})); msg.className = 'fb-msg err'; msg.textContent = b.error || `Could not send (${res.status})`; submit.disabled = false; submit.textContent = 'Submit feedback'; }
     } catch (e) { msg.className = 'fb-msg err'; msg.textContent = (e && e.message) || 'Could not send'; submit.disabled = false; submit.textContent = 'Submit feedback'; }
@@ -3249,6 +3414,7 @@ if (window.GUEST_REC) {
   enterGuestRec(REC_ID, REC_AS || REC_BY);           // recipient without the passcode (banner shows display name)
 } else {
   loadSubmissions();
+  loadAssignments(); // assigned-reads strip + decision gate (fail-silent → feature off)
   if (REC_ID) { showRecBanner(REC_ID, REC_AS || REC_BY); openModal(REC_ID); } // signed-in, following a rec link
   else if (SCRIPT_ID) { openModal(SCRIPT_ID); } // open a script's detail directly (no rec banner)
 }
@@ -3304,6 +3470,12 @@ window.refreshXpChip();
   // The featured script id is resolved once, shared with the FYC grid
   // (featuredIdReady) — the CTA opens The Carrier in ONE fetch.
   if (btn) btn.addEventListener('click', async () => {
+    // Assignment gate: an undecided assigned read locks the Carrier too (unless
+    // the Carrier IS the assignment — applyAssignState leaves it live then).
+    if (banner.classList.contains('assign-locked')) {
+      portalToast('Decide on your assigned read first — open it and leave your verdict');
+      return;
+    }
     btn.classList.add('loading'); btn.disabled = true;
     try {
       const carrierId = await featuredIdReady;
