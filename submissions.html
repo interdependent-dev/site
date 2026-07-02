@@ -574,14 +574,16 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
   padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:18px
 }
 .fyc-label.red{color:#FF0000;border-bottom-color:#2a0f0f}
-.fyc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:44px}
-@media(max-width:560px){.fyc-grid{grid-template-columns:1fr}}
-/* Paper-white script title page on the black stage. The 2px ink border keeps its
-   width on hover — the highlight ring's extra 1px comes from box-shadow, so the
-   blue state never shifts layout. The faint outer ring makes edges read on #000. */
+/* One card per row at EVERY width — each card reads full-bleed across the content
+   column, the same visual width as the Carrier banner above. */
+.fyc-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:44px}
+/* Paper-white script title page on the black stage — title only, so the row stays
+   slim. The 2px ink border keeps its width on hover — the highlight ring's extra
+   1px comes from box-shadow, so the blue state never shifts layout. The faint
+   outer ring makes edges read on #000. */
 .fyc-card{
   position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:10px;min-height:150px;padding:24px 22px;width:100%;
+  gap:10px;min-height:112px;padding:22px;width:100%;
   background:#f8f7f4;border:2px solid #111;border-radius:2px;
   box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 26px rgba(0,0,0,.55);
   font-family:'Courier New',monospace;text-align:center;cursor:pointer;
@@ -597,10 +599,6 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
   font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:#111;
   line-height:1.5;max-width:100%;overflow-wrap:break-word;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden
-}
-.fyc-syn{
-  font-size:11.5px;color:#444;line-height:1.5;max-width:100%;overflow-wrap:break-word;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
 }
 /* Assigned reads — FYC cards with a red border, an eyebrow and the assigner's note. */
 .fyc-card.assigned{border-color:#FF0000}
@@ -1667,15 +1665,15 @@ function portalToast(msg) {
   _toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
 }
 
+// Title-only cards (assigned cards add their eyebrow + note) — the synopsis lives
+// in the reader's rail now, not on the card.
 function fycCardHtml(row, { assigned = false, locked = false, eyebrow = '', noteHtml = '' } = {}) {
-  const syn = (typeof row.synopsis === 'string' && row.synopsis.trim())
-    ? `<span class="fyc-syn">${esc(row.synopsis.trim())}</span>` : '';
   const isLocked = locked && !assigned;
   return `<button type="button" class="fyc-card${assigned ? ' assigned' : ''}" data-id="${esc(row.id)}"${isLocked ? ' aria-disabled="true"' : ''} aria-label="Read ${esc(row.title || 'this screenplay')}">
     <span class="fyc-lock" aria-hidden="true">${SVG_LOCK}</span>
     ${eyebrow ? `<span class="fyc-eyebrow">${eyebrow}</span>` : ''}
     <span class="fyc-title">${esc(row.title || 'Untitled')}</span>
-    ${syn}${noteHtml}
+    ${noteHtml}
   </button>`;
 }
 
