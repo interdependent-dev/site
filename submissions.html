@@ -297,8 +297,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .share-btn.done{border-color:#16a34a;color:#16a34a}
 .share-btn .share-ico{font-size:12px;line-height:1}
 
-/* reader feedback form */
-.fb-back{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85)}
+/* reader feedback form — layered ABOVE the full-screen reader (z-200) so the
+   in-reader Feedback button works with the reader open */
+.fb-back{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85)}
 .fb-card{width:100%;max-width:440px;max-height:92vh;overflow-y:auto;background:#0a0a0a;border:1px solid #222;padding:26px 24px;font-family:'Helvetica Neue',sans-serif}
 .fb-card h3{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px;color:#fff}
 .fb-card .fb-sub{color:#888;font-size:12px;margin-bottom:18px;line-height:1.55}
@@ -393,11 +394,31 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .reader-chip{font-family:"Eurostile",'Helvetica Neue',sans-serif;padding:3px 9px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;flex-shrink:0}
 .reader-chip.score{background:#161616;color:#ccc;font-family:'Courier New',monospace}
 .reader-chip.reader-progress{background:#161616;color:#bbb;font-family:'Courier New',monospace}
-.reader-tools{margin-left:auto;display:flex;gap:8px;flex-shrink:0}
+.reader-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.reader-tools{display:flex;gap:8px;flex-shrink:0}
 .rtool{display:inline-flex;align-items:center;gap:7px;background:#111;border:1px solid #2c2c2c;padding:9px 13px;color:#bbb;cursor:pointer;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:border-color .15s,color .15s}
 .rtool:hover{border-color:#666;color:#fff}
 .rtool svg{width:13px;height:13px;fill:currentColor}
 .rtool.on{background:#fff;color:#000;border-color:#fff}
+/* in-reader action cluster (Feedback / Recommend / Champion) — toolbar on wide
+   screens, fixed bottom bar ≤820px (see the phone media block below) */
+.reader-actions{display:flex;gap:8px;align-items:center;padding-right:10px;border-right:1px solid #1c1c1c}
+.reader-actions:empty{display:none}
+/* transient status line for the in-reader actions (champion/share messages) */
+.reader-act-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;padding:7px 18px;background:#0a0a0a;border-bottom:1px solid #1c1c1c;flex-shrink:0;text-align:right}
+.reader-act-msg:empty{display:none}
+.reader-act-msg a{color:#FF0000}
+/* synopsis strip — a slim dark band under the toolbar; 2-line clamp with a MORE
+   expander; dismissible per script (localStorage) */
+.reader-syn{display:flex;align-items:flex-start;gap:12px;padding:9px 18px;background:#0a0a0a;border-bottom:1px solid #1c1c1c;flex-shrink:0}
+.reader-syn[hidden]{display:none}
+.rs-k{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;color:#777;text-transform:uppercase;line-height:1.9;flex-shrink:0}
+.rs-text{flex:1;min-width:0;font-family:'Courier New',monospace;font-size:12px;color:#bbb;line-height:1.55;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.reader-syn.expanded .rs-text{display:block;-webkit-line-clamp:unset}
+.rs-more{background:none;border:none;color:#888;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1.9}
+.rs-more:hover{color:#fff}
+.rs-x{background:none;border:none;color:#666;font-size:15px;line-height:1;cursor:pointer;padding:2px 6px;flex-shrink:0}
+.rs-x:hover{color:#fff}
 .reader-body{flex:1;display:flex;min-height:0}
 
 /* left: scene navigator (slug lines) */
@@ -424,6 +445,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 
 /* center: the screenplay */
 .reader-doc{flex:1;min-width:0;background:#1d1d1f;overflow-y:auto;padding:28px 24px}
+/* narrower screens: shave the gutters so the page itself gets the width
+   (renderReaderPdf mirrors this in its width math) */
+@media(max-width:1200px){ .reader-doc{padding:16px 12px} }
 
 /* right: coverage — slimmer than the scene rail, still readable */
 .reader-rail{width:372px;flex-shrink:0;background:#070707;border-left:1px solid #1c1c1c;overflow-y:auto;padding:26px 26px 44px}
@@ -438,9 +462,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .reader-rail .summary-body{font-size:13.5px;line-height:1.78}
 .reader-rail .comps-val{font-size:13px}
 
-/* no room for the scene navigator on narrower screens */
-/* tablet: drop the scene column — script + coverage side by side */
-@media(min-width:821px) and (max-width:1200px){ .reader-nav{display:none} }
+/* The scene navigator defaults COLLAPSED below 1400px (openReader applies
+   .nav-hidden; the #navToggle choice is remembered in localStorage and works at
+   every width — no CSS breakpoint force-hides it anymore). */
 /* phone: one panel at a time. The screenplay fills the screen; Scenes and
    Coverage are full-screen overlays BELOW the toolbar, toggled one at a time
    and hidden when the reader opens — so the script is never covered by default
@@ -449,6 +473,16 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   .reader-body{position:relative}
   .reader-nav,.reader-rail{position:absolute;inset:0;width:auto;z-index:6;border:none;box-shadow:none}
   .reader-rail{padding:24px 20px 40px}
+  /* the action cluster becomes a fixed bottom bar — keep panels + pages clear of it */
+  .reader-actions{
+    position:fixed;left:0;right:0;bottom:0;z-index:10;
+    padding:10px max(12px, env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
+    border-right:none;border-top:1px solid #1c1c1c;background:rgba(0,0,0,.94);justify-content:center
+  }
+  .reader-actions .share-btn,.reader-actions .champion-btn{flex:1 1 0;justify-content:center;max-width:160px;padding:11px 8px}
+  .reader-tools{margin-left:auto}
+  .reader-doc{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+  .reader-nav,.reader-rail{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 @media(max-width:580px){
   .reader-tools .rtool span{display:none}
@@ -777,10 +811,24 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
       <span class="reader-chip score" id="readerScore">—</span>
       <span class="reader-chip reader-progress" id="readerProgress" aria-live="polite">Read 0%</span>
     </div>
-    <div class="reader-tools">
-      <button class="rtool on" id="navToggle" aria-label="Toggle scene list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h4v14H4zm6 0h10v4H10zm0 6h10v4H10zm0 6h10v2H10z"/></svg><span>Scenes</span></button>
-      <button class="rtool on" id="railToggle" aria-label="Toggle coverage panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3zm0 6h12v2H3zm0 6h18v2H3z"/></svg><span>Coverage</span></button>
+    <div class="reader-right">
+      <!-- Feedback / Recommend / Champion for the current script — populated by
+           renderReaderActions(); a fixed bottom bar on phones -->
+      <div class="reader-actions" id="readerActions"></div>
+      <div class="reader-tools">
+        <button class="rtool on" id="navToggle" aria-label="Toggle scene list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h4v14H4zm6 0h10v4H10zm0 6h10v4H10zm0 6h10v2H10z"/></svg><span>Scenes</span></button>
+        <button class="rtool on" id="railToggle" aria-label="Toggle coverage panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3zm0 6h12v2H3zm0 6h18v2H3z"/></svg><span>Coverage</span></button>
+      </div>
     </div>
+  </div>
+  <!-- transient champion/share status for the in-reader actions -->
+  <div class="reader-act-msg" id="readerActMsg" aria-live="polite"></div>
+  <!-- synopsis strip — shown when the script has one; dismissible per script -->
+  <div class="reader-syn" id="readerSyn" hidden>
+    <span class="rs-k">Synopsis</span>
+    <span class="rs-text" id="readerSynText"></span>
+    <button class="rs-more" id="readerSynMore" type="button" hidden>More</button>
+    <button class="rs-x" id="readerSynX" type="button" aria-label="Dismiss synopsis">×</button>
   </div>
   <div class="reader-body">
     <nav class="reader-nav" id="readerNav"></nav>
@@ -1767,6 +1815,7 @@ function shareToRow(d, id) {
   const hasVerdict = d.decision != null || d.scores != null || d.evaluation != null || d.weightedScore != null;
   return {
     id, title: d.title, page_count: d.pageCount, status: 'evaluated',
+    synopsis: d.synopsis || null, // prose-only; feeds the reader's synopsis strip
     submitted_at: null, submitter_name: null, submitter_email: null, users: null,
     storage_path: d.pdfUrl ? 'shared' : null, _sharePdfUrl: d.pdfUrl || null,
     evaluation_json: hasVerdict ? {
@@ -2262,8 +2311,7 @@ async function verifyServerCompletion(scriptId) {
   } catch { /* leave the gate as-is */ }
 }
 
-function wireShare(row) {
-  const btn = document.getElementById('shareBtn');
+function wireShare(row, btn = document.getElementById('shareBtn')) {
   if (!btn || !row.id) return;
   const textEl = btn.querySelector('.share-text');
   const makeUrl = (handle, displayName) => {
@@ -2330,8 +2378,9 @@ const FB_GUIDE = {
 };
 const blobToBase64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
 
-function wireFeedback(row) {
-  const btn = document.getElementById('feedbackBtn');
+// The wire* helpers take the button element(s) to bind, so the same logic serves
+// the detail modal (default ids) AND the in-reader action cluster.
+function wireFeedback(row, btn = document.getElementById('feedbackBtn')) {
   if (btn && row.id) btn.addEventListener('click', () => openFeedback(row));
 }
 
@@ -2438,7 +2487,9 @@ function openFeedback(row) {
           if (window.refreshXpChip) setTimeout(() => window.refreshXpChip(true), 1500);
         } catch { /* effects only */ }
         msg.textContent = firstTime ? 'Thank you — your decision was recorded.' : 'Updated — thanks for refining your feedback.';
-        submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); }, 1200);
+        // Refresh every surface that reflects feedback state: the modal gates and
+        // the in-reader action cluster (its label flips to "Edit feedback").
+        submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); refreshReaderActions(); }, 1200);
       }
       else { const b = await res.json().catch(() => ({})); msg.className = 'fb-msg err'; msg.textContent = b.error || `Could not send (${res.status})`; submit.disabled = false; submit.textContent = 'Submit feedback'; }
     } catch (e) { msg.className = 'fb-msg err'; msg.textContent = (e && e.message) || 'Could not send'; submit.disabled = false; submit.textContent = 'Submit feedback'; }
@@ -2474,16 +2525,14 @@ function markChampioned(btn, msgEl) {
   if (msgEl) msgEl.textContent = 'In your champions ✓';
 }
 
-function wireChampion(row) {
-  const btn = document.getElementById('championBtn');
+function wireChampion(row, btn = document.getElementById('championBtn'), msgEl = document.getElementById('championMsg')) {
   if (!btn || !row.id) return;
-  const msgEl = document.getElementById('championMsg');
 
   // STEP 0: only offer Champion if this device can actually do platform passkeys
   // (catches Firefox/Mac, where the API exists but no authenticator is available).
   if (window.ReaderAuth) {
     ReaderAuth.checkSupport().then(ok => {
-      if (!ok) { btn.disabled = true; btn.title = ReaderAuth.UNSUPPORTED_MESSAGE; msgEl.textContent = ReaderAuth.UNSUPPORTED_MESSAGE; }
+      if (!ok) { btn.disabled = true; btn.title = ReaderAuth.UNSUPPORTED_MESSAGE; if (msgEl) msgEl.textContent = ReaderAuth.UNSUPPORTED_MESSAGE; }
     });
   } else {
     btn.disabled = true;
@@ -2639,7 +2688,8 @@ async function renderPdfInto(container, url, { maxW = 840 } = {}) {
   }
 }
 
-// Wire the four read buttons inside the open modal for a given script row.
+// Wire the modal's read actions (Open reader / Quick preview) for a given script
+// row. (The FYC card grid bypasses this entirely — it calls openReader directly.)
 function wireReadActions(row) {
   const readErr = document.getElementById('readErr');
   const fail = (msg) => { if (readErr) readErr.textContent = msg || ''; };
@@ -2791,7 +2841,7 @@ function stopPreviewTracking() {
 // rendering every page to a full-res canvas up front would exhaust memory.
 // Each page gets a correctly-sized blank slot; a canvas is rendered only when
 // the slot nears the viewport and dropped again when it scrolls far away.
-const READER_PAGE_MAXW = 1100;
+const READER_PAGE_MAXW = 1200;
 let _readerIO = null;        // IntersectionObserver driving lazy render/recycle
 let _readerScrollFn = null;  // current-entry highlighter on the navigator
 let _readerToken = 0;        // invalidates in-flight scene extraction on close/reopen
@@ -2825,7 +2875,10 @@ async function renderReaderPdf(url) {
   const dpr   = Math.min(window.devicePixelRatio || 1, 2);
   const page1 = await pdf.getPage(1);
   const base  = page1.getViewport({ scale: 1 });
-  const cw    = Math.max(280, Math.min(READER_PAGE_MAXW, doc.clientWidth - 52));
+  // ≤1200px the .reader-doc gutters shrink to 12px a side (see CSS) — mirror
+  // that here so the page actually uses the space; still clamped to 280 min.
+  const gutters = window.matchMedia('(max-width: 1200px)').matches ? 26 : 52;
+  const cw    = Math.max(280, Math.min(READER_PAGE_MAXW, doc.clientWidth - gutters));
   const scale = cw / base.width;
   const ph    = base.height * scale;
 
@@ -2967,14 +3020,76 @@ async function buildSceneNav(pdf, base, scale, slots, token) {
   installNavHighlight(scenes.map((s, i) => ({ scrollY: s.scrollY, btn: btns[i] })));
 }
 
+// ── in-reader actions + synopsis strip ────────────────────────────────────────
+// The toolbar cluster (Feedback / Recommend / Champion) reuses the modal's wire*
+// logic, bound to its own elements — no duplicate ids, no duplicated flows.
+let _readerRow = null; // the row the reader is currently showing
+
+function renderReaderActions(row) {
+  const box = document.getElementById('readerActions');
+  const msgEl = document.getElementById('readerActMsg');
+  if (!box) return;
+  if (msgEl) msgEl.textContent = '';
+  if (!row || window.GUEST_REC) { box.innerHTML = ''; return; } // guests act via the rec-banner flow
+  const fed = hasLeftFeedback(row.id);
+  box.innerHTML = `
+    <button class="share-btn" type="button" title="Leave your feedback — your PASS / CONSIDER / RECOMMEND decision and notes">
+      <span class="share-ico" aria-hidden="true">✎</span><span>${fed ? 'Edit feedback' : 'Feedback'}</span>
+    </button>
+    <button class="share-btn" type="button" title="Recommend this screenplay">
+      <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Recommend</span>
+    </button>
+    <button class="champion-btn" type="button" title="Champion this screenplay">
+      <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
+    </button>`;
+  const [fbBtn, shBtn, chBtn] = box.querySelectorAll('button');
+  wireFeedback(row, fbBtn);
+  wireShare(row, shBtn);
+  wireChampion(row, chBtn, msgEl); // reflects already-championed state via getChampionedSet()
+}
+
+// Re-paint the cluster after a state change (e.g. feedback submitted from the reader).
+function refreshReaderActions() {
+  if (_readerRow && document.getElementById('reader').classList.contains('open')) renderReaderActions(_readerRow);
+}
+
+// Synopsis strip under the toolbar — 2-line clamp with a MORE expander; the ×
+// dismisses it for THIS script only (remembered per device).
+function setupReaderSynopsis(row) {
+  const strip = document.getElementById('readerSyn');
+  const textEl = document.getElementById('readerSynText');
+  const more = document.getElementById('readerSynMore');
+  if (!strip || !textEl) return;
+  strip.classList.remove('expanded');
+  const syn = row && typeof row.synopsis === 'string' ? row.synopsis.trim() : '';
+  const dismissed = row && localStorage.getItem(`idp_syn_dismissed:${row.id}`) === '1';
+  if (!syn || dismissed) { strip.hidden = true; textEl.textContent = ''; return; }
+  textEl.textContent = syn;
+  if (more) { more.hidden = true; more.textContent = 'More'; }
+  strip.hidden = false;
+  // show the expander only when the 2-line clamp actually truncates
+  requestAnimationFrame(() => { if (more) more.hidden = textEl.scrollHeight <= textEl.clientHeight + 1; });
+}
+document.getElementById('readerSynMore').addEventListener('click', () => {
+  const on = document.getElementById('readerSyn').classList.toggle('expanded');
+  document.getElementById('readerSynMore').textContent = on ? 'Less' : 'More';
+});
+document.getElementById('readerSynX').addEventListener('click', () => {
+  document.getElementById('readerSyn').hidden = true;
+  if (_readerRow) localStorage.setItem(`idp_syn_dismissed:${_readerRow.id}`, '1');
+});
+
 function openReader(row) {
   if (_readerAnalytics) closeReader(); // defensive: never stack two reader sessions
   stopPreviewTracking(); // hand off from the preview — its progress is persisted, the reader restores it below
   const ev = parseEval(row);
   const n  = normalizeEval(ev);
   readerCurrentId = row.id;
+  _readerRow = row;
 
   document.getElementById('readerTitle').textContent = row.title || '—';
+  renderReaderActions(row);   // Feedback / Recommend / Champion in the toolbar
+  setupReaderSynopsis(row);   // synopsis strip (when the API provides one)
   // Read-first: the AI verdict is Curator-only. The server strips it for Readers,
   // so the reading rail hides the score/decision — form your own opinion first.
   const showEval = !!(row.evaluation_json || row.evaluation_result);
@@ -2988,6 +3103,8 @@ function openReader(row) {
     scoreEl.textContent = n.scoreValue != null ? n.scoreValue.toFixed(1) : '—';
   }
 
+  // The rail is COVERAGE — Curator-only. For a Reader it's removed from layout
+  // entirely (no 372px column, no Coverage toggle), so the page gets the width.
   const bars = barsFromCategories(n.categories);
   const champ = n.championship;
   const champColor = champ ? (CHAMP_COLORS[champ.rating] || '#444') : '';
@@ -3003,7 +3120,7 @@ function openReader(row) {
     ${bars ? `<div class="rail-section">Score Breakdown</div>${bars}` : ''}
     ${n.summary ? `<div class="rail-section">Summary</div><div class="summary-body">${esc(n.summary)}</div>` : ''}
     ${(n.craftAssessment && n.craftAssessment !== n.summary) ? `<div class="rail-section">Craft Assessment</div><div class="summary-body">${esc(n.craftAssessment)}</div>` : ''}`
-    : `<div class="rail-section" style="margin-top:6px">Your read</div><div class="summary-body" style="color:#9a9a9a">Form your own opinion first — the coverage stays out of sight so it can't shape your read. When you finish, you'll be able to weigh in and see what other readers thought.</div>`;
+    : '';
 
   const r = document.getElementById('reader');
   r.classList.add('open');
@@ -3043,13 +3160,19 @@ function openReader(row) {
   // heartbeat so long reads record progress even without a clean close
   _readerHeartbeat = setInterval(sendReadProgress, 60000);
 
-  // On phones there's only room for one panel, so open to the SCRIPT and keep
-  // Scenes/Coverage as overlays you tap to bring up. On wider screens show both.
+  // Panels. Coverage rail: Curator-only (readers never get the column OR the
+  // toggle). Scene nav: defaults COLLAPSED below 1400px so the page gets the
+  // width; the reader's last toggle choice (remembered per device) wins on
+  // wider screens. On phones both panels start hidden (full-screen overlays).
   const compact = window.matchMedia('(max-width: 820px)').matches;
-  r.classList.toggle('rail-hidden', compact);
-  r.classList.toggle('nav-hidden', compact);
-  document.getElementById('railToggle').classList.toggle('on', !compact);
-  document.getElementById('navToggle').classList.toggle('on', !compact);
+  const railToggleBtn = document.getElementById('railToggle');
+  railToggleBtn.style.display = showEval ? '' : 'none';
+  r.classList.toggle('rail-hidden', compact || !showEval);
+  railToggleBtn.classList.toggle('on', showEval && !compact);
+  const navPref = localStorage.getItem('idp_reader_nav'); // '1' open / '0' collapsed — written by the Scenes toggle
+  const navOpen = compact ? false : (navPref != null ? navPref === '1' : window.innerWidth >= 1400);
+  r.classList.toggle('nav-hidden', !navOpen);
+  document.getElementById('navToggle').classList.toggle('on', navOpen);
 
   document.getElementById('readerDoc').innerHTML = '<div class="pdf-loading">Loading screenplay —</div>';
   signedPdfUrl(row.id)
@@ -3069,11 +3192,17 @@ function closeReader() {
     _readerAnalytics = null;
   }
   teardownReader();
+  _readerRow = null;
+  renderReaderActions(null); // empty the toolbar cluster (and its status line)
+  const _syn = document.getElementById('readerSyn'); if (_syn) _syn.hidden = true;
   refreshModalGates(); // finishing the read may have just unlocked the actions + activity
-  // If the preview pane is still open behind the reader, resume its tracking so
-  // its readout reflects the reading just done in the reader (restored from localStorage).
+  // If the preview pane is still open behind the reader — AND the modal itself is
+  // still open (the reader can now be entered straight from the FYC grid, or the
+  // modal closed earlier with the pane left open) — resume its tracking so its
+  // readout reflects the reading just done in the reader (restored from localStorage).
   const _pp = document.getElementById('previewPane');
-  if (_pp && _pp.classList.contains('open') && _modalRow) startPreviewTracking(_modalRow);
+  const _modalOpen = document.getElementById('modalBack').classList.contains('open');
+  if (_pp && _pp.classList.contains('open') && _modalRow && _modalOpen) startPreviewTracking(_modalRow);
 }
 
 document.getElementById('readerBack').addEventListener('click', closeReader);
@@ -3096,6 +3225,9 @@ function toggleReaderPanel(which) {
   r.classList.toggle(hiddenCls, !willShow);
   toggleEl.classList.toggle('on', willShow);
   if (willShow && compact) { r.classList.add(otherCls); otherEl.classList.remove('on'); }
+  // Remember the reader's Scenes choice (desktop only — on phones the panels are
+  // one-at-a-time overlays and always start hidden).
+  if (which === 'nav' && !compact) localStorage.setItem('idp_reader_nav', willShow ? '1' : '0');
 }
 navToggleEl.addEventListener('click', () => toggleReaderPanel('nav'));
 railToggleEl.addEventListener('click', () => toggleReaderPanel('rail'));
