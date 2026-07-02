@@ -644,21 +644,17 @@ body.assign-lock .fyc-card[aria-disabled="true"] .fyc-lock{display:block}
       AND time, not scroll — who championed it, and reader feedback + the
       AI↔reader calibration, all on the script's own detail. ── */
 
-/* Reader gate — the locked state for actions + activity until a finished read. */
+/* Header action cluster + "You've read …" line (the read-gate lock UI is gone —
+   the portal is OPEN; reading is shown, never required). */
 .hr-gate{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-.gate-lock{display:inline-flex;align-items:flex-start;gap:9px;box-sizing:border-box;font-size:12px;color:#9a9a9a;background:#0e0e0e;border:1px solid #1e1e1e;border-radius:4px;padding:11px 14px;line-height:1.55;max-width:min(400px,100%);text-align:left}
-.gate-lock svg{width:13px;height:13px;fill:#fff;flex-shrink:0;margin-top:1px}
-.gate-hint{font-size:11px;color:#777}
 .hr-read{font-size:11px;color:#888;line-height:1.5;max-width:300px;text-align:right;margin-top:3px}
 .hr-read b{color:#fff;font-weight:700}
-.gate-link{background:none;border:none;color:#FF0000;font:inherit;font-size:12px;padding:0;cursor:pointer;text-decoration:underline}
-/* Mobile: stack the detail-modal header so the gate/buttons never force sideways scroll. */
+/* Mobile: stack the detail-modal header so the buttons never force sideways scroll. */
 @media(max-width:580px){
   .result-header{flex-wrap:wrap}
   .header-right{width:100%;align-items:stretch}
   .hr-gate{width:100%;align-items:stretch}
   .hr-btns{flex-wrap:wrap}
-  .gate-lock{max-width:100%}
   .champion-msg{text-align:left;max-width:none}
   .hr-read{text-align:left;max-width:none}
 }
@@ -887,7 +883,7 @@ if (window.pdfjsLib) {
 </script>
 
 <!-- Reader passkey auth — powers the Champion button (add to a reader's leaderboard). -->
-<script src="/reader-auth.js?v=2026-07-01-rf"></script>
+<script src="/reader-auth.js?v=2026-07-01a"></script>
 <!-- Reader analytics (best-effort; reader attribution via X-Reader-Session). -->
 <script src="/analytics.js?v=2026-07-01a"></script>
 <!-- Canonical "finished read" definition, shared verbatim with the API. -->
@@ -1061,21 +1057,6 @@ function buildMeta(pairs) {
        <span class="meta-val">${esc(String(v))}</span>
      </div>`
   ).join('');
-}
-
-function buildBars(scores, { withJustifications = false } = {}) {
-  if (!scores || typeof scores !== 'object') return '';
-  return Object.entries(scores).map(([key, raw]) => {
-    const val = Number(scoreVal(raw));
-    if (isNaN(val)) return '';
-    const pct = Math.min(100, Math.max(0, (val / 10) * 100)).toFixed(1);
-    const just = withJustifications ? scoreJust(raw) : null;
-    return `<div class="score-row">
-      <span class="score-name">${SCORE_NAMES[key] || esc(key)}</span>
-      <div class="score-track"><div class="score-fill" style="width:${pct}%"></div></div>
-      <span class="score-num">${val}</span>
-    </div>${just ? `<div class="score-just">${esc(just)}</div>` : ''}`;
-  }).join('');
 }
 
 function decisionBadge(row, ev) {
@@ -2906,7 +2887,6 @@ function wireReadActions(row) {
 }
 
 // ── full-screen reader ────────────────────────────────────────────────────────
-let readerCurrentId = null;
 let _readerAnalytics = null, _readerProgressFn = null, _readerBumpFn = null, _readerTick = null, _readerHeartbeat = null; // read analytics state
 
 // Report read DEPTH + ACTIVE TIME for the current reader session (best-effort).
@@ -3272,7 +3252,6 @@ function openReader(row) {
   stopPreviewTracking(); // hand off from the preview — its progress is persisted, the reader restores it below
   const ev = parseEval(row);
   const n  = normalizeEval(ev);
-  readerCurrentId = row.id;
   _readerRow = row;
 
   document.getElementById('readerTitle').textContent = row.title || '—';
