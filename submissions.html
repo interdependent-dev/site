@@ -581,18 +581,20 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
 @media(max-width:580px){ .dec-filters{width:100%} .dec-chip{flex:1} }
 
 /* ── FOR YOUR CONSIDERATION — the reader-facing slate as script title-page cards ── */
+/* Section label: quiet grey, NORMAL weight (the paper cards carry the emphasis),
+   pulled tight against the first card. */
 .fyc-label{
-  font-family:"Eurostile Wide","Eurostile",'Helvetica Neue',sans-serif;font-weight:700;
-  font-size:13px;letter-spacing:.24em;color:#fff;text-transform:uppercase;
-  padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:18px
+  font-family:"Eurostile",'Helvetica Neue',sans-serif;font-weight:400;
+  font-size:13px;letter-spacing:.24em;color:#8a8a8a;text-transform:uppercase;
+  padding-bottom:10px;border-bottom:1px solid #181818;margin-bottom:10px
 }
 .fyc-label.red{color:#FF0000;border-bottom-color:#2a0f0f}
 /* One card per row at EVERY width — each card reads full-bleed across the content
    column, the same visual width as the Carrier banner above. */
-.fyc-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:44px}
+.fyc-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:44px}
 /* Paper-white script title page on the black stage — title only, so the row stays
    slim. The 2px ink border keeps its width on hover — the highlight ring's extra
-   1px comes from box-shadow, so the blue state never shifts layout. The faint
+   1px comes from box-shadow, so the red state never shifts layout. The faint
    outer ring makes edges read on #000. */
 .fyc-card{
   position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -600,11 +602,12 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
   background:#f8f7f4;border:2px solid #111;border-radius:2px;
   box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 26px rgba(0,0,0,.55);
   font-family:'Courier New',monospace;text-align:center;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
   -webkit-appearance:none;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease
 }
 .fyc-card:hover,.fyc-card:focus-visible{
-  outline:none;transform:translateY(-2px);border-color:#4f5bd5;
-  box-shadow:0 0 0 1px #4f5bd5,0 10px 30px rgba(0,0,0,.6)
+  outline:none;transform:translateY(-2px);border-color:#FF0000;
+  box-shadow:0 0 0 1px #FF0000,0 10px 30px rgba(0,0,0,.6)
 }
 @media (prefers-reduced-motion:reduce){.fyc-card{transition:none}.fyc-card:hover,.fyc-card:focus-visible{transform:none}}
 .fyc-card[data-loading]{opacity:.6;cursor:wait}
@@ -613,9 +616,20 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
   line-height:1.5;max-width:100%;overflow-wrap:break-word;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden
 }
-/* Assigned reads — FYC cards with a red border, an eyebrow and the assigner's note. */
+/* Cards slim as the viewport narrows — a phone card reads like a banner, not a box. */
+@media(max-width:900px){
+  .fyc-card{min-height:96px;padding:18px 20px}
+}
+@media(max-width:560px){
+  .fyc-grid{gap:10px}
+  .fyc-card{min-height:78px;padding:14px 16px;gap:7px}
+  .fyc-title{font-size:13.5px}
+}
+/* Assigned reads — FYC cards with a red border, an eyebrow and the assigner's note.
+   Their resting border is already red, so hover adds a red GLOW to stay
+   distinguishable from a plain card's hover ring. */
 .fyc-card.assigned{border-color:#FF0000}
-.fyc-card.assigned:hover,.fyc-card.assigned:focus-visible{border-color:#FF0000;box-shadow:0 0 0 1px #FF0000,0 10px 30px rgba(0,0,0,.6)}
+.fyc-card.assigned:hover,.fyc-card.assigned:focus-visible{border-color:#FF0000;box-shadow:0 0 0 1px #FF0000,0 0 22px rgba(255,0,0,.38),0 10px 30px rgba(0,0,0,.6)}
 .fyc-eyebrow{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;color:#FF0000;text-transform:uppercase}
 .fyc-note{font-size:11px;color:#555;line-height:1.5;max-width:100%;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* Assignment gate: while an assigned read is undecided, every OTHER card locks —
