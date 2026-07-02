@@ -43,6 +43,9 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .field label{font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.18em;color:#888;text-transform:uppercase}
 .field input{background:#0a0a0a;border:1px solid #2a2a2a;padding:12px 14px;color:#fff;font-size:14px;outline:none;border-radius:0;-webkit-appearance:none;transition:border-color .15s;font-family:inherit}
 .field input::placeholder{color:#555}
+/* a PREFILLED (already-saved) value reads placeholder-grey; typing turns it
+   white again (the .prefilled class is dropped on the first input event) */
+.field input.prefilled{color:#555}
 .field input:focus{border-color:#FF0000}
 .btn{width:100%;height:46px;border:none;background:#FF0000;color:#fff;font-family:"Eurostile",sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .15s}
 .btn.ghost{background:none;border:1px solid #333;color:#bbb}
@@ -194,13 +197,14 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
     // Reset FIRST — so the field can NEVER carry a previously-signed-in account's
     // address across a switch, and a no-recovery-email account clears any stale value.
     var emEl = document.getElementById('em'), emText = document.getElementById('em-go-text');
-    if (emEl) emEl.value = '';
+    if (emEl) { emEl.value = ''; emEl.classList.remove('prefilled'); }
     if (emText) emText.textContent = 'Save recovery email';
     if (!verified || !window.ReaderAuth || !ReaderAuth.getRecoveryEmail) return;
     try {
       var email = await ReaderAuth.getRecoveryEmail(); // fresh in-memory token only; never prompts
       if (email) {
-        if (emEl) emEl.value = email;
+        // saved value shows placeholder-grey; typing a NEW address turns it white
+        if (emEl) { emEl.value = email; emEl.classList.add('prefilled'); }
         if (emText) emText.textContent = 'Change recovery email';
       }
     } catch (e) { /* graceful degrade — keep placeholder + "Save recovery email" */ }
@@ -313,7 +317,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
     // Clear the recovery-email field so a signed-out (or about-to-switch) session
     // never leaves the previous account's address on screen or savable.
     var emEl = document.getElementById('em'), emText = document.getElementById('em-go-text'), emMsg = document.getElementById('em-msg');
-    if (emEl) emEl.value = '';
+    if (emEl) { emEl.value = ''; emEl.classList.remove('prefilled'); }
     if (emText) emText.textContent = 'Save recovery email';
     if (emMsg) { emMsg.className = 'msg'; emMsg.textContent = ''; }
     render();
@@ -354,6 +358,8 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 
   // ── Recovery email ────────────────────────────────────────────────────────
   var emEl = document.getElementById('em'), emGo = document.getElementById('em-go'), emGoText = document.getElementById('em-go-text'), emMsg = document.getElementById('em-msg');
+  // User typing = a NEW address → white text (drop the grey prefill state).
+  emEl.addEventListener('input', function () { emEl.classList.remove('prefilled'); });
   emGo.addEventListener('click', async function () {
     if (emGo.disabled || !verified) return;
     emMsg.className = 'msg'; emMsg.textContent = '';
@@ -362,6 +368,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
       await ReaderAuth.setRecoveryEmail(emEl.value);
       emMsg.className = 'msg ok';
       emMsg.textContent = 'Recovery email saved for @' + verified.handle + '.';
+      emEl.classList.add('prefilled'); // the typed value is now the SAVED value → back to grey
       setBusy(emGo, false, '', 'Change recovery email', emGoText);
     } catch (e) {
       setBusy(emGo, false, '', 'Save recovery email', emGoText);
