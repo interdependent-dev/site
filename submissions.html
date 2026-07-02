@@ -470,6 +470,14 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 /* Read-first: non-Curators never see the AI verdict — hide the CRAFT/DECISION
    columns + the AI-decision filters. Toggled by body.no-eval (set from xp.curator). */
 body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eval .dec-filters{display:none}
+/* Read-first: Readers browse the FOR YOUR CONSIDERATION card grid — the full table
+   + search/filter block is Curator-only. Guests (?rec= without a session) keep the
+   table area: the passcode unlock renders inside it. */
+body.no-eval:not(.guest-rec) #subTableLabel,
+body.no-eval:not(.guest-rec) .sub-controls,
+body.no-eval:not(.guest-rec) .search-count,
+body.no-eval:not(.guest-rec) .table-wrap,
+body.no-eval:not(.guest-rec) .sub-foot{display:none}
 /* Curator-only surface toggle inside a script modal. */
 .curator-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 18px;padding:9px 12px;border:1px solid #2a2a2a;border-left:3px solid #FF0000;border-radius:6px;background:#0c0c0c}
 .curator-bar .cur-tag{font-family:"Eurostile",sans-serif;font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#FF0000}
@@ -519,6 +527,52 @@ body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eva
 .dec-chip[data-dec="PASS"].on{border-color:#dc2626;color:#dc2626}
 .search-count{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.16em;color:#777;text-transform:uppercase;margin-bottom:14px}
 @media(max-width:580px){ .dec-filters{width:100%} .dec-chip{flex:1} }
+
+/* ── FOR YOUR CONSIDERATION — the reader-facing slate as script title-page cards ── */
+.fyc-label{
+  font-family:"Eurostile Wide","Eurostile",'Helvetica Neue',sans-serif;font-weight:700;
+  font-size:13px;letter-spacing:.24em;color:#fff;text-transform:uppercase;
+  padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:18px
+}
+.fyc-label.red{color:#FF0000;border-bottom-color:#2a0f0f}
+.fyc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:44px}
+@media(max-width:560px){.fyc-grid{grid-template-columns:1fr}}
+/* Paper-white script title page on the black stage. The 2px ink border keeps its
+   width on hover — the highlight ring's extra 1px comes from box-shadow, so the
+   blue state never shifts layout. The faint outer ring makes edges read on #000. */
+.fyc-card{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;min-height:150px;padding:24px 22px;width:100%;
+  background:#f8f7f4;border:2px solid #111;border-radius:2px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 26px rgba(0,0,0,.55);
+  font-family:'Courier New',monospace;text-align:center;cursor:pointer;
+  -webkit-appearance:none;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease
+}
+.fyc-card:hover,.fyc-card:focus-visible{
+  outline:none;transform:translateY(-2px);border-color:#4f5bd5;
+  box-shadow:0 0 0 1px #4f5bd5,0 10px 30px rgba(0,0,0,.6)
+}
+@media (prefers-reduced-motion:reduce){.fyc-card{transition:none}.fyc-card:hover,.fyc-card:focus-visible{transform:none}}
+.fyc-card[data-loading]{opacity:.6;cursor:wait}
+.fyc-title{
+  font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:#111;
+  line-height:1.5;max-width:100%;overflow-wrap:break-word;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden
+}
+.fyc-syn{
+  font-size:11.5px;color:#444;line-height:1.5;max-width:100%;overflow-wrap:break-word;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+}
+/* Small red-edged notice toast (assignment gate, card-open errors). */
+.portal-toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:400;
+  background:#140000;border:1px solid #3a0a0a;border-left:3px solid #FF0000;border-radius:6px;
+  color:#ddd;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:11px;
+  letter-spacing:.1em;text-transform:uppercase;line-height:1.6;padding:12px 18px;text-align:center;
+  max-width:min(480px,calc(100vw - 32px));box-shadow:0 8px 30px rgba(0,0,0,.6);animation:pt-in .18s ease-out
+}
+@keyframes pt-in{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.portal-toast{animation:none}}
 
 /* ── Reader activity (relocated from the former Analytics drawer; scoped so it
       can't collide with portal styles). Shows who read a script — by real depth
@@ -659,7 +713,17 @@ body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eva
     </button>
   </div>
 
-  <div class="section-label">Past Submissions</div>
+  <!-- FOR YOUR CONSIDERATION — Readers browse the curated slate as title-page cards
+       (a card opens the reader directly). Curators see the same grid filtered to the
+       surfaced slate, with their full table below. Rendered by renderFycGrid(). -->
+  <div id="fycSection" style="display:none">
+    <div class="fyc-label">For Your Consideration</div>
+    <div class="fyc-grid" id="fycGrid"></div>
+  </div>
+
+  <!-- Curators keep the full searchable table; body.no-eval hides this whole block
+       for Readers (the FYC grid above is their browse surface). -->
+  <div class="section-label" id="subTableLabel">Past Submissions</div>
   <div class="sub-controls">
     <div class="search-box">
       <svg class="s-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
@@ -796,6 +860,9 @@ const _tk = localStorage.getItem('session_token');
 const _ex = parseInt(localStorage.getItem('session_expires') || '0', 10);
 const HAS_TOKEN = !!_tk && Date.now() < _ex;
 window.GUEST_REC = !!REC_ID && !HAS_TOKEN;
+// Guests keep the table area visible (the passcode unlock renders inside it) —
+// this class carves them out of the reader-only table hiding in CSS.
+if (window.GUEST_REC) document.body.classList.add('guest-rec');
 let _guestPdfUrl = null; // stash the /share signed URL for the guest reader
 
 const token = window.GUEST_REC ? null : getValidToken();
@@ -1421,18 +1488,26 @@ async function loadSubmissions({ reset = true } = {}) {
     const { data } = await res.json();
     const rows = data || [];
     // Read-first: reveal the CRAFT/DECISION columns + AI-decision filters only when the
-    // server actually returned evals (Curator/admin). For Readers they're stripped → hidden.
-    if (reset) document.body.classList.toggle('no-eval', !rows.some((r) => r.evaluation_json));
+    // server actually returned evals (Curator/admin). For Readers they're stripped → hidden
+    // (along with the whole table block — Readers browse the FYC card grid instead).
+    if (reset) {
+      const isCurator = rows.some((r) => r.evaluation_json);
+      document.body.classList.toggle('no-eval', !isCurator);
+      const lbl = document.getElementById('subTableLabel');
+      if (lbl) lbl.textContent = isCurator ? 'All Submissions — Curator View' : 'Past Submissions';
+    }
 
     if (reset) {
       tbody.innerHTML = '';
       subSeen.clear();
+      slateRows.length = 0;
       subOffset = 0;
       subDone = false;
     }
 
     if (offset === 0 && !rows.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="td-empty">No submissions yet</td></tr>';
+      renderFycGrid(); // empty slate hides the card grid too
       subDone = true;
       subFoot.style.display = 'none';
       return;
@@ -1443,6 +1518,8 @@ async function loadSubmissions({ reset = true } = {}) {
     const fresh = rows.filter(r => r.id && !subSeen.has(r.id));
     fresh.forEach(r => subSeen.add(r.id));
     if (fresh.length) tbody.insertAdjacentHTML('beforeend', fresh.map(subRowHtml).join(''));
+    slateRows.push(...fresh);
+    renderFycGrid(); // the card grid renders from the same rows the table shows
 
     subOffset = offset + rows.length;
     subDone = rows.length < PAGE_SIZE;
@@ -1481,6 +1558,93 @@ new IntersectionObserver((entries) => {
   if (searchActive) return;
   if (entries[0].isIntersecting) loadSubmissions({ reset: false });
 }, { rootMargin: '500px' }).observe(document.getElementById('subSentinel'));
+
+// ── FOR YOUR CONSIDERATION — card grid (a Reader's primary browse surface) ────
+// Readers get the curated slate as paper title-page cards; clicking a card goes
+// STRAIGHT into the full reader (no detail modal). Curators see the same grid
+// filtered to what's actually surfaced to Readers, with their full table below.
+const slateRows = []; // rows accumulated by loadSubmissions (list order)
+
+// The featured script id (The Carrier) — resolved once, shared by the grid
+// (excluded: the banner above already promotes it) and the banner CTA.
+let _featuredId = null;
+const featuredIdReady = (async () => {
+  try {
+    const r = await fetch(`${API}/xp/config`);
+    if (r.ok) _featuredId = (await r.json()).featuredScriptId || null;
+  } catch { /* featured resolution failed — the grid simply shows all rows */ }
+  return _featuredId;
+})();
+
+// Brief red-edged notice (assignment gate, card-open errors) — auto-dismisses.
+let _toastTimer = null;
+function portalToast(msg) {
+  let el = document.getElementById('portalToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'portalToast'; el.className = 'portal-toast'; el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = '';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
+}
+
+function fycCardHtml(row) {
+  const syn = (typeof row.synopsis === 'string' && row.synopsis.trim())
+    ? `<span class="fyc-syn">${esc(row.synopsis.trim())}</span>` : '';
+  return `<button type="button" class="fyc-card" data-id="${esc(row.id)}" aria-label="Read ${esc(row.title || 'this screenplay')}">
+    <span class="fyc-title">${esc(row.title || 'Untitled')}</span>
+    ${syn}
+  </button>`;
+}
+
+async function renderFycGrid() {
+  const section = document.getElementById('fycSection');
+  const grid = document.getElementById('fycGrid');
+  if (!section || !grid || window.GUEST_REC) return;
+  await featuredIdReady; // exclusion is best-effort — null shows all rows
+  let rows = slateRows;
+  // Curators: the grid previews the READER slate (surfaced scripts only); their
+  // full table below still lists everything.
+  if (!document.body.classList.contains('no-eval')) rows = rows.filter((r) => r.surfaced_to_readers);
+  if (_featuredId) rows = rows.filter((r) => r.id !== _featuredId);
+  if (!rows.length) { section.style.display = 'none'; grid.innerHTML = ''; return; }
+  grid.innerHTML = rows.map((r) => fycCardHtml(r)).join('');
+  section.style.display = '';
+}
+
+// Card → STRAIGHT into the full reader: one /scripts/:id fetch, then openReader(row).
+// The detail modal never opens on this path — closeReader() already tolerates that
+// (refreshModalGates no-ops while #modalBack isn't .open), so Back lands cleanly
+// on the grid.
+async function openScriptInReader(id, card) {
+  if (!id) return;
+  const t = getValidToken();
+  if (!t) return;
+  if (card) card.setAttribute('data-loading', '1');
+  try {
+    const res = await apiFetch(`/scripts/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${t}` } });
+    if (res.status === 401) { window.location.href = '/passcode'; return; }
+    if (!res.ok) { portalToast('Could not open the script — try again'); return; }
+    const row = await res.json();
+    if (window.Analytics) Analytics.track('script_view', { script_id: id, source: 'portal', total_pages: row.page_count || undefined });
+    openReader(row);
+  } catch {
+    portalToast('Could not open the script — try again');
+  } finally {
+    if (card) card.removeAttribute('data-loading');
+  }
+}
+
+// One delegated handler per grid; <button> cards give Enter/Space for free.
+function onFycCardClick(e) {
+  const card = e.target.closest('.fyc-card');
+  if (!card || card.dataset.loading) return;
+  openScriptInReader(card.dataset.id, card);
+}
+document.getElementById('fycGrid').addEventListener('click', onFycCardClick);
 
 // ── search / filter ───────────────────────────────────────────────────────────
 // ~486 submissions: small enough to load once and filter instantly client-side
@@ -2999,16 +3163,18 @@ window.refreshXpChip();
   }
   const btn = document.getElementById('carrierRead');
   const seekCarrier = () => { // fallback: surface The Carrier via search so the CTA is never a dead end
+    // Readers don't have the search box (the table block is Curator-only) —
+    // tell them cleanly instead of scrolling to a hidden element.
+    if (document.body.classList.contains('no-eval')) { portalToast('The featured script is temporarily unavailable — try again shortly'); return; }
     const s = document.getElementById('subSearch');
     if (s) { s.value = 'Carrier'; s.dispatchEvent(new Event('input')); s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   };
-  // Resolve the featured script id once (the server already knows it) so the CTA
-  // can open The Carrier in ONE fetch instead of loading the whole slate first.
-  let carrierId = null;
-  (async () => { try { const r = await fetch(`${API}/xp/config`); if (r.ok) carrierId = (await r.json()).featuredScriptId || null; } catch { /* fall back to a slate scan below */ } })();
+  // The featured script id is resolved once, shared with the FYC grid
+  // (featuredIdReady) — the CTA opens The Carrier in ONE fetch.
   if (btn) btn.addEventListener('click', async () => {
     btn.classList.add('loading'); btn.disabled = true;
     try {
+      const carrierId = await featuredIdReady;
       if (carrierId) {
         const ok = await openModal(carrierId); // opens instantly with its own brand-red skeleton spinner — one /scripts/:id fetch
         if (ok === false) seekCarrier();        // stale/unloadable featured id → fall back to search instead of a dead-end modal
