@@ -2792,6 +2792,9 @@ document.getElementById('modalBack').addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
+  // The XP guide overlay (reachable from the reader rail's "How XP works") owns
+  // Escape while open — it closes itself; don't also close the reader under it.
+  if (document.querySelector('.idxp-guide-back')) return;
   if (document.getElementById('reader').classList.contains('open')) closeReader();
   else closeModal();
 });
