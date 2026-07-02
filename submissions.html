@@ -616,13 +616,23 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
   line-height:1.5;max-width:100%;overflow-wrap:break-word;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden
 }
+/* ── RECOMMENDED — the reader's inbox, below the FYC slate. Empty slots are
+   plain outline rectangles (no paper, no hover, non-interactive) that hold the
+   space where recommended/assigned reads land; they track the card height at
+   every viewport. The helper line stays quiet. ── */
+.fyc-slot{min-height:112px;width:100%;border:1.5px solid #262626;border-radius:2px;background:none;pointer-events:none}
+#assignedSection{margin-bottom:44px}
+#assignedSection .fyc-grid{margin-bottom:12px}
+.fyc-hint{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:11px;letter-spacing:.08em;color:#666}
 /* Cards slim as the viewport narrows — a phone card reads like a banner, not a box. */
 @media(max-width:900px){
-  .fyc-card{min-height:96px;padding:18px 20px}
+  .fyc-card,.fyc-slot{min-height:96px}
+  .fyc-card{padding:18px 20px}
 }
 @media(max-width:560px){
   .fyc-grid{gap:10px}
-  .fyc-card{min-height:78px;padding:14px 16px;gap:7px}
+  .fyc-card,.fyc-slot{min-height:78px}
+  .fyc-card{padding:14px 16px;gap:7px}
   .fyc-title{font-size:13.5px}
 }
 /* Assigned reads — FYC cards with a red border, an eyebrow and the assigner's note.
@@ -799,20 +809,24 @@ body.assign-lock .fyc-card[aria-disabled="true"] .fyc-lock{display:block}
     </button>
   </div>
 
-  <!-- YOUR NEXT READ — pending staff assignments. While one is undecided, every
-       OTHER card (FYC grid + Carrier CTA) locks until the reader leaves a verdict.
-       Rendered by renderAssignedStrip(); hidden for guests / passcode-only users. -->
-  <div id="assignedSection" style="display:none">
-    <div class="fyc-label red">Your Next Read</div>
-    <div class="fyc-grid" id="assignedGrid"></div>
-  </div>
-
   <!-- FOR YOUR CONSIDERATION — Readers browse the curated slate as title-page cards
        (a card opens the reader directly). Curators see the same grid filtered to the
        surfaced slate, with their full table below. Rendered by renderFycGrid(). -->
   <div id="fycSection" style="display:none">
     <div class="fyc-label">For Your Consideration</div>
     <div class="fyc-grid" id="fycGrid"></div>
+  </div>
+
+  <!-- RECOMMENDED — the reader's inbox. Pending staff assignments render here as
+       red-eyebrow assigned cards (while one is undecided, every OTHER card — FYC
+       grid + Carrier CTA — locks until the reader leaves a verdict). With nothing
+       pending: three empty outline slots promise where recommendations will land —
+       shown to passcode-only guests too, though assignments are never fetched for
+       them. Rendered by renderRecommendedSection(); hidden in guest-rec mode. -->
+  <div id="assignedSection" style="display:none">
+    <div class="fyc-label">Recommended</div>
+    <div class="fyc-grid" id="assignedGrid"></div>
+    <div class="fyc-hint" id="assignedHint" style="display:none">Scripts recommended to you will appear here.</div>
   </div>
 
   <!-- Curators keep the full searchable table; body.no-eval hides this whole block
@@ -1750,11 +1764,12 @@ function onFycCardClick(e) {
 document.getElementById('fycGrid').addEventListener('click', onFycCardClick);
 document.getElementById('assignedGrid').addEventListener('click', onFycCardClick);
 
-// ── Assigned reads — inbox strip + decision gate (client-side) ────────────────
+// ── RECOMMENDED — the reader's inbox + decision gate (client-side) ────────────
 // A signed-in reader with a PENDING assignment must decide on it (submit
 // feedback with a verdict) before the rest of the slate unlocks. Entirely
 // fail-silent: no reader identity, or the endpoint missing, means feature off —
-// guests and passcode-only users are never gated.
+// guests and passcode-only users are never gated (they still see the empty
+// inbox slots: a promise of the mechanic).
 let _assignments = null; // { pending:[], decided:[] } | null = feature off
 
 function assignLockActive() {
@@ -1764,28 +1779,37 @@ function isPendingAssignment(scriptId) {
   return !!(scriptId && _assignments && (_assignments.pending || []).some((a) => a.scriptId === scriptId));
 }
 
-function renderAssignedStrip() {
+function renderRecommendedSection() {
   const sec = document.getElementById('assignedSection');
   const grid = document.getElementById('assignedGrid');
+  const hint = document.getElementById('assignedHint');
   if (!sec || !grid) return;
+  if (window.GUEST_REC) { sec.style.display = 'none'; grid.innerHTML = ''; return; }
   const pending = (_assignments && _assignments.pending) || [];
-  if (!pending.length) { sec.style.display = 'none'; grid.innerHTML = ''; return; }
-  grid.innerHTML = pending.map((a) => {
-    const bits = [];
-    if (a.note) bits.push(`“${esc(a.note)}”`);
-    if (a.assignedBy) bits.push(`— ${esc(a.assignedBy)}`);
-    const noteHtml = bits.length ? `<span class="fyc-note">${bits.join(' ')}</span>` : '';
-    return fycCardHtml({ id: a.scriptId, title: a.title }, {
-      assigned: true, eyebrow: 'Assigned · decide to unlock the lot', noteHtml,
-    });
-  }).join('');
+  if (!pending.length) {
+    // Empty inbox — three quiet outline slots hold the space where
+    // recommendations will land. Non-interactive, nothing inside.
+    grid.innerHTML = '<div class="fyc-slot" aria-hidden="true"></div>'.repeat(3);
+    if (hint) hint.style.display = '';
+  } else {
+    grid.innerHTML = pending.map((a) => {
+      const bits = [];
+      if (a.note) bits.push(`“${esc(a.note)}”`);
+      if (a.assignedBy) bits.push(`— ${esc(a.assignedBy)}`);
+      const noteHtml = bits.length ? `<span class="fyc-note">${bits.join(' ')}</span>` : '';
+      return fycCardHtml({ id: a.scriptId, title: a.title }, {
+        assigned: true, eyebrow: 'Assigned · decide to unlock the lot', noteHtml,
+      });
+    }).join('');
+    if (hint) hint.style.display = 'none';
+  }
   sec.style.display = '';
 }
 
-// Paint the whole gate: strip, dimmed/locked grid cards, and the Carrier CTA
+// Paint the whole gate: inbox, dimmed/locked grid cards, and the Carrier CTA
 // (which stays live if the Carrier itself is the assigned read).
 async function applyAssignState() {
-  renderAssignedStrip();
+  renderRecommendedSection();
   document.body.classList.toggle('assign-lock', assignLockActive());
   await renderFycGrid(); // re-paint lock state (dim + aria-disabled + lock glyph)
   const banner = document.getElementById('carrierBanner');
@@ -3441,7 +3465,8 @@ if (window.GUEST_REC) {
   enterGuestRec(REC_ID, REC_AS || REC_BY);           // recipient without the passcode (banner shows display name)
 } else {
   loadSubmissions();
-  loadAssignments(); // assigned-reads strip + decision gate (fail-silent → feature off)
+  renderRecommendedSection(); // empty inbox slots paint immediately (guests too)
+  loadAssignments(); // pending assigned reads + decision gate (fail-silent → feature off)
   if (REC_ID) { showRecBanner(REC_ID, REC_AS || REC_BY); openModal(REC_ID); } // signed-in, following a rec link
   else if (SCRIPT_ID) { openModal(SCRIPT_ID); } // open a script's detail directly (no rec banner)
 }
