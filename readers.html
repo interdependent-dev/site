@@ -69,8 +69,10 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .read .bar{width:110px;height:6px;background:#1c1c1c;border-radius:3px;overflow:hidden;flex-shrink:0}
 .read .bar span{display:block;height:100%;background:#FF0000}
 .read .pct{min-width:48px;text-align:right;color:#bbb;font-family:'Courier New',monospace;font-size:12px;flex-shrink:0;white-space:nowrap}
-/* per-read flags: ★ CHAMPIONED (red) / ↗ RECOMMENDED (neutral) — glyph-only on phones */
+/* per-read flags: filled star = CHAMPIONED (red) / up-right arrow = RECOMMENDED
+   (neutral) — inline SVG line icons (no dingbats), icon-only on phones */
 .read-chip{font-family:"Eurostile",sans-serif;font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border-radius:9px;border:1px solid #333;color:#aaa;flex-shrink:0;white-space:nowrap}
+.read-chip svg{width:9px;height:9px;vertical-align:-1px}
 .read-chip.ch{border-color:#FF0000;color:#ff6b6b}
 .read .go{width:13px;height:13px;color:#555;flex-shrink:0;transition:color .12s}
 .read:hover .go{color:#FF0000}
@@ -126,6 +128,10 @@ const READER_SVG = `<svg viewBox="0 0 15 15" fill="none" aria-hidden="true"><g s
 <path d="M5.56848 4.83398H8.22773" stroke-width="0.9"/><path d="M5.56848 6.04004H8.22773" stroke-width="0.9"/></g></svg>`;
 const CHEV_SVG = `<svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>`;
 const GO_SVG = `<svg class="go" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>`;
+// Chip icons — SVG line icons, never text glyphs (brand law; iOS mangles ↗).
+// The championed star is FILLED (it's an active state); recommend stays a line.
+const STAR_SVG = `<svg viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.9l1.9 3.85 4.1.6-3 2.9.7 4.1L8 11.4l-3.7 1.95.7-4.1-3-2.9 4.1-.6z"/></svg>`;
+const REC_SVG = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11.5 11.5 4.5M5.8 4.5h5.7v5.7"/></svg>`;
 
 function token() {
   const t = localStorage.getItem('session_token');
@@ -160,8 +166,8 @@ function readRow(r) {
   // Show pages read / total when we know the page count; fall back to % otherwise.
   const label = r.pages ? `${Math.min(r.pages, Math.round((pct / 100) * r.pages))}/${r.pages}` : `${r.pct}%`;
   // Flag what the reader DID with the read (API-provided booleans; absent = no chip).
-  const chips = (r.championed ? `<span class="read-chip ch" title="Championed">★<span class="rc-t"> Championed</span></span>` : '')
-              + (r.recommended ? `<span class="read-chip" title="Recommended">↗<span class="rc-t"> Recommended</span></span>` : '');
+  const chips = (r.championed ? `<span class="read-chip ch" title="Championed">${STAR_SVG}<span class="rc-t"> Championed</span></span>` : '')
+              + (r.recommended ? `<span class="read-chip" title="Recommended">${REC_SVG}<span class="rc-t"> Recommended</span></span>` : '');
   return `<a class="read${r.finished ? ' done' : ''}" href="/submissions.html?script=${encodeURIComponent(r.id)}" target="_blank" rel="noopener" title="Open “${esc(r.title)}” · ${r.pages ? label + ' pages read' : label + ' read'}">
     <span class="t">${esc(r.title)}</span>
     ${chips}
