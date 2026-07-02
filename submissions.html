@@ -413,17 +413,6 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .reader-act-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;padding:7px 18px;background:#0a0a0a;border-bottom:1px solid #1c1c1c;flex-shrink:0;text-align:right}
 .reader-act-msg:empty{display:none}
 .reader-act-msg a{color:#FF0000}
-/* synopsis strip — a slim dark band under the toolbar; 2-line clamp with a MORE
-   expander; dismissible per script (localStorage) */
-.reader-syn{display:flex;align-items:flex-start;gap:12px;padding:9px 18px;background:#0a0a0a;border-bottom:1px solid #1c1c1c;flex-shrink:0}
-.reader-syn[hidden]{display:none}
-.rs-k{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;color:#777;text-transform:uppercase;line-height:1.9;flex-shrink:0}
-.rs-text{flex:1;min-width:0;font-family:'Courier New',monospace;font-size:12px;color:#bbb;line-height:1.55;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.reader-syn.expanded .rs-text{display:block;-webkit-line-clamp:unset}
-.rs-more{background:none;border:none;color:#888;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1.9}
-.rs-more:hover{color:#fff}
-.rs-x{background:none;border:none;color:#666;font-size:15px;line-height:1;cursor:pointer;padding:2px 6px;flex-shrink:0}
-.rs-x:hover{color:#fff}
 .reader-body{flex:1;display:flex;min-height:0}
 
 /* left: scene navigator (slug lines) */
@@ -466,6 +455,25 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .reader-rail .score-just{font-size:12.5px;line-height:1.7;color:#8c8c8c;max-width:none}
 .reader-rail .summary-body{font-size:13.5px;line-height:1.78}
 .reader-rail .comps-val{font-size:13px}
+/* Reader/guest rail: the synopsis + a locked-coverage promo (full coverage is
+   Curator-only — the promo names the path there). Gold = the established locked
+   accent (see the XP bar's locked milestones). */
+.rail-syn{font-family:'Courier New',monospace;font-size:12.5px;color:#b5b5b5;line-height:1.7;overflow-wrap:break-word}
+.rail-locked{margin-top:26px;border:1px solid #2a2413;border-radius:8px;background:linear-gradient(180deg,#151007,#0b0b0b);padding:16px}
+.reader-rail>.rail-locked:first-child{margin-top:22px}
+.rl-head{display:flex;align-items:center;gap:8px;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;color:#FFD600;text-transform:uppercase;margin-bottom:10px}
+.rl-head svg{width:13px;height:13px;fill:#FFD600;flex-shrink:0}
+.rl-body{font-size:12.5px;color:#9a9a9a;line-height:1.7}
+.rl-body b{color:#e8e8e8;font-weight:700}
+.rl-action{margin-top:12px;padding-top:12px;border-top:1px solid #221c0e;font-size:12px;color:#8a8a8a;line-height:1.65}
+.rl-guide{background:none;border:none;padding:0;color:#FFD600;font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.rl-guide:hover{color:#fff}
+/* Locked Coverage toggle (readers): greyed + lock glyph — still a working toggle
+   (it opens the rail that holds the synopsis + promo). */
+.rtool.locked{opacity:.6}
+.rt-lock{display:none;line-height:0}
+.rtool.locked .rt-lock{display:inline-flex}
+.rt-lock svg{width:11px;height:11px;fill:currentColor}
 
 /* The scene navigator defaults COLLAPSED below 1400px (openReader applies
    .nav-hidden; the #navToggle choice is remembered in localStorage and works at
@@ -490,7 +498,8 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   .reader-nav,.reader-rail{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 @media(max-width:580px){
-  .reader-tools .rtool span{display:none}
+  /* icon-only toggles — but the lock glyph must survive (it IS the signal) */
+  .reader-tools .rtool span:not(.rt-lock){display:none}
   .reader-tools .rtool{padding:9px 11px}
   .reader-back{padding:9px 11px}
   .reader-top{gap:10px;padding:11px 12px}
@@ -850,19 +859,12 @@ body.assign-lock .fyc-card[aria-disabled="true"] .fyc-lock{display:block}
       <div class="reader-actions" id="readerActions"></div>
       <div class="reader-tools">
         <button class="rtool on" id="navToggle" aria-label="Toggle scene list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h4v14H4zm6 0h10v4H10zm0 6h10v4H10zm0 6h10v2H10z"/></svg><span>Scenes</span></button>
-        <button class="rtool on" id="railToggle" aria-label="Toggle coverage panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3zm0 6h12v2H3zm0 6h18v2H3z"/></svg><span>Coverage</span></button>
+        <button class="rtool on" id="railToggle" aria-label="Toggle coverage panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3zm0 6h12v2H3zm0 6h18v2H3z"/></svg><span>Coverage</span><span class="rt-lock" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 17a2 2 0 0 0 2-2 2 2 0 0 0-4 0 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 10 0v2zm-6-5a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/></svg></span></button>
       </div>
     </div>
   </div>
   <!-- transient champion/share status for the in-reader actions -->
   <div class="reader-act-msg" id="readerActMsg" aria-live="polite"></div>
-  <!-- synopsis strip — shown when the script has one; dismissible per script -->
-  <div class="reader-syn" id="readerSyn" hidden>
-    <span class="rs-k">Synopsis</span>
-    <span class="rs-text" id="readerSynText"></span>
-    <button class="rs-more" id="readerSynMore" type="button" hidden>More</button>
-    <button class="rs-x" id="readerSynX" type="button" aria-label="Dismiss synopsis">×</button>
-  </div>
   <div class="reader-body">
     <nav class="reader-nav" id="readerNav"></nav>
     <div class="reader-doc" id="readerDoc"></div>
@@ -1915,7 +1917,7 @@ function shareToRow(d, id) {
   const hasVerdict = d.decision != null || d.scores != null || d.evaluation != null || d.weightedScore != null;
   return {
     id, title: d.title, page_count: d.pageCount, status: 'evaluated',
-    synopsis: d.synopsis || null, // prose-only; feeds the reader's synopsis strip
+    synopsis: d.synopsis || null, // prose-only; feeds the Synopsis section of the reader rail
     submitted_at: null, submitter_name: null, submitter_email: null, users: null,
     storage_path: d.pdfUrl ? 'shared' : null, _sharePdfUrl: d.pdfUrl || null,
     evaluation_json: hasVerdict ? {
@@ -3256,31 +3258,22 @@ function refreshReaderActions() {
   if (_readerRow && document.getElementById('reader').classList.contains('open')) renderReaderActions(_readerRow);
 }
 
-// Synopsis strip under the toolbar — 2-line clamp with a MORE expander; the ×
-// dismisses it for THIS script only (remembered per device).
-function setupReaderSynopsis(row) {
-  const strip = document.getElementById('readerSyn');
-  const textEl = document.getElementById('readerSynText');
-  const more = document.getElementById('readerSynMore');
-  if (!strip || !textEl) return;
-  strip.classList.remove('expanded');
+// Reader/guest rail: the synopsis (when the API provides one) + a locked-coverage
+// promo. The full coverage is Curator-only — the promo names the path there and
+// what Curators get. "How XP works" opens the existing XP guide overlay
+// (XpBar.openGuide, z-10000 — it layers above the reader).
+function readerRailLockedHtml(row) {
   const syn = row && typeof row.synopsis === 'string' ? row.synopsis.trim() : '';
-  const dismissed = row && localStorage.getItem(`idp_syn_dismissed:${row.id}`) === '1';
-  if (!syn || dismissed) { strip.hidden = true; textEl.textContent = ''; return; }
-  textEl.textContent = syn;
-  if (more) { more.hidden = true; more.textContent = 'More'; }
-  strip.hidden = false;
-  // show the expander only when the 2-line clamp actually truncates
-  requestAnimationFrame(() => { if (more) more.hidden = textEl.scrollHeight <= textEl.clientHeight + 1; });
+  const synHtml = syn ? `<div class="rail-section">Synopsis</div><div class="rail-syn">${esc(syn)}</div>` : '';
+  const guideLink = (window.XpBar && XpBar.openGuide)
+    ? ` <button type="button" class="rl-guide" id="railXpGuide">How XP works</button>` : '';
+  return `${synHtml}
+    <div class="rail-locked">
+      <div class="rl-head">${SVG_LOCK} Coverage · Locked</div>
+      <div class="rl-body">The full coverage on every script — the AI evaluation, craft scores, and championability read — unlocks at <b>Curator</b> standing: <b>1,724&nbsp;XP</b>. Curators get first-look access to new submissions, see every AI evaluation, and help decide what the Lot reads next by choosing which scripts reach Readers.</div>
+      <div class="rl-action">Every verified read, thoughtful feedback, and champion builds your XP.${guideLink}</div>
+    </div>`;
 }
-document.getElementById('readerSynMore').addEventListener('click', () => {
-  const on = document.getElementById('readerSyn').classList.toggle('expanded');
-  document.getElementById('readerSynMore').textContent = on ? 'Less' : 'More';
-});
-document.getElementById('readerSynX').addEventListener('click', () => {
-  document.getElementById('readerSyn').hidden = true;
-  if (_readerRow) localStorage.setItem(`idp_syn_dismissed:${_readerRow.id}`, '1');
-});
 
 function openReader(row) {
   if (_readerTracker) closeReader(); // defensive: never stack two reader sessions
@@ -3291,7 +3284,6 @@ function openReader(row) {
 
   document.getElementById('readerTitle').textContent = row.title || '—';
   renderReaderActions(row);   // Feedback / Recommend / Champion in the toolbar
-  setupReaderSynopsis(row);   // synopsis strip (when the API provides one)
   // Read-first: the AI verdict is Curator-only. The server strips it for Readers,
   // so the reading rail hides the score/decision — form your own opinion first.
   const showEval = !!(row.evaluation_json || row.evaluation_result);
@@ -3305,8 +3297,9 @@ function openReader(row) {
     scoreEl.textContent = n.scoreValue != null ? n.scoreValue.toFixed(1) : '—';
   }
 
-  // The rail is COVERAGE — Curator-only. For a Reader it's removed from layout
-  // entirely (no 372px column, no Coverage toggle), so the page gets the width.
+  // The rail: Curators get the full COVERAGE; Readers and guests get the synopsis
+  // + a locked-coverage promo (readerRailLockedHtml) behind a visibly locked —
+  // but still working — Coverage toggle.
   const bars = barsFromCategories(n.categories);
   const champ = n.championship;
   const champColor = champ ? (CHAMP_COLORS[champ.rating] || '#444') : '';
@@ -3322,7 +3315,9 @@ function openReader(row) {
     ${bars ? `<div class="rail-section">Score Breakdown</div>${bars}` : ''}
     ${n.summary ? `<div class="rail-section">Summary</div><div class="summary-body">${esc(n.summary)}</div>` : ''}
     ${(n.craftAssessment && n.craftAssessment !== n.summary) ? `<div class="rail-section">Craft Assessment</div><div class="summary-body">${esc(n.craftAssessment)}</div>` : ''}`
-    : '';
+    : readerRailLockedHtml(row);
+  const guideBtn = document.getElementById('railXpGuide');
+  if (guideBtn) guideBtn.addEventListener('click', () => { if (window.XpBar && XpBar.openGuide) XpBar.openGuide(); });
 
   const r = document.getElementById('reader');
   r.classList.add('open');
@@ -3338,15 +3333,19 @@ function openReader(row) {
   });
   if (window.Analytics) Analytics.track('reader_open', { script_id: row.id, total_pages: row.page_count || undefined, source: _readerTracker.state.source, recommender: REC_BY || undefined });
 
-  // Panels. Coverage rail: Curator-only (readers never get the column OR the
-  // toggle). Scene nav: defaults COLLAPSED below 1400px so the page gets the
+  // Panels. Coverage rail: Curators open >820px as before (full coverage);
+  // Readers/guests get a visibly LOCKED (but working) toggle — their rail
+  // defaults OPEN at ≥1200px so the synopsis shows without a click, collapsed
+  // 821–1199px. Scene nav: defaults COLLAPSED below 1400px so the page gets the
   // width; the reader's last toggle choice (remembered per device) wins on
   // wider screens. On phones both panels start hidden (full-screen overlays).
   const compact = window.matchMedia('(max-width: 820px)').matches;
   const railToggleBtn = document.getElementById('railToggle');
-  railToggleBtn.style.display = showEval ? '' : 'none';
-  r.classList.toggle('rail-hidden', compact || !showEval);
-  railToggleBtn.classList.toggle('on', showEval && !compact);
+  railToggleBtn.classList.toggle('locked', !showEval);
+  railToggleBtn.setAttribute('aria-label', showEval ? 'Toggle coverage panel' : 'Coverage — locked until Curator (1,724 XP)');
+  const railOpen = !compact && (showEval || window.innerWidth >= 1200);
+  r.classList.toggle('rail-hidden', !railOpen);
+  railToggleBtn.classList.toggle('on', railOpen);
   const navPref = localStorage.getItem('idp_reader_nav'); // '1' open / '0' collapsed — written by the Scenes toggle
   const navOpen = compact ? false : (navPref != null ? navPref === '1' : window.innerWidth >= 1400);
   r.classList.toggle('nav-hidden', !navOpen);
@@ -3367,7 +3366,6 @@ function closeReader() {
   teardownReader();
   _readerRow = null;
   renderReaderActions(null); // empty the toolbar cluster (and its status line)
-  const _syn = document.getElementById('readerSyn'); if (_syn) _syn.hidden = true;
   refreshModalGates(); // finishing the read may have just unlocked the actions + activity
   // If the preview pane is still open behind the reader — AND the modal itself is
   // still open (the reader can now be entered straight from the FYC grid, or the
