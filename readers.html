@@ -69,6 +69,9 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .read .bar{width:110px;height:6px;background:#1c1c1c;border-radius:3px;overflow:hidden;flex-shrink:0}
 .read .bar span{display:block;height:100%;background:#FF0000}
 .read .pct{min-width:48px;text-align:right;color:#bbb;font-family:'Courier New',monospace;font-size:12px;flex-shrink:0;white-space:nowrap}
+/* per-read flags: ★ CHAMPIONED (red) / ↗ RECOMMENDED (neutral) — glyph-only on phones */
+.read-chip{font-family:"Eurostile",sans-serif;font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border-radius:9px;border:1px solid #333;color:#aaa;flex-shrink:0;white-space:nowrap}
+.read-chip.ch{border-color:#FF0000;color:#ff6b6b}
 .read .go{width:13px;height:13px;color:#555;flex-shrink:0;transition:color .12s}
 .read:hover .go{color:#FF0000}
 .read.done .pct{color:#3ec46a}
@@ -85,7 +88,7 @@ h1{font-family:"Eurostile",sans-serif;font-weight:700;font-size:24px;letter-spac
 .stat-line{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px;row-gap:4px;font-family:"Eurostile",sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#9a9a9a;margin:12px 0 2px}
 .stat-line .stat{white-space:nowrap}
 .stat-line .stat + .stat::before{content:"· ";color:#555}
-@media(max-width:560px){header{padding:14px 20px}main{padding:32px 20px}.read .bar{width:64px}.r-name{font-size:15px}.stat-line{flex-direction:column;column-gap:0;row-gap:3px}.stat-line .stat + .stat::before{content:none}.stat-line .stat-desk{display:none}}
+@media(max-width:560px){header{padding:14px 20px}main{padding:32px 20px}.read .bar{width:64px}.r-name{font-size:15px}.stat-line{flex-direction:column;column-gap:0;row-gap:3px}.stat-line .stat + .stat::before{content:none}.stat-line .stat-desk{display:none}.read-chip .rc-t{display:none}}
 </style>
 <script src="/lib/roles.js?v=2026-06-30-ux"></script>
 </head>
@@ -156,8 +159,12 @@ function readRow(r) {
   const pct = Math.max(0, Math.min(100, r.pct));
   // Show pages read / total when we know the page count; fall back to % otherwise.
   const label = r.pages ? `${Math.min(r.pages, Math.round((pct / 100) * r.pages))}/${r.pages}` : `${r.pct}%`;
+  // Flag what the reader DID with the read (API-provided booleans; absent = no chip).
+  const chips = (r.championed ? `<span class="read-chip ch" title="Championed">★<span class="rc-t"> Championed</span></span>` : '')
+              + (r.recommended ? `<span class="read-chip" title="Recommended">↗<span class="rc-t"> Recommended</span></span>` : '');
   return `<a class="read${r.finished ? ' done' : ''}" href="/submissions.html?script=${encodeURIComponent(r.id)}" target="_blank" rel="noopener" title="Open “${esc(r.title)}” · ${r.pages ? label + ' pages read' : label + ' read'}">
     <span class="t">${esc(r.title)}</span>
+    ${chips}
     <span class="bar"><span style="width:${pct}%"></span></span>
     <span class="pct">${label}</span>
     ${GO_SVG}
@@ -273,7 +280,10 @@ async function load() {
     ]);
     if (res.status === 401) { window.location.href = '/passcode'; return; }
     if (!res.ok) throw new Error('load');
-    const { readers } = await res.json();
+    const { readers: allReaders } = await res.json();
+    // Staff accounts never show on the board; rows arrive XP-RANKED from the API —
+    // render in that order, no client re-sort.
+    const readers = (allReaders || []).filter((rd) => !rd.staff);
     const list = document.getElementById('list');
     if (!readers || !readers.length) {
       document.getElementById('count').textContent = '';

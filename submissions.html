@@ -297,8 +297,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .share-btn.done{border-color:#16a34a;color:#16a34a}
 .share-btn .share-ico{font-size:12px;line-height:1}
 
-/* reader feedback form */
-.fb-back{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85)}
+/* reader feedback form — layered ABOVE the full-screen reader (z-200) so the
+   in-reader Feedback button works with the reader open */
+.fb-back{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85)}
 .fb-card{width:100%;max-width:440px;max-height:92vh;overflow-y:auto;background:#0a0a0a;border:1px solid #222;padding:26px 24px;font-family:'Helvetica Neue',sans-serif}
 .fb-card h3{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px;color:#fff}
 .fb-card .fb-sub{color:#888;font-size:12px;margin-bottom:18px;line-height:1.55}
@@ -393,11 +394,36 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .reader-chip{font-family:"Eurostile",'Helvetica Neue',sans-serif;padding:3px 9px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;flex-shrink:0}
 .reader-chip.score{background:#161616;color:#ccc;font-family:'Courier New',monospace}
 .reader-chip.reader-progress{background:#161616;color:#bbb;font-family:'Courier New',monospace}
-.reader-tools{margin-left:auto;display:flex;gap:8px;flex-shrink:0}
+.reader-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.reader-tools{display:flex;gap:8px;flex-shrink:0}
 .rtool{display:inline-flex;align-items:center;gap:7px;background:#111;border:1px solid #2c2c2c;padding:9px 13px;color:#bbb;cursor:pointer;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:border-color .15s,color .15s}
 .rtool:hover{border-color:#666;color:#fff}
 .rtool svg{width:13px;height:13px;fill:currentColor}
 .rtool.on{background:#fff;color:#000;border-color:#fff}
+/* in-reader action cluster (Feedback / Recommend / Champion) — toolbar on wide
+   screens, fixed bottom bar ≤820px (see the phone media block below) */
+.reader-actions{display:flex;gap:8px;align-items:center;padding-right:10px;border-right:1px solid #1c1c1c}
+.reader-actions:empty{display:none}
+/* mid widths: trim the cluster so a curator's full toolbar (chips + actions +
+   both toggles) never overflows — the title truncates first */
+@media(min-width:821px) and (max-width:1000px){
+  .reader-actions .share-btn,.reader-actions .champion-btn{padding:8px 9px;letter-spacing:.08em}
+}
+/* transient status line for the in-reader actions (champion/share messages) */
+.reader-act-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;padding:7px 18px;background:#0a0a0a;border-bottom:1px solid #1c1c1c;flex-shrink:0;text-align:right}
+.reader-act-msg:empty{display:none}
+.reader-act-msg a{color:#FF0000}
+/* synopsis strip — a slim dark band under the toolbar; 2-line clamp with a MORE
+   expander; dismissible per script (localStorage) */
+.reader-syn{display:flex;align-items:flex-start;gap:12px;padding:9px 18px;background:#0a0a0a;border-bottom:1px solid #1c1c1c;flex-shrink:0}
+.reader-syn[hidden]{display:none}
+.rs-k{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;color:#777;text-transform:uppercase;line-height:1.9;flex-shrink:0}
+.rs-text{flex:1;min-width:0;font-family:'Courier New',monospace;font-size:12px;color:#bbb;line-height:1.55;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.reader-syn.expanded .rs-text{display:block;-webkit-line-clamp:unset}
+.rs-more{background:none;border:none;color:#888;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1.9}
+.rs-more:hover{color:#fff}
+.rs-x{background:none;border:none;color:#666;font-size:15px;line-height:1;cursor:pointer;padding:2px 6px;flex-shrink:0}
+.rs-x:hover{color:#fff}
 .reader-body{flex:1;display:flex;min-height:0}
 
 /* left: scene navigator (slug lines) */
@@ -424,6 +450,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 
 /* center: the screenplay */
 .reader-doc{flex:1;min-width:0;background:#1d1d1f;overflow-y:auto;padding:28px 24px}
+/* narrower screens: shave the gutters so the page itself gets the width
+   (renderReaderPdf mirrors this in its width math) */
+@media(max-width:1200px){ .reader-doc{padding:16px 12px} }
 
 /* right: coverage — slimmer than the scene rail, still readable */
 .reader-rail{width:372px;flex-shrink:0;background:#070707;border-left:1px solid #1c1c1c;overflow-y:auto;padding:26px 26px 44px}
@@ -438,9 +467,9 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .reader-rail .summary-body{font-size:13.5px;line-height:1.78}
 .reader-rail .comps-val{font-size:13px}
 
-/* no room for the scene navigator on narrower screens */
-/* tablet: drop the scene column — script + coverage side by side */
-@media(min-width:821px) and (max-width:1200px){ .reader-nav{display:none} }
+/* The scene navigator defaults COLLAPSED below 1400px (openReader applies
+   .nav-hidden; the #navToggle choice is remembered in localStorage and works at
+   every width — no CSS breakpoint force-hides it anymore). */
 /* phone: one panel at a time. The screenplay fills the screen; Scenes and
    Coverage are full-screen overlays BELOW the toolbar, toggled one at a time
    and hidden when the reader opens — so the script is never covered by default
@@ -449,6 +478,16 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
   .reader-body{position:relative}
   .reader-nav,.reader-rail{position:absolute;inset:0;width:auto;z-index:6;border:none;box-shadow:none}
   .reader-rail{padding:24px 20px 40px}
+  /* the action cluster becomes a fixed bottom bar — keep panels + pages clear of it */
+  .reader-actions{
+    position:fixed;left:0;right:0;bottom:0;z-index:10;
+    padding:10px max(12px, env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
+    border-right:none;border-top:1px solid #1c1c1c;background:rgba(0,0,0,.94);justify-content:center
+  }
+  .reader-actions .share-btn,.reader-actions .champion-btn{flex:1 1 0;justify-content:center;max-width:160px;padding:11px 8px}
+  .reader-tools{margin-left:auto}
+  .reader-doc{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+  .reader-nav,.reader-rail{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 @media(max-width:580px){
   .reader-tools .rtool span{display:none}
@@ -470,6 +509,14 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 /* Read-first: non-Curators never see the AI verdict — hide the CRAFT/DECISION
    columns + the AI-decision filters. Toggled by body.no-eval (set from xp.curator). */
 body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eval .dec-filters{display:none}
+/* Read-first: Readers browse the FOR YOUR CONSIDERATION card grid — the full table
+   + search/filter block is Curator-only. Guests (?rec= without a session) keep the
+   table area: the passcode unlock renders inside it. */
+body.no-eval:not(.guest-rec) #subTableLabel,
+body.no-eval:not(.guest-rec) .sub-controls,
+body.no-eval:not(.guest-rec) .search-count,
+body.no-eval:not(.guest-rec) .table-wrap,
+body.no-eval:not(.guest-rec) .sub-foot{display:none}
 /* Curator-only surface toggle inside a script modal. */
 .curator-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 18px;padding:9px 12px;border:1px solid #2a2a2a;border-left:3px solid #FF0000;border-radius:6px;background:#0c0c0c}
 .curator-bar .cur-tag{font-family:"Eurostile",sans-serif;font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#FF0000}
@@ -519,6 +566,78 @@ body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eva
 .dec-chip[data-dec="PASS"].on{border-color:#dc2626;color:#dc2626}
 .search-count{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;letter-spacing:.16em;color:#777;text-transform:uppercase;margin-bottom:14px}
 @media(max-width:580px){ .dec-filters{width:100%} .dec-chip{flex:1} }
+
+/* ── FOR YOUR CONSIDERATION — the reader-facing slate as script title-page cards ── */
+.fyc-label{
+  font-family:"Eurostile Wide","Eurostile",'Helvetica Neue',sans-serif;font-weight:700;
+  font-size:13px;letter-spacing:.24em;color:#fff;text-transform:uppercase;
+  padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:18px
+}
+.fyc-label.red{color:#FF0000;border-bottom-color:#2a0f0f}
+.fyc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:44px}
+@media(max-width:560px){.fyc-grid{grid-template-columns:1fr}}
+/* Paper-white script title page on the black stage. The 2px ink border keeps its
+   width on hover — the highlight ring's extra 1px comes from box-shadow, so the
+   blue state never shifts layout. The faint outer ring makes edges read on #000. */
+.fyc-card{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;min-height:150px;padding:24px 22px;width:100%;
+  background:#f8f7f4;border:2px solid #111;border-radius:2px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 26px rgba(0,0,0,.55);
+  font-family:'Courier New',monospace;text-align:center;cursor:pointer;
+  -webkit-appearance:none;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease
+}
+.fyc-card:hover,.fyc-card:focus-visible{
+  outline:none;transform:translateY(-2px);border-color:#4f5bd5;
+  box-shadow:0 0 0 1px #4f5bd5,0 10px 30px rgba(0,0,0,.6)
+}
+@media (prefers-reduced-motion:reduce){.fyc-card{transition:none}.fyc-card:hover,.fyc-card:focus-visible{transform:none}}
+.fyc-card[data-loading]{opacity:.6;cursor:wait}
+.fyc-title{
+  font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:#111;
+  line-height:1.5;max-width:100%;overflow-wrap:break-word;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden
+}
+.fyc-syn{
+  font-size:11.5px;color:#444;line-height:1.5;max-width:100%;overflow-wrap:break-word;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+}
+/* Assigned reads — FYC cards with a red border, an eyebrow and the assigner's note. */
+.fyc-card.assigned{border-color:#FF0000}
+.fyc-card.assigned:hover,.fyc-card.assigned:focus-visible{border-color:#FF0000;box-shadow:0 0 0 1px #FF0000,0 10px 30px rgba(0,0,0,.6)}
+.fyc-eyebrow{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;color:#FF0000;text-transform:uppercase}
+.fyc-note{font-size:11px;color:#555;line-height:1.5;max-width:100%;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Assignment gate: while an assigned read is undecided, every OTHER card locks —
+   dimmed, lock glyph, no hover lift; still keyboard-focusable (aria-disabled). */
+.fyc-lock{display:none;position:absolute;top:10px;right:10px;width:14px;height:14px}
+.fyc-lock svg{width:14px;height:14px;fill:#111;opacity:.75}
+body.assign-lock .fyc-card[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+body.assign-lock .fyc-card[aria-disabled="true"]:hover{transform:none;border-color:#111;box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 26px rgba(0,0,0,.55)}
+body.assign-lock .fyc-card[aria-disabled="true"] .fyc-lock{display:block}
+.carrier-banner.assign-locked .carrier-cta{opacity:.45;cursor:not-allowed}
+/* Curator: assign-to-reader panel (inline, under the curator bar). */
+.assign-panel{border:1px solid #2a2a2a;border-radius:6px;background:#0c0c0c;padding:14px;margin:-8px 0 18px}
+.assign-panel[hidden]{display:none}
+.ap-h{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#aaa;margin-bottom:10px}
+.ap-list{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.ap-reader{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:4px;cursor:pointer}
+.ap-reader:hover{background:#141414}
+.ap-name{color:#ddd;font-size:12.5px}
+.ap-handle{color:#777;font-size:11px}
+.assign-panel input[type=text]{width:100%;background:#0a0a0a;border:1px solid #2a2a2a;color:#fff;padding:9px 11px;font-size:12.5px;outline:none;font-family:inherit;border-radius:0;-webkit-appearance:none;margin-bottom:10px}
+.assign-panel input[type=text]:focus{border-color:red}
+.ap-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ap-msg{font-size:11px;color:#888;min-height:1em}
+/* Small red-edged notice toast (assignment gate, card-open errors). */
+.portal-toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:400;
+  background:#140000;border:1px solid #3a0a0a;border-left:3px solid #FF0000;border-radius:6px;
+  color:#ddd;font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:11px;
+  letter-spacing:.1em;text-transform:uppercase;line-height:1.6;padding:12px 18px;text-align:center;
+  max-width:min(480px,calc(100vw - 32px));box-shadow:0 8px 30px rgba(0,0,0,.6);animation:pt-in .18s ease-out
+}
+@keyframes pt-in{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.portal-toast{animation:none}}
 
 /* ── Reader activity (relocated from the former Analytics drawer; scoped so it
       can't collide with portal styles). Shows who read a script — by real depth
@@ -659,7 +778,25 @@ body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eva
     </button>
   </div>
 
-  <div class="section-label">Past Submissions</div>
+  <!-- YOUR NEXT READ — pending staff assignments. While one is undecided, every
+       OTHER card (FYC grid + Carrier CTA) locks until the reader leaves a verdict.
+       Rendered by renderAssignedStrip(); hidden for guests / passcode-only users. -->
+  <div id="assignedSection" style="display:none">
+    <div class="fyc-label red">Your Next Read</div>
+    <div class="fyc-grid" id="assignedGrid"></div>
+  </div>
+
+  <!-- FOR YOUR CONSIDERATION — Readers browse the curated slate as title-page cards
+       (a card opens the reader directly). Curators see the same grid filtered to the
+       surfaced slate, with their full table below. Rendered by renderFycGrid(). -->
+  <div id="fycSection" style="display:none">
+    <div class="fyc-label">For Your Consideration</div>
+    <div class="fyc-grid" id="fycGrid"></div>
+  </div>
+
+  <!-- Curators keep the full searchable table; body.no-eval hides this whole block
+       for Readers (the FYC grid above is their browse surface). -->
+  <div class="section-label" id="subTableLabel">Past Submissions</div>
   <div class="sub-controls">
     <div class="search-box">
       <svg class="s-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
@@ -713,10 +850,24 @@ body.no-eval .eval-col,body.no-eval .td-score,body.no-eval .td-badge,body.no-eva
       <span class="reader-chip score" id="readerScore">—</span>
       <span class="reader-chip reader-progress" id="readerProgress" aria-live="polite">Read 0%</span>
     </div>
-    <div class="reader-tools">
-      <button class="rtool on" id="navToggle" aria-label="Toggle scene list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h4v14H4zm6 0h10v4H10zm0 6h10v4H10zm0 6h10v2H10z"/></svg><span>Scenes</span></button>
-      <button class="rtool on" id="railToggle" aria-label="Toggle coverage panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3zm0 6h12v2H3zm0 6h18v2H3z"/></svg><span>Coverage</span></button>
+    <div class="reader-right">
+      <!-- Feedback / Recommend / Champion for the current script — populated by
+           renderReaderActions(); a fixed bottom bar on phones -->
+      <div class="reader-actions" id="readerActions"></div>
+      <div class="reader-tools">
+        <button class="rtool on" id="navToggle" aria-label="Toggle scene list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h4v14H4zm6 0h10v4H10zm0 6h10v4H10zm0 6h10v2H10z"/></svg><span>Scenes</span></button>
+        <button class="rtool on" id="railToggle" aria-label="Toggle coverage panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3zm0 6h12v2H3zm0 6h18v2H3z"/></svg><span>Coverage</span></button>
+      </div>
     </div>
+  </div>
+  <!-- transient champion/share status for the in-reader actions -->
+  <div class="reader-act-msg" id="readerActMsg" aria-live="polite"></div>
+  <!-- synopsis strip — shown when the script has one; dismissible per script -->
+  <div class="reader-syn" id="readerSyn" hidden>
+    <span class="rs-k">Synopsis</span>
+    <span class="rs-text" id="readerSynText"></span>
+    <button class="rs-more" id="readerSynMore" type="button" hidden>More</button>
+    <button class="rs-x" id="readerSynX" type="button" aria-label="Dismiss synopsis">×</button>
   </div>
   <div class="reader-body">
     <nav class="reader-nav" id="readerNav"></nav>
@@ -796,6 +947,9 @@ const _tk = localStorage.getItem('session_token');
 const _ex = parseInt(localStorage.getItem('session_expires') || '0', 10);
 const HAS_TOKEN = !!_tk && Date.now() < _ex;
 window.GUEST_REC = !!REC_ID && !HAS_TOKEN;
+// Guests keep the table area visible (the passcode unlock renders inside it) —
+// this class carves them out of the reader-only table hiding in CSS.
+if (window.GUEST_REC) document.body.classList.add('guest-rec');
 let _guestPdfUrl = null; // stash the /share signed URL for the guest reader
 
 const token = window.GUEST_REC ? null : getValidToken();
@@ -1421,18 +1575,26 @@ async function loadSubmissions({ reset = true } = {}) {
     const { data } = await res.json();
     const rows = data || [];
     // Read-first: reveal the CRAFT/DECISION columns + AI-decision filters only when the
-    // server actually returned evals (Curator/admin). For Readers they're stripped → hidden.
-    if (reset) document.body.classList.toggle('no-eval', !rows.some((r) => r.evaluation_json));
+    // server actually returned evals (Curator/admin). For Readers they're stripped → hidden
+    // (along with the whole table block — Readers browse the FYC card grid instead).
+    if (reset) {
+      const isCurator = rows.some((r) => r.evaluation_json);
+      document.body.classList.toggle('no-eval', !isCurator);
+      const lbl = document.getElementById('subTableLabel');
+      if (lbl) lbl.textContent = isCurator ? 'All Submissions — Curator View' : 'Past Submissions';
+    }
 
     if (reset) {
       tbody.innerHTML = '';
       subSeen.clear();
+      slateRows.length = 0;
       subOffset = 0;
       subDone = false;
     }
 
     if (offset === 0 && !rows.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="td-empty">No submissions yet</td></tr>';
+      renderFycGrid(); // empty slate hides the card grid too
       subDone = true;
       subFoot.style.display = 'none';
       return;
@@ -1443,6 +1605,8 @@ async function loadSubmissions({ reset = true } = {}) {
     const fresh = rows.filter(r => r.id && !subSeen.has(r.id));
     fresh.forEach(r => subSeen.add(r.id));
     if (fresh.length) tbody.insertAdjacentHTML('beforeend', fresh.map(subRowHtml).join(''));
+    slateRows.push(...fresh);
+    renderFycGrid(); // the card grid renders from the same rows the table shows
 
     subOffset = offset + rows.length;
     subDone = rows.length < PAGE_SIZE;
@@ -1456,6 +1620,14 @@ async function loadSubmissions({ reset = true } = {}) {
   } catch {
     if (reset) {
       tbody.innerHTML = '<tr><td colspan="6" class="td-empty">Failed to load submissions — refresh to retry</td></tr>';
+      // Readers can't see the table's error (their table block is hidden) —
+      // surface the failure in the card-grid section instead.
+      const section = document.getElementById('fycSection');
+      const grid = document.getElementById('fycGrid');
+      if (section && grid && document.body.classList.contains('no-eval') && !window.GUEST_REC) {
+        grid.innerHTML = '<div class="td-empty" style="grid-column:1/-1">Failed to load the slate — refresh to retry</div>';
+        section.style.display = '';
+      }
     } else {
       subFoot.textContent = 'Could not load more — scroll to retry';
       subFoot.style.display = '';
@@ -1481,6 +1653,167 @@ new IntersectionObserver((entries) => {
   if (searchActive) return;
   if (entries[0].isIntersecting) loadSubmissions({ reset: false });
 }, { rootMargin: '500px' }).observe(document.getElementById('subSentinel'));
+
+// ── FOR YOUR CONSIDERATION — card grid (a Reader's primary browse surface) ────
+// Readers get the curated slate as paper title-page cards; clicking a card goes
+// STRAIGHT into the full reader (no detail modal). Curators see the same grid
+// filtered to what's actually surfaced to Readers, with their full table below.
+const slateRows = []; // rows accumulated by loadSubmissions (list order)
+
+// The featured script id (The Carrier) — resolved once, shared by the grid
+// (excluded: the banner above already promotes it) and the banner CTA.
+let _featuredId = null;
+const featuredIdReady = (async () => {
+  try {
+    const r = await fetch(`${API}/xp/config`);
+    if (r.ok) _featuredId = (await r.json()).featuredScriptId || null;
+  } catch { /* featured resolution failed — the grid simply shows all rows */ }
+  return _featuredId;
+})();
+
+// Brief red-edged notice (assignment gate, card-open errors) — auto-dismisses.
+let _toastTimer = null;
+function portalToast(msg) {
+  let el = document.getElementById('portalToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'portalToast'; el.className = 'portal-toast'; el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = '';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
+}
+
+function fycCardHtml(row, { assigned = false, locked = false, eyebrow = '', noteHtml = '' } = {}) {
+  const syn = (typeof row.synopsis === 'string' && row.synopsis.trim())
+    ? `<span class="fyc-syn">${esc(row.synopsis.trim())}</span>` : '';
+  const isLocked = locked && !assigned;
+  return `<button type="button" class="fyc-card${assigned ? ' assigned' : ''}" data-id="${esc(row.id)}"${isLocked ? ' aria-disabled="true"' : ''} aria-label="Read ${esc(row.title || 'this screenplay')}">
+    <span class="fyc-lock" aria-hidden="true">${SVG_LOCK}</span>
+    ${eyebrow ? `<span class="fyc-eyebrow">${eyebrow}</span>` : ''}
+    <span class="fyc-title">${esc(row.title || 'Untitled')}</span>
+    ${syn}${noteHtml}
+  </button>`;
+}
+
+async function renderFycGrid() {
+  const section = document.getElementById('fycSection');
+  const grid = document.getElementById('fycGrid');
+  if (!section || !grid || window.GUEST_REC) return;
+  await featuredIdReady; // exclusion is best-effort — null shows all rows
+  let rows = slateRows;
+  // Curators: the grid previews the READER slate (surfaced scripts only); their
+  // full table below still lists everything.
+  if (!document.body.classList.contains('no-eval')) rows = rows.filter((r) => r.surfaced_to_readers);
+  if (_featuredId) rows = rows.filter((r) => r.id !== _featuredId);
+  if (!rows.length) { section.style.display = 'none'; grid.innerHTML = ''; return; }
+  const locked = assignLockActive();
+  grid.innerHTML = rows.map((r) => fycCardHtml(r, { locked })).join('');
+  section.style.display = '';
+}
+
+// Card → STRAIGHT into the full reader: one /scripts/:id fetch, then openReader(row).
+// The detail modal never opens on this path — closeReader() already tolerates that
+// (refreshModalGates no-ops while #modalBack isn't .open), so Back lands cleanly
+// on the grid.
+async function openScriptInReader(id, card) {
+  if (!id) return;
+  const t = getValidToken();
+  if (!t) return;
+  if (card) card.setAttribute('data-loading', '1');
+  try {
+    const res = await apiFetch(`/scripts/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${t}` } });
+    if (res.status === 401) { window.location.href = '/passcode'; return; }
+    if (!res.ok) { portalToast('Could not open the script — try again'); return; }
+    const row = await res.json();
+    if (window.Analytics) Analytics.track('script_view', { script_id: id, source: 'portal', total_pages: row.page_count || undefined });
+    openReader(row);
+  } catch {
+    portalToast('Could not open the script — try again');
+  } finally {
+    if (card) card.removeAttribute('data-loading');
+  }
+}
+
+// One delegated handler per grid; <button> cards give Enter/Space for free.
+// Locked cards (assignment gate) stay focusable but explain instead of opening.
+function onFycCardClick(e) {
+  const card = e.target.closest('.fyc-card');
+  if (!card || card.dataset.loading) return;
+  if (card.getAttribute('aria-disabled') === 'true') {
+    portalToast('Decide on your assigned read first — open it and leave your verdict');
+    return;
+  }
+  openScriptInReader(card.dataset.id, card);
+}
+document.getElementById('fycGrid').addEventListener('click', onFycCardClick);
+document.getElementById('assignedGrid').addEventListener('click', onFycCardClick);
+
+// ── Assigned reads — inbox strip + decision gate (client-side) ────────────────
+// A signed-in reader with a PENDING assignment must decide on it (submit
+// feedback with a verdict) before the rest of the slate unlocks. Entirely
+// fail-silent: no reader identity, or the endpoint missing, means feature off —
+// guests and passcode-only users are never gated.
+let _assignments = null; // { pending:[], decided:[] } | null = feature off
+
+function assignLockActive() {
+  return !!(_assignments && _assignments.pending && _assignments.pending.length);
+}
+function isPendingAssignment(scriptId) {
+  return !!(scriptId && _assignments && (_assignments.pending || []).some((a) => a.scriptId === scriptId));
+}
+
+function renderAssignedStrip() {
+  const sec = document.getElementById('assignedSection');
+  const grid = document.getElementById('assignedGrid');
+  if (!sec || !grid) return;
+  const pending = (_assignments && _assignments.pending) || [];
+  if (!pending.length) { sec.style.display = 'none'; grid.innerHTML = ''; return; }
+  grid.innerHTML = pending.map((a) => {
+    const bits = [];
+    if (a.note) bits.push(`“${esc(a.note)}”`);
+    if (a.assignedBy) bits.push(`— ${esc(a.assignedBy)}`);
+    const noteHtml = bits.length ? `<span class="fyc-note">${bits.join(' ')}</span>` : '';
+    return fycCardHtml({ id: a.scriptId, title: a.title }, {
+      assigned: true, eyebrow: 'Assigned · decide to unlock the lot', noteHtml,
+    });
+  }).join('');
+  sec.style.display = '';
+}
+
+// Paint the whole gate: strip, dimmed/locked grid cards, and the Carrier CTA
+// (which stays live if the Carrier itself is the assigned read).
+async function applyAssignState() {
+  renderAssignedStrip();
+  document.body.classList.toggle('assign-lock', assignLockActive());
+  await renderFycGrid(); // re-paint lock state (dim + aria-disabled + lock glyph)
+  const banner = document.getElementById('carrierBanner');
+  if (banner) {
+    await featuredIdReady;
+    const lockCarrier = assignLockActive() && !isPendingAssignment(_featuredId);
+    banner.classList.toggle('assign-locked', lockCarrier);
+    const cta = document.getElementById('carrierRead');
+    if (cta) cta.setAttribute('aria-disabled', lockCarrier ? 'true' : 'false');
+  }
+}
+
+async function loadAssignments() {
+  if (window.GUEST_REC) return;
+  // Reader identity required — apiFetch attaches the X-Reader-Session header.
+  if (!(window.ReaderAuth && ReaderAuth.getSessionToken && ReaderAuth.getSessionToken())) return;
+  try {
+    const res = await apiFetch('/readers/me/assignments', {}, { retries: 0, timeout: 20000 });
+    if (!res.ok) return; // endpoint not live yet / not a reader → feature off
+    const d = await res.json();
+    _assignments = {
+      pending: Array.isArray(d.pending) ? d.pending.filter((a) => a && a.scriptId) : [],
+      decided: Array.isArray(d.decided) ? d.decided : [],
+    };
+  } catch { return; /* network — leave the feature off rather than mis-gate */ }
+  applyAssignState();
+}
 
 // ── search / filter ───────────────────────────────────────────────────────────
 // ~486 submissions: small enough to load once and filter instantly client-side
@@ -1603,6 +1936,7 @@ function shareToRow(d, id) {
   const hasVerdict = d.decision != null || d.scores != null || d.evaluation != null || d.weightedScore != null;
   return {
     id, title: d.title, page_count: d.pageCount, status: 'evaluated',
+    synopsis: d.synopsis || null, // prose-only; feeds the reader's synopsis strip
     submitted_at: null, submitter_name: null, submitter_email: null, users: null,
     storage_path: d.pdfUrl ? 'shared' : null, _sharePdfUrl: d.pdfUrl || null,
     evaluation_json: hasVerdict ? {
@@ -1738,7 +2072,7 @@ async function openModal(id) {
           <div class="hr-gate" id="hrGate"></div>
         </div>
       </div>
-      ${hideEval ? '' : `<div class="curator-bar"><span class="cur-tag">Curator</span><button class="surface-btn" id="surfaceBtn" type="button">…</button><span class="surface-note">Only surfaced scripts appear in a Reader's slate.</span></div>`}
+      ${hideEval ? '' : `<div class="curator-bar"><span class="cur-tag">Curator</span><button class="surface-btn" id="surfaceBtn" type="button">…</button><button class="surface-btn" id="assignBtn" type="button">Assign to reader</button><span class="surface-note">Only surfaced scripts appear in a Reader's slate.</span></div><div class="assign-panel" id="assignPanel" hidden></div>`}
       <div class="meta-grid" style="margin-bottom:20px">${buildMeta(hideEval ? [
         ['Pages',        row.page_count ?? row.pageCount],
       ] : [
@@ -1764,6 +2098,8 @@ async function openModal(id) {
     if (retryBtn) retryBtn.addEventListener('click', () => retryEvaluation(row.id, retryBtn));
     const surfaceBtn = content.querySelector('#surfaceBtn');
     if (surfaceBtn) wireSurface(row, surfaceBtn);
+    const assignBtn = content.querySelector('#assignBtn');
+    if (assignBtn) wireAssign(row, assignBtn);
     _modalRow = row;
     wireReadActions(row);
     renderModalActions(row);   // gated: Feedback / Recommend / Champion unlock only after a finished read
@@ -1912,11 +2248,71 @@ function wireSurface(row, btn) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
         body: JSON.stringify({ surfaced: !on }),
       });
-      if (res.ok) { const d = await res.json().catch(() => ({})); on = !!d.surfaced_to_readers; row.surfaced_to_readers = on; paint(); }
+      if (res.ok) {
+        const d = await res.json().catch(() => ({})); on = !!d.surfaced_to_readers; row.surfaced_to_readers = on; paint();
+        // Keep the curator's FYC grid (their preview of the Reader slate) live.
+        const sr = slateRows.find((x) => x.id === row.id);
+        if (sr) { sr.surfaced_to_readers = on; renderFycGrid(); }
+      }
       else if (res.status === 403) { btn.textContent = 'Curator access required'; }
       else { btn.textContent = 'Could not update — retry'; }
     } catch { btn.textContent = 'Could not update — retry'; }
     btn.disabled = false;
+  });
+}
+
+// Curator-only: assign a script to a specific reader (POST /assignments —
+// staff-gated server-side; 403 → "Staff only"). Opens a small inline panel under
+// the curator bar: pick a reader (name + @handle), optional one-line note, send.
+function wireAssign(row, btn) {
+  const panel = document.getElementById('assignPanel');
+  if (!btn || !panel || !row.id) return;
+  btn.addEventListener('click', async () => {
+    if (!panel.hidden) { panel.hidden = true; return; } // toggle closed
+    panel.hidden = false;
+    panel.innerHTML = '<div class="ap-msg">Loading readers —</div>';
+    let readers = [];
+    try {
+      const t = getValidToken();
+      if (!t) return;
+      const res = await apiFetch('/readers/list', { headers: { Authorization: `Bearer ${t}` } });
+      if (res.ok) {
+        const d = await res.json();
+        readers = (d.readers || []).filter((r) => r && r.handle && !r.staff); // staff don't get assignments
+      }
+    } catch { /* fall through to the empty state */ }
+    if (!readers.length) { panel.innerHTML = '<div class="ap-msg">No readers available.</div>'; return; }
+    panel.innerHTML = `
+      <div class="ap-h">Assign “${esc(row.title || 'this script')}” to a reader</div>
+      <div class="ap-list">${readers.map((r) => `<label class="ap-reader"><input type="radio" name="apReader" value="${esc(r.handle)}"><span class="ap-name">${esc(r.name || r.handle)}</span><span class="ap-handle">@${esc(r.handle)}</span></label>`).join('')}</div>
+      <input type="text" id="apNote" maxlength="140" placeholder="Optional note to the reader…" autocomplete="off">
+      <div class="ap-row"><button class="surface-btn" id="apSend" type="button">Assign</button><span class="ap-msg" id="apMsg" aria-live="polite"></span></div>`;
+    const send = panel.querySelector('#apSend');
+    send.addEventListener('click', async () => {
+      const msg = panel.querySelector('#apMsg');
+      const sel = panel.querySelector('input[name="apReader"]:checked');
+      if (!sel) { msg.textContent = 'Pick a reader first'; return; }
+      send.disabled = true; msg.textContent = 'Assigning…';
+      try {
+        // Same identity flow as Champion: passkey-verify, then the staff-gated write.
+        if (!window.ReaderAuth || !(await ReaderAuth.checkSupport())) { msg.textContent = (window.ReaderAuth && ReaderAuth.UNSUPPORTED_MESSAGE) || 'Passkeys unavailable here'; send.disabled = false; return; }
+        await ReaderAuth.signInOrRegister();
+        const note = (panel.querySelector('#apNote').value || '').trim();
+        const res = await ReaderAuth.authedWrite('/assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ readerHandle: sel.value, scriptId: row.id, note: note || undefined }),
+        });
+        if (res.ok) { msg.textContent = `Assigned to @${sel.value} ✓`; }
+        else if (res.status === 409) { msg.textContent = `Already assigned to @${sel.value}`; }
+        else if (res.status === 403) { msg.textContent = 'Staff only'; }
+        else if (res.status === 401) { msg.textContent = 'Verification expired — try again'; }
+        else { const b = await res.json().catch(() => ({})); msg.textContent = b.error || `Could not assign (${res.status})`; }
+      } catch (e) {
+        msg.textContent = (e && e.code === 'passkey_cancelled') ? 'Dismissed — try again' : ((e && e.message) || 'Could not assign');
+      }
+      send.disabled = false;
+    });
   });
 }
 
@@ -2098,8 +2494,7 @@ async function verifyServerCompletion(scriptId) {
   } catch { /* leave the gate as-is */ }
 }
 
-function wireShare(row) {
-  const btn = document.getElementById('shareBtn');
+function wireShare(row, btn = document.getElementById('shareBtn')) {
   if (!btn || !row.id) return;
   const textEl = btn.querySelector('.share-text');
   const makeUrl = (handle, displayName) => {
@@ -2166,8 +2561,9 @@ const FB_GUIDE = {
 };
 const blobToBase64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
 
-function wireFeedback(row) {
-  const btn = document.getElementById('feedbackBtn');
+// The wire* helpers take the button element(s) to bind, so the same logic serves
+// the detail modal (default ids) AND the in-reader action cluster.
+function wireFeedback(row, btn = document.getElementById('feedbackBtn')) {
   if (btn && row.id) btn.addEventListener('click', () => openFeedback(row));
 }
 
@@ -2240,7 +2636,11 @@ function openFeedback(row) {
   });
   recClear.addEventListener('click', () => { state.audioBlob = null; state.transcript = ''; transcriptEl.classList.remove('show'); transcriptEl.textContent = ''; recLabel.textContent = 'Record'; recClear.style.display = 'none'; recTime.textContent = ''; });
 
-  const close = () => { stopRec(); back.remove(); };
+  // Escape closes the FEEDBACK modal only — captured on document so the global
+  // Escape handler never sees it (it would close the reader/modal underneath).
+  const onEsc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+  document.addEventListener('keydown', onEsc, true);
+  const close = () => { stopRec(); document.removeEventListener('keydown', onEsc, true); back.remove(); };
   back.querySelector('#fbCancel').addEventListener('click', close);
   back.addEventListener('click', e => { if (e.target === back) close(); });
 
@@ -2274,7 +2674,10 @@ function openFeedback(row) {
           if (window.refreshXpChip) setTimeout(() => window.refreshXpChip(true), 1500);
         } catch { /* effects only */ }
         msg.textContent = firstTime ? 'Thank you — your decision was recorded.' : 'Updated — thanks for refining your feedback.';
-        submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); }, 1200);
+        // Refresh every surface that reflects feedback state: the modal gates, the
+        // in-reader action cluster (its label flips to "Edit feedback"), and the
+        // assignment gate (a verdict on an assigned read unlocks the lot live).
+        submit.textContent = 'Sent ✓'; setTimeout(() => { close(); refreshModalGates(); refreshReaderActions(); loadAssignments(); }, 1200);
       }
       else { const b = await res.json().catch(() => ({})); msg.className = 'fb-msg err'; msg.textContent = b.error || `Could not send (${res.status})`; submit.disabled = false; submit.textContent = 'Submit feedback'; }
     } catch (e) { msg.className = 'fb-msg err'; msg.textContent = (e && e.message) || 'Could not send'; submit.disabled = false; submit.textContent = 'Submit feedback'; }
@@ -2310,16 +2713,14 @@ function markChampioned(btn, msgEl) {
   if (msgEl) msgEl.textContent = 'In your champions ✓';
 }
 
-function wireChampion(row) {
-  const btn = document.getElementById('championBtn');
+function wireChampion(row, btn = document.getElementById('championBtn'), msgEl = document.getElementById('championMsg')) {
   if (!btn || !row.id) return;
-  const msgEl = document.getElementById('championMsg');
 
   // STEP 0: only offer Champion if this device can actually do platform passkeys
   // (catches Firefox/Mac, where the API exists but no authenticator is available).
   if (window.ReaderAuth) {
     ReaderAuth.checkSupport().then(ok => {
-      if (!ok) { btn.disabled = true; btn.title = ReaderAuth.UNSUPPORTED_MESSAGE; msgEl.textContent = ReaderAuth.UNSUPPORTED_MESSAGE; }
+      if (!ok) { btn.disabled = true; btn.title = ReaderAuth.UNSUPPORTED_MESSAGE; if (msgEl) msgEl.textContent = ReaderAuth.UNSUPPORTED_MESSAGE; }
     });
   } else {
     btn.disabled = true;
@@ -2475,7 +2876,8 @@ async function renderPdfInto(container, url, { maxW = 840 } = {}) {
   }
 }
 
-// Wire the four read buttons inside the open modal for a given script row.
+// Wire the modal's read actions (Open reader / Quick preview) for a given script
+// row. (The FYC card grid bypasses this entirely — it calls openReader directly.)
 function wireReadActions(row) {
   const readErr = document.getElementById('readErr');
   const fail = (msg) => { if (readErr) readErr.textContent = msg || ''; };
@@ -2627,7 +3029,7 @@ function stopPreviewTracking() {
 // rendering every page to a full-res canvas up front would exhaust memory.
 // Each page gets a correctly-sized blank slot; a canvas is rendered only when
 // the slot nears the viewport and dropped again when it scrolls far away.
-const READER_PAGE_MAXW = 1100;
+const READER_PAGE_MAXW = 1200;
 let _readerIO = null;        // IntersectionObserver driving lazy render/recycle
 let _readerScrollFn = null;  // current-entry highlighter on the navigator
 let _readerToken = 0;        // invalidates in-flight scene extraction on close/reopen
@@ -2661,7 +3063,10 @@ async function renderReaderPdf(url) {
   const dpr   = Math.min(window.devicePixelRatio || 1, 2);
   const page1 = await pdf.getPage(1);
   const base  = page1.getViewport({ scale: 1 });
-  const cw    = Math.max(280, Math.min(READER_PAGE_MAXW, doc.clientWidth - 52));
+  // ≤1200px the .reader-doc gutters shrink to 12px a side (see CSS) — mirror
+  // that here so the page actually uses the space; still clamped to 280 min.
+  const gutters = window.matchMedia('(max-width: 1200px)').matches ? 26 : 52;
+  const cw    = Math.max(280, Math.min(READER_PAGE_MAXW, doc.clientWidth - gutters));
   const scale = cw / base.width;
   const ph    = base.height * scale;
 
@@ -2803,14 +3208,76 @@ async function buildSceneNav(pdf, base, scale, slots, token) {
   installNavHighlight(scenes.map((s, i) => ({ scrollY: s.scrollY, btn: btns[i] })));
 }
 
+// ── in-reader actions + synopsis strip ────────────────────────────────────────
+// The toolbar cluster (Feedback / Recommend / Champion) reuses the modal's wire*
+// logic, bound to its own elements — no duplicate ids, no duplicated flows.
+let _readerRow = null; // the row the reader is currently showing
+
+function renderReaderActions(row) {
+  const box = document.getElementById('readerActions');
+  const msgEl = document.getElementById('readerActMsg');
+  if (!box) return;
+  if (msgEl) msgEl.textContent = '';
+  if (!row || window.GUEST_REC) { box.innerHTML = ''; return; } // guests act via the rec-banner flow
+  const fed = hasLeftFeedback(row.id);
+  box.innerHTML = `
+    <button class="share-btn" type="button" title="Leave your feedback — your PASS / CONSIDER / RECOMMEND decision and notes">
+      <span class="share-ico" aria-hidden="true">✎</span><span>${fed ? 'Edit feedback' : 'Feedback'}</span>
+    </button>
+    <button class="share-btn" type="button" title="Recommend this screenplay">
+      <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Recommend</span>
+    </button>
+    <button class="champion-btn" type="button" title="Champion this screenplay">
+      <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
+    </button>`;
+  const [fbBtn, shBtn, chBtn] = box.querySelectorAll('button');
+  wireFeedback(row, fbBtn);
+  wireShare(row, shBtn);
+  wireChampion(row, chBtn, msgEl); // reflects already-championed state via getChampionedSet()
+}
+
+// Re-paint the cluster after a state change (e.g. feedback submitted from the reader).
+function refreshReaderActions() {
+  if (_readerRow && document.getElementById('reader').classList.contains('open')) renderReaderActions(_readerRow);
+}
+
+// Synopsis strip under the toolbar — 2-line clamp with a MORE expander; the ×
+// dismisses it for THIS script only (remembered per device).
+function setupReaderSynopsis(row) {
+  const strip = document.getElementById('readerSyn');
+  const textEl = document.getElementById('readerSynText');
+  const more = document.getElementById('readerSynMore');
+  if (!strip || !textEl) return;
+  strip.classList.remove('expanded');
+  const syn = row && typeof row.synopsis === 'string' ? row.synopsis.trim() : '';
+  const dismissed = row && localStorage.getItem(`idp_syn_dismissed:${row.id}`) === '1';
+  if (!syn || dismissed) { strip.hidden = true; textEl.textContent = ''; return; }
+  textEl.textContent = syn;
+  if (more) { more.hidden = true; more.textContent = 'More'; }
+  strip.hidden = false;
+  // show the expander only when the 2-line clamp actually truncates
+  requestAnimationFrame(() => { if (more) more.hidden = textEl.scrollHeight <= textEl.clientHeight + 1; });
+}
+document.getElementById('readerSynMore').addEventListener('click', () => {
+  const on = document.getElementById('readerSyn').classList.toggle('expanded');
+  document.getElementById('readerSynMore').textContent = on ? 'Less' : 'More';
+});
+document.getElementById('readerSynX').addEventListener('click', () => {
+  document.getElementById('readerSyn').hidden = true;
+  if (_readerRow) localStorage.setItem(`idp_syn_dismissed:${_readerRow.id}`, '1');
+});
+
 function openReader(row) {
   if (_readerAnalytics) closeReader(); // defensive: never stack two reader sessions
   stopPreviewTracking(); // hand off from the preview — its progress is persisted, the reader restores it below
   const ev = parseEval(row);
   const n  = normalizeEval(ev);
   readerCurrentId = row.id;
+  _readerRow = row;
 
   document.getElementById('readerTitle').textContent = row.title || '—';
+  renderReaderActions(row);   // Feedback / Recommend / Champion in the toolbar
+  setupReaderSynopsis(row);   // synopsis strip (when the API provides one)
   // Read-first: the AI verdict is Curator-only. The server strips it for Readers,
   // so the reading rail hides the score/decision — form your own opinion first.
   const showEval = !!(row.evaluation_json || row.evaluation_result);
@@ -2824,6 +3291,8 @@ function openReader(row) {
     scoreEl.textContent = n.scoreValue != null ? n.scoreValue.toFixed(1) : '—';
   }
 
+  // The rail is COVERAGE — Curator-only. For a Reader it's removed from layout
+  // entirely (no 372px column, no Coverage toggle), so the page gets the width.
   const bars = barsFromCategories(n.categories);
   const champ = n.championship;
   const champColor = champ ? (CHAMP_COLORS[champ.rating] || '#444') : '';
@@ -2839,7 +3308,7 @@ function openReader(row) {
     ${bars ? `<div class="rail-section">Score Breakdown</div>${bars}` : ''}
     ${n.summary ? `<div class="rail-section">Summary</div><div class="summary-body">${esc(n.summary)}</div>` : ''}
     ${(n.craftAssessment && n.craftAssessment !== n.summary) ? `<div class="rail-section">Craft Assessment</div><div class="summary-body">${esc(n.craftAssessment)}</div>` : ''}`
-    : `<div class="rail-section" style="margin-top:6px">Your read</div><div class="summary-body" style="color:#9a9a9a">Form your own opinion first — the coverage stays out of sight so it can't shape your read. When you finish, you'll be able to weigh in and see what other readers thought.</div>`;
+    : '';
 
   const r = document.getElementById('reader');
   r.classList.add('open');
@@ -2879,13 +3348,19 @@ function openReader(row) {
   // heartbeat so long reads record progress even without a clean close
   _readerHeartbeat = setInterval(sendReadProgress, 60000);
 
-  // On phones there's only room for one panel, so open to the SCRIPT and keep
-  // Scenes/Coverage as overlays you tap to bring up. On wider screens show both.
+  // Panels. Coverage rail: Curator-only (readers never get the column OR the
+  // toggle). Scene nav: defaults COLLAPSED below 1400px so the page gets the
+  // width; the reader's last toggle choice (remembered per device) wins on
+  // wider screens. On phones both panels start hidden (full-screen overlays).
   const compact = window.matchMedia('(max-width: 820px)').matches;
-  r.classList.toggle('rail-hidden', compact);
-  r.classList.toggle('nav-hidden', compact);
-  document.getElementById('railToggle').classList.toggle('on', !compact);
-  document.getElementById('navToggle').classList.toggle('on', !compact);
+  const railToggleBtn = document.getElementById('railToggle');
+  railToggleBtn.style.display = showEval ? '' : 'none';
+  r.classList.toggle('rail-hidden', compact || !showEval);
+  railToggleBtn.classList.toggle('on', showEval && !compact);
+  const navPref = localStorage.getItem('idp_reader_nav'); // '1' open / '0' collapsed — written by the Scenes toggle
+  const navOpen = compact ? false : (navPref != null ? navPref === '1' : window.innerWidth >= 1400);
+  r.classList.toggle('nav-hidden', !navOpen);
+  document.getElementById('navToggle').classList.toggle('on', navOpen);
 
   document.getElementById('readerDoc').innerHTML = '<div class="pdf-loading">Loading screenplay —</div>';
   signedPdfUrl(row.id)
@@ -2905,11 +3380,17 @@ function closeReader() {
     _readerAnalytics = null;
   }
   teardownReader();
+  _readerRow = null;
+  renderReaderActions(null); // empty the toolbar cluster (and its status line)
+  const _syn = document.getElementById('readerSyn'); if (_syn) _syn.hidden = true;
   refreshModalGates(); // finishing the read may have just unlocked the actions + activity
-  // If the preview pane is still open behind the reader, resume its tracking so
-  // its readout reflects the reading just done in the reader (restored from localStorage).
+  // If the preview pane is still open behind the reader — AND the modal itself is
+  // still open (the reader can now be entered straight from the FYC grid, or the
+  // modal closed earlier with the pane left open) — resume its tracking so its
+  // readout reflects the reading just done in the reader (restored from localStorage).
   const _pp = document.getElementById('previewPane');
-  if (_pp && _pp.classList.contains('open') && _modalRow) startPreviewTracking(_modalRow);
+  const _modalOpen = document.getElementById('modalBack').classList.contains('open');
+  if (_pp && _pp.classList.contains('open') && _modalRow && _modalOpen) startPreviewTracking(_modalRow);
 }
 
 document.getElementById('readerBack').addEventListener('click', closeReader);
@@ -2932,6 +3413,9 @@ function toggleReaderPanel(which) {
   r.classList.toggle(hiddenCls, !willShow);
   toggleEl.classList.toggle('on', willShow);
   if (willShow && compact) { r.classList.add(otherCls); otherEl.classList.remove('on'); }
+  // Remember the reader's Scenes choice (desktop only — on phones the panels are
+  // one-at-a-time overlays and always start hidden).
+  if (which === 'nav' && !compact) localStorage.setItem('idp_reader_nav', willShow ? '1' : '0');
 }
 navToggleEl.addEventListener('click', () => toggleReaderPanel('nav'));
 railToggleEl.addEventListener('click', () => toggleReaderPanel('rail'));
@@ -2953,6 +3437,7 @@ if (window.GUEST_REC) {
   enterGuestRec(REC_ID, REC_AS || REC_BY);           // recipient without the passcode (banner shows display name)
 } else {
   loadSubmissions();
+  loadAssignments(); // assigned-reads strip + decision gate (fail-silent → feature off)
   if (REC_ID) { showRecBanner(REC_ID, REC_AS || REC_BY); openModal(REC_ID); } // signed-in, following a rec link
   else if (SCRIPT_ID) { openModal(SCRIPT_ID); } // open a script's detail directly (no rec banner)
 }
@@ -2999,16 +3484,24 @@ window.refreshXpChip();
   }
   const btn = document.getElementById('carrierRead');
   const seekCarrier = () => { // fallback: surface The Carrier via search so the CTA is never a dead end
+    // Readers don't have the search box (the table block is Curator-only) —
+    // tell them cleanly instead of scrolling to a hidden element.
+    if (document.body.classList.contains('no-eval')) { portalToast('The featured script is temporarily unavailable — try again shortly'); return; }
     const s = document.getElementById('subSearch');
     if (s) { s.value = 'Carrier'; s.dispatchEvent(new Event('input')); s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   };
-  // Resolve the featured script id once (the server already knows it) so the CTA
-  // can open The Carrier in ONE fetch instead of loading the whole slate first.
-  let carrierId = null;
-  (async () => { try { const r = await fetch(`${API}/xp/config`); if (r.ok) carrierId = (await r.json()).featuredScriptId || null; } catch { /* fall back to a slate scan below */ } })();
+  // The featured script id is resolved once, shared with the FYC grid
+  // (featuredIdReady) — the CTA opens The Carrier in ONE fetch.
   if (btn) btn.addEventListener('click', async () => {
+    // Assignment gate: an undecided assigned read locks the Carrier too (unless
+    // the Carrier IS the assignment — applyAssignState leaves it live then).
+    if (banner.classList.contains('assign-locked')) {
+      portalToast('Decide on your assigned read first — open it and leave your verdict');
+      return;
+    }
     btn.classList.add('loading'); btn.disabled = true;
     try {
+      const carrierId = await featuredIdReady;
       if (carrierId) {
         const ok = await openModal(carrierId); // opens instantly with its own brand-red skeleton spinner — one /scripts/:id fetch
         if (ok === false) seekCarrier();        // stale/unloadable featured id → fall back to search instead of a dead-end modal
