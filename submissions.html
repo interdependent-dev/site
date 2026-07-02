@@ -285,9 +285,12 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 .champion-btn:hover:not(:disabled){background:red}
 .champion-btn:disabled{cursor:default}
 .champion-btn.done{background:red;border-color:red;opacity:1;cursor:default}
-.champion-btn .star{color:red;font-size:12px;line-height:1}
+.champion-btn .star{color:red;display:inline-flex;line-height:1}
+.champion-btn .star svg{width:13px;height:13px}
 .champion-btn:hover:not(:disabled) .star,
 .champion-btn.done .star{color:#fff}
+/* championed = the star FILLS (line icon at rest, solid once it's yours) */
+.champion-btn.done .star svg{fill:currentColor}
 .champion-msg{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;text-align:right;max-width:180px;min-height:1em}
 .hr-btns{display:flex;gap:8px;align-items:center}
 .share-btn{
@@ -299,12 +302,14 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 }
 .share-btn:hover{border-color:#fff;color:#fff}
 .share-btn.done{border-color:#16a34a;color:#16a34a}
-.share-btn .share-ico{font-size:12px;line-height:1}
+.share-btn .share-ico{display:inline-flex;line-height:1}
+.share-btn .share-ico svg{width:13px;height:13px}
 
 /* reader feedback form — layered ABOVE the full-screen reader (z-200) so the
    in-reader Feedback button works with the reader open */
-.fb-back{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85)}
-.fb-card{width:100%;max-width:440px;max-height:92vh;overflow-y:auto;background:#0a0a0a;border:1px solid #222;padding:26px 24px;font-family:'Helvetica Neue',sans-serif}
+.fb-back{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85);
+  padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
+.fb-card{width:100%;max-width:440px;max-height:92vh;max-height:calc(100dvh - 40px);overflow-y:auto;background:#0a0a0a;border:1px solid #222;padding:26px 24px;font-family:'Helvetica Neue',sans-serif}
 .fb-card h3{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px;color:#fff}
 .fb-card .fb-sub{color:#888;font-size:12px;margin-bottom:18px;line-height:1.55}
 .fb-card .fb-q{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin:20px 0 8px}
@@ -342,7 +347,8 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
 #recBanner{position:sticky;top:0;z-index:150;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   background:#140000;border-bottom:1px solid #3a0a0a;border-top:3px solid red;padding:12px 22px;
   font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:12px;letter-spacing:.06em}
-#recBanner .rb-star{color:red;font-size:14px}
+#recBanner .rb-star{color:red;display:inline-flex}
+#recBanner .rb-star svg{width:14px;height:14px;fill:currentColor}
 #recBanner .rb-text{color:#ddd;text-transform:uppercase;letter-spacing:.12em;font-size:11px}
 #recBanner .rb-text b{color:#fff}
 #recBanner .rb-open{margin-left:auto;background:red;border:none;color:#fff;padding:8px 16px;
@@ -496,17 +502,19 @@ hr{border:none;border-top:1px solid #181818;margin:52px 0}
     padding:10px max(12px, env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
     border-right:none;border-top:1px solid #1c1c1c;background:rgba(0,0,0,.94);justify-content:center
   }
-  .reader-actions .share-btn,.reader-actions .champion-btn{flex:1 1 0;justify-content:center;max-width:160px;padding:11px 8px}
+  /* min-height 44px: proper thumb targets for the primary phone actions */
+  .reader-actions .share-btn,.reader-actions .champion-btn{flex:1 1 0;justify-content:center;max-width:160px;padding:11px 8px;min-height:44px}
   .reader-tools{margin-left:auto}
   .reader-doc{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
   .reader-nav,.reader-rail{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 }
 @media(max-width:580px){
-  /* icon-only toggles — but the lock glyph must survive (it IS the signal) */
+  /* icon-only toggles — but the lock glyph must survive (it IS the signal).
+     min 42px square so the only phone toolbar controls are actually tappable. */
   .reader-tools .rtool span:not(.rt-lock){display:none}
-  .reader-tools .rtool{padding:9px 11px}
-  .reader-back{padding:9px 11px}
-  .reader-top{gap:10px;padding:11px 12px}
+  .reader-tools .rtool{padding:9px 11px;min-height:42px;min-width:42px;justify-content:center}
+  .reader-back{padding:9px 11px;min-height:42px}
+  .reader-top{gap:10px;padding:8px 12px}
 }
 
 /* ── search / filter controls ── */
@@ -581,18 +589,20 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
 @media(max-width:580px){ .dec-filters{width:100%} .dec-chip{flex:1} }
 
 /* ── FOR YOUR CONSIDERATION — the reader-facing slate as script title-page cards ── */
+/* Section label: quiet grey, NORMAL weight (the paper cards carry the emphasis),
+   pulled tight against the first card. */
 .fyc-label{
-  font-family:"Eurostile Wide","Eurostile",'Helvetica Neue',sans-serif;font-weight:700;
-  font-size:13px;letter-spacing:.24em;color:#fff;text-transform:uppercase;
-  padding-bottom:14px;border-bottom:1px solid #181818;margin-bottom:18px
+  font-family:"Eurostile",'Helvetica Neue',sans-serif;font-weight:400;
+  font-size:13px;letter-spacing:.24em;color:#8a8a8a;text-transform:uppercase;
+  padding-bottom:10px;border-bottom:1px solid #181818;margin-bottom:10px
 }
 .fyc-label.red{color:#FF0000;border-bottom-color:#2a0f0f}
 /* One card per row at EVERY width — each card reads full-bleed across the content
    column, the same visual width as the Carrier banner above. */
-.fyc-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:44px}
+.fyc-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:44px}
 /* Paper-white script title page on the black stage — title only, so the row stays
    slim. The 2px ink border keeps its width on hover — the highlight ring's extra
-   1px comes from box-shadow, so the blue state never shifts layout. The faint
+   1px comes from box-shadow, so the red state never shifts layout. The faint
    outer ring makes edges read on #000. */
 .fyc-card{
   position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -600,11 +610,12 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
   background:#f8f7f4;border:2px solid #111;border-radius:2px;
   box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 26px rgba(0,0,0,.55);
   font-family:'Courier New',monospace;text-align:center;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
   -webkit-appearance:none;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease
 }
 .fyc-card:hover,.fyc-card:focus-visible{
-  outline:none;transform:translateY(-2px);border-color:#4f5bd5;
-  box-shadow:0 0 0 1px #4f5bd5,0 10px 30px rgba(0,0,0,.6)
+  outline:none;transform:translateY(-2px);border-color:#FF0000;
+  box-shadow:0 0 0 1px #FF0000,0 10px 30px rgba(0,0,0,.6)
 }
 @media (prefers-reduced-motion:reduce){.fyc-card{transition:none}.fyc-card:hover,.fyc-card:focus-visible{transform:none}}
 .fyc-card[data-loading]{opacity:.6;cursor:wait}
@@ -613,9 +624,30 @@ body.no-eval:not(.guest-rec) .sub-foot{display:none}
   line-height:1.5;max-width:100%;overflow-wrap:break-word;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden
 }
-/* Assigned reads — FYC cards with a red border, an eyebrow and the assigner's note. */
+/* ── RECOMMENDED — the reader's inbox, below the FYC slate. Empty slots are
+   plain outline rectangles (no paper, no hover, non-interactive) that hold the
+   space where recommended/assigned reads land; they track the card height at
+   every viewport. The helper line stays quiet. ── */
+.fyc-slot{min-height:112px;width:100%;border:1.5px solid #262626;border-radius:2px;background:none;pointer-events:none}
+#assignedSection{margin-bottom:44px}
+#assignedSection .fyc-grid{margin-bottom:12px}
+.fyc-hint{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:11px;letter-spacing:.08em;color:#666}
+/* Cards slim as the viewport narrows — a phone card reads like a banner, not a box. */
+@media(max-width:900px){
+  .fyc-card,.fyc-slot{min-height:96px}
+  .fyc-card{padding:18px 20px}
+}
+@media(max-width:560px){
+  .fyc-grid{gap:10px}
+  .fyc-card,.fyc-slot{min-height:78px}
+  .fyc-card{padding:14px 16px;gap:7px}
+  .fyc-title{font-size:13.5px}
+}
+/* Assigned reads — FYC cards with a red border, an eyebrow and the assigner's note.
+   Their resting border is already red, so hover adds a red GLOW to stay
+   distinguishable from a plain card's hover ring. */
 .fyc-card.assigned{border-color:#FF0000}
-.fyc-card.assigned:hover,.fyc-card.assigned:focus-visible{border-color:#FF0000;box-shadow:0 0 0 1px #FF0000,0 10px 30px rgba(0,0,0,.6)}
+.fyc-card.assigned:hover,.fyc-card.assigned:focus-visible{border-color:#FF0000;box-shadow:0 0 0 1px #FF0000,0 0 22px rgba(255,0,0,.38),0 10px 30px rgba(0,0,0,.6)}
 .fyc-eyebrow{font-family:"Eurostile",'Helvetica Neue',sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;color:#FF0000;text-transform:uppercase}
 .fyc-note{font-size:11px;color:#555;line-height:1.5;max-width:100%;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* Assignment gate: while an assigned read is undecided, every OTHER card locks —
@@ -785,20 +817,24 @@ body.assign-lock .fyc-card[aria-disabled="true"] .fyc-lock{display:block}
     </button>
   </div>
 
-  <!-- YOUR NEXT READ — pending staff assignments. While one is undecided, every
-       OTHER card (FYC grid + Carrier CTA) locks until the reader leaves a verdict.
-       Rendered by renderAssignedStrip(); hidden for guests / passcode-only users. -->
-  <div id="assignedSection" style="display:none">
-    <div class="fyc-label red">Your Next Read</div>
-    <div class="fyc-grid" id="assignedGrid"></div>
-  </div>
-
   <!-- FOR YOUR CONSIDERATION — Readers browse the curated slate as title-page cards
        (a card opens the reader directly). Curators see the same grid filtered to the
        surfaced slate, with their full table below. Rendered by renderFycGrid(). -->
   <div id="fycSection" style="display:none">
     <div class="fyc-label">For Your Consideration</div>
     <div class="fyc-grid" id="fycGrid"></div>
+  </div>
+
+  <!-- RECOMMENDED — the reader's inbox. Pending staff assignments render here as
+       red-eyebrow assigned cards (while one is undecided, every OTHER card — FYC
+       grid + Carrier CTA — locks until the reader leaves a verdict). With nothing
+       pending: three empty outline slots promise where recommendations will land —
+       shown to passcode-only guests too, though assignments are never fetched for
+       them. Rendered by renderRecommendedSection(); hidden in guest-rec mode. -->
+  <div id="assignedSection" style="display:none">
+    <div class="fyc-label">Recommended</div>
+    <div class="fyc-grid" id="assignedGrid"></div>
+    <div class="fyc-hint" id="assignedHint" style="display:none">Scripts recommended to you will appear here.</div>
   </div>
 
   <!-- Curators keep the full searchable table; body.no-eval hides this whole block
@@ -887,7 +923,7 @@ if (window.pdfjsLib) {
 </script>
 
 <!-- Reader passkey auth — powers the Champion button (add to a reader's leaderboard). -->
-<script src="/reader-auth.js?v=2026-07-01a"></script>
+<script src="/reader-auth.js?v=2026-07-02a"></script>
 <!-- Reader analytics (best-effort; reader attribution via X-Reader-Session). -->
 <script src="/analytics.js?v=2026-07-01a"></script>
 <!-- Canonical "finished read" definition, shared verbatim with the API. -->
@@ -915,6 +951,13 @@ const SCORE_NAMES = {
   marketability:  'Marketability',
   originality:    'Originality',
 };
+
+// Inline line icons for the action buttons (Feedback / Recommend / Champion) —
+// stroke style on currentColor. Text glyphs (✎ ↗ ★) are out: brand law bans
+// emoji/dingbats, and iOS renders ↗ as a generic system arrow.
+const SVG_PENCIL = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 2.2a1.55 1.55 0 0 1 2.2 2.2L5.2 12.5l-3 .8.8-3z"/></svg>';
+const SVG_ARROW_UPR = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11.5 11.5 4.5M5.8 4.5h5.7v5.7"/></svg>';
+const SVG_STAR = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.9l1.9 3.85 4.1.6-3 2.9.7 4.1L8 11.4l-3.7 1.95.7-4.1-3-2.9 4.1-.6z"/></svg>';
 
 // ── auth ────────────────────────────────────────────────────────────────────
 
@@ -956,6 +999,9 @@ const token = window.GUEST_REC ? null : getValidToken();
 if (!token && !window.GUEST_REC) throw new Error('unauthenticated');
 
 document.getElementById('signOutBtn').addEventListener('click', () => {
+  // EXIT = FULL sign-out: the passkey identity (reader-auth.js owns those
+  // keys) as well as the portal passcode session.
+  if (window.ReaderAuth && ReaderAuth.signOut) ReaderAuth.signOut();
   localStorage.removeItem('session_token');
   localStorage.removeItem('session_expires');
   window.location.href = '/passcode';
@@ -1736,11 +1782,12 @@ function onFycCardClick(e) {
 document.getElementById('fycGrid').addEventListener('click', onFycCardClick);
 document.getElementById('assignedGrid').addEventListener('click', onFycCardClick);
 
-// ── Assigned reads — inbox strip + decision gate (client-side) ────────────────
+// ── RECOMMENDED — the reader's inbox + decision gate (client-side) ────────────
 // A signed-in reader with a PENDING assignment must decide on it (submit
 // feedback with a verdict) before the rest of the slate unlocks. Entirely
 // fail-silent: no reader identity, or the endpoint missing, means feature off —
-// guests and passcode-only users are never gated.
+// guests and passcode-only users are never gated (they still see the empty
+// inbox slots: a promise of the mechanic).
 let _assignments = null; // { pending:[], decided:[] } | null = feature off
 
 function assignLockActive() {
@@ -1750,28 +1797,37 @@ function isPendingAssignment(scriptId) {
   return !!(scriptId && _assignments && (_assignments.pending || []).some((a) => a.scriptId === scriptId));
 }
 
-function renderAssignedStrip() {
+function renderRecommendedSection() {
   const sec = document.getElementById('assignedSection');
   const grid = document.getElementById('assignedGrid');
+  const hint = document.getElementById('assignedHint');
   if (!sec || !grid) return;
+  if (window.GUEST_REC) { sec.style.display = 'none'; grid.innerHTML = ''; return; }
   const pending = (_assignments && _assignments.pending) || [];
-  if (!pending.length) { sec.style.display = 'none'; grid.innerHTML = ''; return; }
-  grid.innerHTML = pending.map((a) => {
-    const bits = [];
-    if (a.note) bits.push(`“${esc(a.note)}”`);
-    if (a.assignedBy) bits.push(`— ${esc(a.assignedBy)}`);
-    const noteHtml = bits.length ? `<span class="fyc-note">${bits.join(' ')}</span>` : '';
-    return fycCardHtml({ id: a.scriptId, title: a.title }, {
-      assigned: true, eyebrow: 'Assigned · decide to unlock the lot', noteHtml,
-    });
-  }).join('');
+  if (!pending.length) {
+    // Empty inbox — three quiet outline slots hold the space where
+    // recommendations will land. Non-interactive, nothing inside.
+    grid.innerHTML = '<div class="fyc-slot" aria-hidden="true"></div>'.repeat(3);
+    if (hint) hint.style.display = '';
+  } else {
+    grid.innerHTML = pending.map((a) => {
+      const bits = [];
+      if (a.note) bits.push(`“${esc(a.note)}”`);
+      if (a.assignedBy) bits.push(`— ${esc(a.assignedBy)}`);
+      const noteHtml = bits.length ? `<span class="fyc-note">${bits.join(' ')}</span>` : '';
+      return fycCardHtml({ id: a.scriptId, title: a.title }, {
+        assigned: true, eyebrow: 'Assigned · decide to unlock the lot', noteHtml,
+      });
+    }).join('');
+    if (hint) hint.style.display = 'none';
+  }
   sec.style.display = '';
 }
 
-// Paint the whole gate: strip, dimmed/locked grid cards, and the Carrier CTA
+// Paint the whole gate: inbox, dimmed/locked grid cards, and the Carrier CTA
 // (which stays live if the Carrier itself is the assigned read).
 async function applyAssignState() {
-  renderAssignedStrip();
+  renderRecommendedSection();
   document.body.classList.toggle('assign-lock', assignLockActive());
   await renderFycGrid(); // re-paint lock state (dim + aria-disabled + lock glyph)
   const banner = document.getElementById('carrierBanner');
@@ -1939,7 +1995,7 @@ function showRecBanner(id, by) {
   const bar = document.createElement('div');
   bar.id = 'recBanner';
   bar.dataset.recId = id;
-  bar.innerHTML = `<span class="rb-star">★</span>
+  bar.innerHTML = `<span class="rb-star" aria-hidden="true">${SVG_STAR}</span>
     <span class="rb-text">Recommended to you${by ? ` by <b>${esc(by)}</b>` : ''}</span>
     <button class="rb-open" id="rbOpen"></button>`;
   document.body.insertBefore(bar, document.body.firstChild);
@@ -2433,13 +2489,13 @@ function renderModalActions(row) {
   gate.innerHTML = `
     <div class="hr-btns">
       <button class="share-btn" id="feedbackBtn" title="Leave your feedback — your PASS / CONSIDER / RECOMMEND decision and notes">
-        <span class="share-ico" aria-hidden="true">✎</span><span>${fed ? 'Edit feedback' : 'Feedback'}</span>
+        <span class="share-ico" aria-hidden="true">${SVG_PENCIL}</span><span>${fed ? 'Edit feedback' : 'Feedback'}</span>
       </button>
       <button class="share-btn" id="shareBtn" title="Recommend this screenplay">
-        <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Recommend</span>
+        <span class="share-ico" aria-hidden="true">${SVG_ARROW_UPR}</span><span class="share-text">Recommend</span>
       </button>
       <button class="champion-btn" id="championBtn" title="Champion this screenplay">
-        <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
+        <span class="star" aria-hidden="true">${SVG_STAR}</span><span class="champion-text">Champion</span>
       </button>
     </div>
     <div class="champion-msg" id="championMsg" aria-live="polite"></div>
@@ -2697,7 +2753,7 @@ function getChampionedSet() {
 }
 function markChampioned(btn, msgEl) {
   const txt = btn.querySelector('.champion-text'); if (txt) txt.textContent = 'Championed'; else btn.textContent = 'Championed';
-  const star = btn.querySelector('.star'); if (star) star.textContent = '✓';
+  // the .done class fills the star SVG — no glyph swap
   btn.classList.add('done'); btn.disabled = true; btn.title = 'You’ve championed this';
   if (msgEl) msgEl.textContent = 'In your champions ✓';
 }
@@ -2768,8 +2824,7 @@ async function championScript(row, btn, msgEl) {
         if (res.ok && window.refreshXpChip) setTimeout(() => window.refreshXpChip(true), 1500);
       } catch { /* effects only */ }
       setText(res.status === 409 ? 'Already added' : 'Championed');
-      btn.classList.add('done');
-      const star = btn.querySelector('.star'); if (star) star.textContent = '✓';
+      btn.classList.add('done'); // fills the star SVG
       msgEl.textContent = 'Added to your champions ✓';
       (_championedSet || (_championedSet = new Set())).add(row.id); // keep the cache fresh for re-opens
       return;
@@ -3246,13 +3301,13 @@ function renderReaderActions(row) {
   const fed = hasLeftFeedback(row.id);
   box.innerHTML = `
     <button class="share-btn" type="button" title="Leave your feedback — your PASS / CONSIDER / RECOMMEND decision and notes">
-      <span class="share-ico" aria-hidden="true">✎</span><span>${fed ? 'Edit feedback' : 'Feedback'}</span>
+      <span class="share-ico" aria-hidden="true">${SVG_PENCIL}</span><span>${fed ? 'Edit feedback' : 'Feedback'}</span>
     </button>
     <button class="share-btn" type="button" title="Recommend this screenplay">
-      <span class="share-ico" aria-hidden="true">↗</span><span class="share-text">Recommend</span>
+      <span class="share-ico" aria-hidden="true">${SVG_ARROW_UPR}</span><span class="share-text">Recommend</span>
     </button>
     <button class="champion-btn" type="button" title="Champion this screenplay">
-      <span class="star" aria-hidden="true">★</span><span class="champion-text">Champion</span>
+      <span class="star" aria-hidden="true">${SVG_STAR}</span><span class="champion-text">Champion</span>
     </button>`;
   const [fbBtn, shBtn, chBtn] = box.querySelectorAll('button');
   wireFeedback(row, fbBtn);
@@ -3427,7 +3482,8 @@ if (window.GUEST_REC) {
   enterGuestRec(REC_ID, REC_AS || REC_BY);           // recipient without the passcode (banner shows display name)
 } else {
   loadSubmissions();
-  loadAssignments(); // assigned-reads strip + decision gate (fail-silent → feature off)
+  renderRecommendedSection(); // empty inbox slots paint immediately (guests too)
+  loadAssignments(); // pending assigned reads + decision gate (fail-silent → feature off)
   if (REC_ID) { showRecBanner(REC_ID, REC_AS || REC_BY); openModal(REC_ID); } // signed-in, following a rec link
   else if (SCRIPT_ID) { openModal(SCRIPT_ID); } // open a script's detail directly (no rec banner)
 }

@@ -296,6 +296,13 @@
     clearToken();
   }
 
+  // Full local sign-out — the semantic entry point for EXIT controls. Clears
+  // every identity key this module owns (reader_id / reader_handle /
+  // reader_display / reader_session) plus the in-memory action token. Pages
+  // call this BEFORE clearing their portal passcode session so "exit" drops
+  // the passkey identity too, not just the passcode.
+  function signOut() { clearReader(); }
+
   // ── action token (in-memory only) ─────────────────────────────────────────
   let _token = null;
   let _tokenExp = 0;
@@ -446,10 +453,11 @@
   // Reader entry point — the one place that may register. No QR, ever:
   //   1. This browser knows the reader (reader_handle in localStorage) → reauth,
   //      a targeted get() by credential id → Face/Touch ID, no QR.
-  //   2. This browser doesn't → open the modal, which runs passkey AUTOFILL
-  //      (conditional mediation) alongside the name form. A returning reader on a
-  //      fresh browser sees their synced passkey as a silent suggestion → one tap
-  //      signs them in (no QR). A true first-timer types their name and registers.
+  //   2. This browser doesn't → open the modal: an explicit "Sign in with
+  //      passkey" button (returning reader, discoverable get()) above the
+  //      registration form, with passkey AUTOFILL (conditional mediation) also
+  //      running as a silent suggestion. A true first-timer types their name
+  //      and registers.
   async function signInOrRegister() {
     // Known device → reauth with the stored handle (one Face/Touch ID, no name
     // form). If the stored identity is STALE (server reader/credential gone),
@@ -614,9 +622,11 @@
     _styleInjected = true;
     const css = `
 .ra-back{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
-  padding:24px;background:rgba(0,0,0,.88);animation:ra-fade .2s ease-out both}
+  padding:24px;background:rgba(0,0,0,.88);animation:ra-fade .2s ease-out both;
+  padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))}
 @keyframes ra-fade{from{opacity:0}to{opacity:1}}
-.ra-card{width:100%;max-width:360px;background:#070707;border:1px solid #1c1c1c;
+.ra-card{width:100%;max-width:360px;max-height:calc(100dvh - 48px);overflow-y:auto;
+  background:#070707;border:1px solid #1c1c1c;
   padding:34px 28px 28px;position:relative;color:#fff;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif}
 .ra-eur{font-family:"Eurostile","Helvetica Neue",sans-serif}
@@ -646,22 +656,42 @@
   border-top-color:#fff;border-radius:50%;animation:ra-spin .7s linear infinite}
 .ra-btn.busy .ra-spin{display:block}
 @keyframes ra-spin{to{transform:rotate(360deg)}}
+/* the returning-reader path: a full-width white primary above the form */
+.ra-btn.white{background:#fff;color:#000}
+.ra-btn.white:hover:not(:disabled){opacity:.85}
+.ra-btn.white .ra-spin{border-color:rgba(0,0,0,.3);border-top-color:#000}
+.ra-signin{width:100%;flex:none}
+.ra-signin svg{width:14px;height:14px;flex-shrink:0}
+.ra-note{font-family:"Eurostile","Helvetica Neue",sans-serif;font-size:10px;letter-spacing:.08em;
+  color:#8a8a8a;text-align:center;min-height:1.2em;margin:8px 0 0}
+.ra-div{display:flex;align-items:center;gap:12px;margin:18px 0 16px;white-space:nowrap;
+  font-family:"Eurostile","Helvetica Neue",sans-serif;font-size:9px;font-weight:700;
+  letter-spacing:.2em;color:#666;text-transform:uppercase}
+.ra-div::before,.ra-div::after{content:"";flex:1;height:1px;background:#1f1f1f}
 @media (prefers-reduced-motion:reduce){.ra-back{animation:none}.ra-spin{animation-duration:1.4s}}`;
     const el = document.createElement('style');
     el.textContent = css;
     document.head.appendChild(el);
   }
 
-  // The brand-styled modal. With { conditional: true } it ALSO runs passkey
-  // autofill (conditional mediation) anchored to the name field: a returning
-  // reader's synced passkey appears as a silent suggestion — one tap signs them
-  // in (no QR, no typing) and the promise resolves with { signedIn: true, ... };
-  // a new reader types their name and the promise resolves with the reader.
+  // The brand-styled modal — the returning-reader path comes FIRST: a prominent
+  // "Sign in with passkey" button (discoverable get(); the click is the user
+  // gesture WebAuthn needs) sits above the registration form, so nobody has to
+  // discover sign-in by accident. On success the promise resolves with
+  // { signedIn: true, ... } — exactly like the autofill path. With
+  // { conditional: true } passkey AUTOFILL (conditional mediation) also runs
+  // anchored to the name field: a returning reader's synced passkey appears as
+  // a silent suggestion — one tap signs them in (no QR, no typing). A new
+  // reader types their name and the promise resolves with the reader.
   async function promptRegister(opts = {}) {
     if (!(await checkSupport())) throw err('unsupported');
     const conditional = !!opts.conditional
       && typeof AbortController !== 'undefined'
       && await isConditionalMediationAvailable();
+
+    // Passkey/key line icon for the sign-in button (stroke, currentColor).
+    const KEY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2m-3.5 3.5 3 3M14 9l2 2"/></svg>';
 
     return new Promise((resolve, reject) => {
       injectStyles();
@@ -670,10 +700,13 @@
       back.className = 'ra-back';
       back.innerHTML = `
         <div class="ra-card" role="dialog" aria-modal="true" aria-label="Sign in or register as a reader">
-          <div class="ra-title">${conditional ? 'Sign in or register' : 'Register'}</div>
-          <div class="ra-sub">${conditional
-            ? "Returning reader? Choose your saved passkey. New here? Enter your name to create one — Touch ID, Face ID, Windows Hello, or your screen lock, no password."
-            : "Create your reader passkey. You'll use Touch ID, Face ID, Windows Hello, or your device's screen lock — no password to remember."}</div>
+          <div class="ra-title">Sign in or register</div>
+          <div class="ra-sub">Touch ID, Face ID, Windows Hello, or your device's screen lock — no password.</div>
+          <button class="ra-btn white ra-signin" id="ra-signin" type="button">
+            <span class="ra-spin" aria-hidden="true"></span>${KEY_SVG}<span class="ra-signin-text">Sign in with passkey</span>
+          </button>
+          <div class="ra-note" id="ra-note" aria-live="polite"></div>
+          <div class="ra-div" aria-hidden="true">New to the Lot?</div>
           <div class="ra-field">
             <label for="ra-first">First name</label>
             <input id="ra-first" type="text" autocomplete="${conditional ? 'username webauthn' : 'given-name'}" placeholder="First name">
@@ -700,21 +733,53 @@
       const last   = back.querySelector('#ra-last');
       const emailEl = back.querySelector('#ra-email');
       const errEl  = back.querySelector('#ra-err');
+      const noteEl = back.querySelector('#ra-note');
       const goBtn  = back.querySelector('#ra-go');
       const goText = back.querySelector('.ra-go-text');
       const cancel = back.querySelector('#ra-cancel');
+      const siBtn  = back.querySelector('#ra-signin');
+      const siText = back.querySelector('.ra-signin-text');
       let busy = false, done = false;
-      const condAC = conditional ? new AbortController() : null;
+      let condAC = null; // one AbortController per autofill attempt (it can restart)
+
+      function abortConditional() {
+        if (condAC) { try { condAC.abort(); } catch {} condAC = null; }
+      }
 
       function close(result, error) {
         if (done) return;
         done = true;
-        if (condAC) { try { condAC.abort(); } catch {} }
+        abortConditional();
         document.removeEventListener('keydown', onKey, true);
         back.remove();
         if (error) reject(error); else resolve(result);
       }
       function bail() { if (!busy) close(null, err('passkey_cancelled')); }
+
+      // Explicit returning-reader path — discoverable sign-in (the browser shows
+      // the passkey picker). Resolves the modal exactly like the autofill path;
+      // on cancel/failure it points at registration instead of dead-ending.
+      async function signInClick() {
+        if (busy || done) return;
+        busy = true;
+        errEl.textContent = ''; noteEl.textContent = '';
+        siBtn.classList.add('busy'); siBtn.disabled = true;
+        goBtn.disabled = true; cancel.disabled = true;
+        siText.textContent = 'Waiting for your passkey';
+        abortConditional(); // a modal get() and conditional get() can't run together
+        try {
+          const r = await signInWithPasskey(); // authenticate(null): stores identity + token
+          close({ signedIn: true, actionToken: r.actionToken, readerId: r.readerId, handle: r.handle, displayName: r.displayName }, null);
+        } catch (e) {
+          if (done) return;
+          busy = false;
+          siBtn.classList.remove('busy'); siBtn.disabled = false;
+          goBtn.disabled = false; cancel.disabled = false;
+          siText.textContent = 'Sign in with passkey';
+          noteEl.textContent = 'No passkey on this device? Register below.';
+          if (conditional) startConditional(); // re-arm autofill for another try
+        }
+      }
 
       async function go() {
         if (busy) return;
@@ -722,10 +787,10 @@
         const f = first.value.trim(), l = last.value.trim(), m = emailEl.value.trim();
         if (!f || !l) { errEl.textContent = LOCAL_MESSAGES.missing_name; (f ? last : first).focus(); return; }
         if (!looksLikeEmail(m)) { errEl.textContent = LOCAL_MESSAGES.missing_email; emailEl.focus(); return; }
-        if (condAC) { try { condAC.abort(); } catch {} } // stop autofill before creating
+        abortConditional(); // stop autofill before creating
 
         busy = true;
-        goBtn.classList.add('busy'); goBtn.disabled = true; cancel.disabled = true;
+        goBtn.classList.add('busy'); goBtn.disabled = true; cancel.disabled = true; siBtn.disabled = true;
         goText.textContent = 'Creating passkey';
         first.disabled = last.disabled = emailEl.disabled = true;
         try {
@@ -733,38 +798,49 @@
           close(reader, null);
         } catch (e) {
           busy = false;
-          goBtn.classList.remove('busy'); goBtn.disabled = false; cancel.disabled = false;
+          goBtn.classList.remove('busy'); goBtn.disabled = false; cancel.disabled = false; siBtn.disabled = false;
           goText.textContent = 'Create passkey';
           first.disabled = last.disabled = emailEl.disabled = false;
           errEl.textContent = (e && e.message) || LOCAL_MESSAGES.passkey_verify_failed;
+          if (conditional) startConditional(); // re-arm autofill after a failed register
         }
       }
 
       function onKey(e) {
         if (e.key === 'Escape') { e.preventDefault(); bail(); }
-        else if (e.key === 'Enter') { e.preventDefault(); go(); }
+        else if (e.key === 'Enter') {
+          // Enter on the sign-in/cancel buttons must fire THAT button, not the
+          // form's default Create-passkey action.
+          if (e.target === siBtn || e.target === cancel) return;
+          e.preventDefault(); go();
+        }
       }
 
+      siBtn.addEventListener('click', signInClick);
       goBtn.addEventListener('click', go);
       cancel.addEventListener('click', bail);
       back.addEventListener('click', e => { if (e.target === back) bail(); });
       document.addEventListener('keydown', onKey, true);
       first.focus();
 
-      // Passkey autofill — best-effort; registration stays available regardless.
+      // Passkey autofill — best-effort; the explicit button + registration stay
+      // available regardless. Guarded against racing the button path: close()
+      // resolves once, and the button aborts any in-flight autofill first.
       if (conditional) startConditional();
 
       async function startConditional() {
+        if (done || condAC) return; // already closed, or an attempt is live
+        const ac = (condAC = new AbortController());
         try {
           const begin = await postJSON('/readers/auth/begin', {}, { retries: 0, timeout: 30000 });
-          if (done || !begin || !begin.challengeId || !begin.options) return;
+          if (done || ac.signal.aborted || !begin || !begin.challengeId || !begin.options) return;
 
           let cred;
           try {
             cred = await navigator.credentials.get({
               publicKey: prepRequestOptions(begin.options),
               mediation: 'conditional',
-              signal: condAC.signal,
+              signal: ac.signal,
             });
           } catch { return; } // aborted (registered/cancelled) or dismissed — stay silent
           if (done || !cred) return;
@@ -783,6 +859,7 @@
             displayName: completed.displayName,
           }, null);
         } catch { /* conditional UI is best-effort */ }
+        finally { if (condAC === ac) condAC = null; }
       }
     });
   }
@@ -802,6 +879,7 @@
     getReader,
     isRegistered,
     clearReader,
+    signOut,           // full local sign-out (identity keys + in-memory token) — wire EXIT controls here
 
     // reader session token (persistent identity — read personalization only)
     getSessionToken,
@@ -813,7 +891,7 @@
 
     // flows
     register,          // (firstName, lastName) — pure, no DOM
-    promptRegister,    // modal; { conditional:true } adds passkey autofill (sign-in or register)
+    promptRegister,    // modal: explicit passkey sign-in button + register form; { conditional:true } adds passkey autofill
     reauth,            // Flow 2: returning reader, stored handle
     signInWithPasskey, // Flow 3: discoverable, no handle
     signIn,            // smart: reauth if registered, else discoverable (never registers)
